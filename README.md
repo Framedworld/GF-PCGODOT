@@ -33,7 +33,7 @@ Create nested graphs and easily collapse selected nodes into a reusable Subgraph
 
 ### 6. Procedural Helical Colonnade & Rubble Scatter
 Generate complex procedural architecture such as helical towers. Combines curve sampling with coordinate transforms, relative lintel placement, and duplicate scatter operations to create debris and rubble.
-![Helical Colonnade](demo/addons/flow_nodes_editor/doc/demo_flashy_colonnade.png)
+![Helical Colonnade](demo/addons/flow_nodes_editor/doc/demo_flashy_colonnade_v2.png)
 
 ### 7. Fall Guys Hexagons & Spawn Nodes
 Generate dynamic gameplay platforms such as the multi-colored hexagon grid inspired by Fall Guys. Use the new **Random Color** node to assign random color attributes (e.g. filtered to a specific color palette) and the **Spawn Nodes** node to instantiate custom Godot engine nodes (like `OmniLight3D` or `VoxelGI`) at each point's coordinates to illuminate and decorate the geometry in real-time.
