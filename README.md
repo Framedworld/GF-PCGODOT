@@ -31,6 +31,10 @@ Sample points and scale their density values smoothly based on their distance/pr
 Create nested graphs and easily collapse selected nodes into a reusable Subgraph.
 ![Subgraph Collapse](demo/addons/flow_nodes_editor/doc/demo_subgraph_popup.png)
 
+### 6. Procedural Helical Colonnade & Rubble Scatter
+Generate complex procedural architecture such as helical towers. Combines curve sampling with coordinate transforms, relative lintel placement, and duplicate scatter operations to create debris and rubble.
+![Helical Colonnade](demo/addons/flow_nodes_editor/doc/demo_flashy_colonnade.png)
+
 ---
 
 ## 🚀 Key Features

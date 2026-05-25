@@ -1,0 +1,280 @@
+[gd_scene format=3 uid="uid://jqfvmvjk1iwg"]
+
+[ext_resource type="Script" uid="uid://d1krtmb1urldl" path="res://addons/flow_nodes_editor/flow_node.gd" id="1_nefte"]
+[ext_resource type="BoxMesh" uid="uid://7flu82pqtc5d" path="res://addons/flow_nodes_editor/resources/unit_cube.tres" id="2_54kpl"]
+[ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="3_mmt4p"]
+[ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="4_5i20u"]
+
+[sub_resource type="Curve3D" id="Curve3D_kodj5"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 7.7733545, 0.15, 1.8907555, 0, 0, 0, 0, 0, 0, 7.106261, 0.3, 3.6743784, 0, 0, 0, 0, 0, 0, 6.036517, 0.45, 5.249806, 0, 0, 0, 0, 0, 0, 4.624736, 0.6, 6.527773, 0, 0, 0, 0, 0, 0, 2.9509113, 0.75, 7.4358673, 0, 0, 0, 0, 0, 0, 1.1098843, 0.9, 7.9226356, 0, 0, 0, 0, 0, 0, -0.79403037, 1.05, 7.9604974, 0, 0, 0, 0, 0, 0, -2.6529543, 1.2, 7.5473065, 0, 0, 0, 0, 0, 0, -4.361558, 1.35, 6.7064753, 0, 0, 0, 0, 0, 0, -5.8230305, 1.5, 5.4856462, 0, 0, 0, 0, 0, 0, -6.954562, 1.65, 3.9539936, 0, 0, 0, 0, 0, 0, -7.692039, 1.8, 2.1983023, 0, 0, 0, 0, 0, 0, -7.993675, 1.95, 0.3180521, 0, 0, 0, 0, 0, 0, -7.842379, 2.1, -1.5802191, 0, 0, 0, 0, 0, 0, -7.246723, 2.25, -3.3889532, 0, 0, 0, 0, 0, 0, -6.2404585, 2.4, -5.005665, 0, 0, 0, 0, 0, 0, -4.8806014, 2.55, -6.3387485, 0, 0, 0, 0, 0, 0, -3.2442026, 2.7, -7.3126707, 0, 0, 0, 0, 0, 0, -1.4239832, 2.85, -7.8722467, 0, 0, 0, 0, 0, 0, 0.476921, 3, -7.9857717, 0, 0, 0, 0, 0, 0, 2.3508022, 3.15, -7.6468115, 0, 0, 0, 0, 0, 0, 4.091484, 3.3, -6.874573, 0, 0, 0, 0, 0, 0, 5.6003366, 3.45, -5.712813, 0, 0, 0, 0, 0, 0, 6.791867, 3.6, -4.2273564, 0, 0, 0, 0, 0, 0, 7.5985613, 3.75, -2.5023727, 0, 0, 0, 0, 0, 0, 7.974711, 3.9, -0.63560134, 0, 0, 0, 0, 0, 0, 7.8990026, 4.05, 1.2671841, 0, 0, 0, 0, 0, 0, 7.3757267, 4.2, 3.0981693, 0, 0, 0, 0, 0, 0, 6.4345326, 4.35, 4.753608, 0, 0, 0, 0, 0, 0, 5.128749, 4.5, 6.1397014, 0, 0, 0, 0, 0, 0, 3.532364, 4.65, 7.177911, 0, 0, 0, 0, 0, 0, 1.7358304, 4.8, 7.8094106, 0, 0, 0, 0, 0, 0, -0.1590575, 4.95, 7.998419, 0, 0, 0, 0, 0, 0, -2.044933, 5.1, 7.7342257, 0, 0, 0, 0, 0, 0, -3.81494, 5.25, 7.0318017, 0, 0, 0, 0, 0, 0, -5.3687873, 5.4, 5.930946, 0, 0, 0, 0, 0, 0, -6.618432, 5.55, 4.4940352, 0, 0, 0, 0, 0, 0, -7.493068, 5.7, 2.802487, 0, 0, 0, 0, 0, 0, -7.9431367, 5.85, 0.9521455, 0, 0, 0, 0, 0, 0, -7.9431367, 6, -0.9521455, 0, 0, 0, 0, 0, 0, -7.493068, 6.15, -2.802487, 0, 0, 0, 0, 0, 0, -6.618432, 6.3, -4.4940352, 0, 0, 0, 0, 0, 0, -5.3687873, 6.45, -5.930946, 0, 0, 0, 0, 0, 0, -3.81494, 6.6, -7.0318017, 0, 0, 0, 0, 0, 0, -2.044933, 6.75, -7.7342257, 0, 0, 0, 0, 0, 0, -0.1590575, 6.9, -7.998419, 0, 0, 0, 0, 0, 0, 1.7358304, 7.05, -7.8094106, 0, 0, 0, 0, 0, 0, 3.532364, 7.2, -7.177911, 0, 0, 0, 0, 0, 0, 5.128749, 7.35, -6.1397014, 0, 0, 0, 0, 0, 0, 6.4345326, 7.5, -4.753608, 0, 0, 0, 0, 0, 0, 7.3757267, 7.65, -3.0981693, 0, 0, 0, 0, 0, 0, 7.8990026, 7.8, -1.2671841, 0, 0, 0, 0, 0, 0, 7.974711, 7.95, 0.63560134, 0, 0, 0, 0, 0, 0, 7.5985613, 8.1, 2.5023727, 0, 0, 0, 0, 0, 0, 6.791867, 8.25, 4.2273564, 0, 0, 0, 0, 0, 0, 5.6003366, 8.4, 5.712813, 0, 0, 0, 0, 0, 0, 4.091484, 8.55, 6.874573, 0, 0, 0, 0, 0, 0, 2.3508022, 8.7, 7.6468115, 0, 0, 0, 0, 0, 0, 0.476921, 8.85, 7.9857717, 0, 0, 0, 0, 0, 0, -1.4239832, 9, 7.8722467, 0, 0, 0, 0, 0, 0, -3.2442026, 9.15, 7.3126707, 0, 0, 0, 0, 0, 0, -4.8806014, 9.3, 6.3387485, 0, 0, 0, 0, 0, 0, -6.2404585, 9.45, 5.005665, 0, 0, 0, 0, 0, 0, -7.246723, 9.6, 3.3889532, 0, 0, 0, 0, 0, 0, -7.842379, 9.75, 1.5802191, 0, 0, 0, 0, 0, 0, -7.993675, 9.9, -0.3180521, 0, 0, 0, 0, 0, 0, -7.692039, 10.05, -2.1983023, 0, 0, 0, 0, 0, 0, -6.954562, 10.2, -3.9539936, 0, 0, 0, 0, 0, 0, -5.8230305, 10.35, -5.4856462, 0, 0, 0, 0, 0, 0, -4.361558, 10.5, -6.7064753, 0, 0, 0, 0, 0, 0, -2.6529543, 10.65, -7.5473065, 0, 0, 0, 0, 0, 0, -0.79403037, 10.8, -7.9604974, 0, 0, 0, 0, 0, 0, 1.1098843, 10.95, -7.9226356, 0, 0, 0, 0, 0, 0, 2.9509113, 11.1, -7.4358673, 0, 0, 0, 0, 0, 0, 4.624736, 11.25, -6.527773, 0, 0, 0, 0, 0, 0, 6.036517, 11.4, -5.249806, 0, 0, 0, 0, 0, 0, 7.106261, 11.55, -3.6743784, 0, 0, 0, 0, 0, 0, 7.7733545, 11.7, -1.8907555, 0, 0, 0, 0, 0, 0, 8, 11.85, -5.8781105e-15),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+}
+point_count = 80
+
+[sub_resource type="Resource" id="Resource_kmbf1"]
+script = ExtResource("4_5i20u")
+data = {
+"frames": [],
+"links": [{
+"from_node": &"id_0001_scan",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0002_sample",
+"to_port": 0
+}, {
+"from_node": &"id_0002_sample",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0003_trans_cols",
+"to_port": 0
+}, {
+"from_node": &"id_0003_trans_cols",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0004_spawn_cols",
+"to_port": 0
+}, {
+"from_node": &"id_0002_sample",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0005_trans_lintels",
+"to_port": 0
+}, {
+"from_node": &"id_0005_trans_lintels",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0006_spawn_lintels",
+"to_port": 0
+}, {
+"from_node": &"id_0002_sample",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0007_dup_rubble",
+"to_port": 0
+}, {
+"from_node": &"id_0007_dup_rubble",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0008_trans_rubble",
+"to_port": 0
+}, {
+"from_node": &"id_0008_trans_rubble",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0009_spawn_rubble",
+"to_port": 0
+}],
+"min_pos": Vector2(-100, -100),
+"nodes": [{
+"args_port": {},
+"name": &"id_0001_scan",
+"position": Vector2(0, 100),
+"settings": {
+"debug_enabled": false,
+"disabled": false,
+"group_name": "",
+"inspect_enabled": false,
+"random_seed": 12345,
+"required_meta_bool": "",
+"title": "Scan Splines"
+},
+"show_disconnected_inputs": false,
+"template": "scan_splines"
+}, {
+"args_port": {
+"Splines": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0002_sample",
+"position": Vector2(180, 100),
+"settings": {
+"adjust_to_borders": true,
+"debug_enabled": false,
+"disabled": false,
+"distance_attribute": "distance",
+"fill_curve": false,
+"inspect_enabled": false,
+"random_seed": 12345,
+"sample_segments_centers": false,
+"title": "Sample Spline",
+"uniform_interval": 0.6
+},
+"show_disconnected_inputs": false,
+"template": "sample_spline"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0003_trans_cols",
+"position": Vector2(400, 0),
+"settings": {
+"debug_enabled": false,
+"disabled": false,
+"inspect_enabled": false,
+"offset_max": Vector3(0, 0, 0),
+"offset_min": Vector3(0, 0, 0),
+"random_seed": 12345,
+"rotation_local_space": true,
+"rotation_max": Vector3(0, 0, 0),
+"rotation_min": Vector3(0, 0, 0),
+"scale_max": Vector3(0.5, 3, 0.5),
+"scale_min": Vector3(0.5, 3, 0.5),
+"title": "Column Transform",
+"uniform_scale": false
+},
+"show_disconnected_inputs": false,
+"template": "transform"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0004_spawn_cols",
+"position": Vector2(620, 0),
+"settings": {
+"debug_enabled": false,
+"disabled": false,
+"inspect_enabled": false,
+"mesh": ExtResource("2_54kpl"),
+"mesh_attribute": "",
+"random_seed": 12345,
+"title": "Spawn Columns"
+},
+"show_disconnected_inputs": false,
+"template": "spawn_meshes"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0005_trans_lintels",
+"position": Vector2(400, 180),
+"settings": {
+"debug_enabled": false,
+"disabled": false,
+"inspect_enabled": false,
+"offset_max": Vector3(0, 3, 0),
+"offset_min": Vector3(0, 3, 0),
+"random_seed": 12345,
+"rotation_local_space": true,
+"rotation_max": Vector3(0, 0, 90),
+"rotation_min": Vector3(0, 0, 90),
+"scale_max": Vector3(1.2, 0.3, 0.5),
+"scale_min": Vector3(1.2, 0.3, 0.5),
+"title": "Lintel Transform",
+"uniform_scale": false
+},
+"show_disconnected_inputs": false,
+"template": "transform"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0006_spawn_lintels",
+"position": Vector2(620, 180),
+"settings": {
+"debug_enabled": false,
+"disabled": false,
+"inspect_enabled": false,
+"mesh": ExtResource("2_54kpl"),
+"mesh_attribute": "",
+"random_seed": 12345,
+"title": "Spawn Lintels"
+},
+"show_disconnected_inputs": false,
+"template": "spawn_meshes"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0007_dup_rubble",
+"position": Vector2(400, 360),
+"settings": {
+"debug_enabled": false,
+"disabled": false,
+"inspect_enabled": false,
+"iterations": 2,
+"offset": Vector3(1.5, -3, 0),
+"offset_relative": true,
+"random_seed": 12345,
+"title": "Duplicate Rubble"
+},
+"show_disconnected_inputs": false,
+"template": "duplicate_point"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0008_trans_rubble",
+"position": Vector2(620, 360),
+"settings": {
+"debug_enabled": false,
+"disabled": false,
+"inspect_enabled": false,
+"offset_max": Vector3(0.5, 0, 0.5),
+"offset_min": Vector3(-0.5, 0, -0.5),
+"random_seed": 12345,
+"rotation_local_space": true,
+"rotation_max": Vector3(360, 360, 360),
+"rotation_min": Vector3(0, 0, 0),
+"scale_max": Vector3(0.4, 0.4, 0.4),
+"scale_min": Vector3(0.2, 0.2, 0.2),
+"title": "Rubble Transform",
+"uniform_scale": true
+},
+"show_disconnected_inputs": false,
+"template": "transform"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0009_spawn_rubble",
+"position": Vector2(840, 360),
+"settings": {
+"debug_enabled": false,
+"disabled": false,
+"inspect_enabled": false,
+"mesh": ExtResource("2_54kpl"),
+"mesh_attribute": "",
+"random_seed": 12345,
+"title": "Spawn Rubble"
+},
+"show_disconnected_inputs": false,
+"template": "spawn_meshes"
+}],
+"type": "flow_graph_nodes",
+"version": 1
+}
+new_name_counter = 10
+
+[node name="DemoFlashyColonnade" type="Node3D" unique_id=654719177]
+
+[node name="HelicalPath" type="Path3D" parent="." unique_id=514152795]
+curve = SubResource("Curve3D_kodj5")
+
+[node name="FlowGraphNode3D" type="Node3D" parent="." unique_id=1210969616]
+script = ExtResource("1_nefte")
+graph = SubResource("Resource_kmbf1")
+refresh_inputs = Callable()

@@ -5,6 +5,7 @@ var gedit: GraphEdit
 
 func _ready():
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	show_behind_parent = true
 	# Setup anchors to cover the full parent rect
 	anchor_right = 1.0
 	anchor_bottom = 1.0
