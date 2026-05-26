@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="FlowGraphResource" format=3 uid="uid://cjm6m6ynrpiag"]
 
 [ext_resource type="PackedScene" uid="uid://fpbhnjxaha5m" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/pillar.gltf.glb" id="1_wpk8e"]
+[ext_resource type="PackedScene" uid="uid://bd7upyffu0sxq" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/pillar_decorated.gltf.glb" id="2_eagv2"]
 [ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="2_wws60"]
 [ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="3_eagv2"]
 
@@ -25,16 +26,19 @@ data = {
 "to_node": "spawn_pillars",
 "to_port": 0
 }],
-"min_pos": Vector2(0, 100),
+"min_pos": Vector2(0, 0),
 "nodes": [{
+"args_port": {},
 "name": "input_points",
 "position": Vector2(0, 100),
 "settings": {
 "data_type": 2,
 "name": "points"
 },
+"show_disconnected_inputs": false,
 "template": "input"
 }, {
+"args_port": {},
 "name": "filter_pillar",
 "position": Vector2(300, 100),
 "settings": {
@@ -42,18 +46,24 @@ data = {
 "in_nameA": "type",
 "in_nameB": "2"
 },
+"show_disconnected_inputs": false,
 "template": "filter"
 }, {
+"args_port": {},
 "name": "spawn_pillars",
 "position": Vector2(600, 100),
 "settings": {
-"assign_attributes": {},
-"scene": ExtResource("1_wpk8e"),
-"scene_attribute": ""
+"random_seed": 7021,
+"randomize_scene_variants": true,
+"scene_variant_weights": [4.0, 1.0],
+"scene_variants": [ExtResource("1_wpk8e"), ExtResource("2_eagv2")]
 },
+"show_disconnected_inputs": false,
 "template": "spawn_scenes"
 }],
 "type": "flow_graph_nodes",
 "version": 1
 }
+view_zoom = 0.75
+new_name_counter = 3
 in_params = Array[ExtResource("2_wws60")]([SubResource("Resource_xt2eb")])

@@ -13,11 +13,26 @@ func _init():
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = get_input(0)
 	if in_data == null:
+		if Engine.is_editor_hint() and ctx.owner == null:
+			set_output(0, FlowData.Data.new())
+			return
 		setError("Input 'In' is not connected")
 		return
 		
 	var out_data : FlowData.Data = in_data.duplicate()
+	if not out_data.hasStream(FlowData.AttrSize):
+		if Engine.is_editor_hint() and ctx.owner == null:
+			set_output(0, FlowData.Data.new())
+			return
+		setError("Input must provide a size stream")
+		return
 	var ssizes = out_data.cloneStream(FlowData.AttrSize)
+	if ssizes == null:
+		if Engine.is_editor_hint() and ctx.owner == null:
+			set_output(0, FlowData.Data.new())
+			return
+		setError("Input must provide a size stream")
+		return
 	
 	var mode = settings.mode
 	var b_min = settings.bounds_min

@@ -83,6 +83,9 @@ func _resolve_scene_for_point(idx : int, scenes_stream, variants : Array[PackedS
 		return variants[ridx]
 	if selector_stream != null:
 		var read_idx = idx if selector_stream.container.size() > 1 else 0
+		if selector_stream.data_type == FlowData.DataType.Int:
+			var int_idx = clampi(int(selector_stream.container[read_idx]), 0, variants.size() - 1)
+			return variants[int_idx]
 		var selector_value = float(selector_stream.container[read_idx])
 		var sval = clampf(selector_value, 0.0, 1.0)
 		var ridx = _pick_weighted_variant(variant_weights, sval)
@@ -92,6 +95,9 @@ func _resolve_scene_for_point(idx : int, scenes_stream, variants : Array[PackedS
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = get_input(0)
 	if !in_data:
+		if Engine.is_editor_hint() and ctx.owner == null:
+			set_output(0, FlowData.Data.new())
+			return
 		setError( "Input is invalid")
 		return
 
@@ -132,6 +138,9 @@ func execute( ctx : FlowData.EvaluationContext ):
 
 	var transforms = in_data.getTransformsStream()
 	if transforms == null:
+		if Engine.is_editor_hint() and ctx.owner == null:
+			set_output(0, in_data)
+			return
 		setError("Missing required streams %s/%s" % [ FlowData.AttrPosition, FlowData.AttrRotation ])
 		return
 		

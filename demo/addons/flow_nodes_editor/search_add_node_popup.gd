@@ -13,6 +13,13 @@ const IDM_COLLAPSE_TO_SUBGRAPH = 200
 const BG_COLOR = Color("1b1e28")
 const BORDER_COLOR = Color("252836")
 const ACCENT_COLOR = Color("22d3ee") # Cyan accent
+const MENU_WIDTH = 230
+const MENU_MAX_HEIGHT = 320
+const ROW_HEIGHT = 24
+const SCROLL_ARROW_HEIGHT = 18
+const SUBMENU_HIDE_DELAY = 0.45
+const SUBMENU_KEEPALIVE_PADDING = 36
+const POPUP_KEEPALIVE_DISTANCE = 160.0
 
 var node_types = {}
 var inputs_list = []
@@ -32,7 +39,14 @@ var highlighted_index: int = -1
 # Sub-panel popup
 var submenu_popup: PopupPanel
 var sub_list_vbox: VBoxContainer
-var sub_scroll: ScrollContainer
+var sub_scroll: Control
+var sub_list_margin: MarginContainer
+var sub_scrollbar: VScrollBar
+var sub_scroll_up_btn: Button
+var sub_scroll_down_btn: Button
+var sub_has_scroll_overflow := false
+var sub_scroll_value := 0.0
+var sub_scroll_max := 0.0
 
 var active_hovered_category = ""
 var sub_panel_hide_timer: SceneTreeTimer = null
@@ -46,7 +60,8 @@ func _ready():
 	unresizable = true
 	transient = true
 	exclusive = false
-	
+	min_size = Vector2i(MENU_WIDTH, 0)
+
 	# Apply PanelContainer style to self
 	main_sb = StyleBoxFlat.new()
 	main_sb.bg_color = BG_COLOR
@@ -56,6 +71,7 @@ func _ready():
 	add_theme_stylebox_override("panel", main_sb)
 	
 	var main_vbox = VBoxContainer.new()
+	main_vbox.custom_minimum_size.x = MENU_WIDTH
 	main_vbox.add_theme_constant_override("separation", 0)
 	add_child(main_vbox)
 	
@@ -91,11 +107,12 @@ func _ready():
 	
 	# Scroll area for items
 	scroll = ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(190, 320)
+	scroll.custom_minimum_size = Vector2(MENU_WIDTH, MENU_MAX_HEIGHT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	main_vbox.add_child(scroll)
 	
 	var list_margin = MarginContainer.new()
+	list_margin.custom_minimum_size.x = MENU_WIDTH
 	list_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list_margin.add_theme_constant_override("margin_left", 0)
 	list_margin.add_theme_constant_override("margin_right", 0)
@@ -132,17 +149,22 @@ func _ready():
 	add_child(submenu_popup) # submenu is owned by self
 	
 	# Sub-panel content
-	var sub_vbox = VBoxContainer.new()
-	sub_vbox.add_theme_constant_override("separation", 0)
+	var sub_vbox = Control.new()
+	sub_vbox.custom_minimum_size.x = MENU_WIDTH
 	submenu_popup.add_child(sub_vbox)
 	
+	sub_scroll_up_btn = _create_scroll_arrow_button("▲")
+	sub_vbox.add_child(sub_scroll_up_btn)
+
 	# Sub-panel scroll area
-	sub_scroll = ScrollContainer.new()
-	sub_scroll.custom_minimum_size = Vector2(190, 320)
-	sub_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sub_scroll = Control.new()
+	sub_scroll.clip_contents = true
+	sub_scroll.custom_minimum_size = Vector2(MENU_WIDTH, MENU_MAX_HEIGHT)
+	sub_scroll.gui_input.connect(_on_sub_scroll_gui_input)
 	sub_vbox.add_child(sub_scroll)
 	
-	var sub_list_margin = MarginContainer.new()
+	sub_list_margin = MarginContainer.new()
+	sub_list_margin.custom_minimum_size.x = MENU_WIDTH
 	sub_list_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sub_list_margin.add_theme_constant_override("margin_left", 0)
 	sub_list_margin.add_theme_constant_override("margin_right", 0)
@@ -154,7 +176,19 @@ func _ready():
 	sub_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sub_list_vbox.add_theme_constant_override("separation", 2)
 	sub_list_margin.add_child(sub_list_vbox)
+
+	sub_scrollbar = VScrollBar.new()
+	sub_scrollbar.focus_mode = Control.FOCUS_NONE
+	sub_scrollbar.value_changed.connect(func(value):
+		_set_sub_scroll_value(value)
+	)
+	sub_vbox.add_child(sub_scrollbar)
 	
+	sub_scroll_down_btn = _create_scroll_arrow_button("▼")
+	sub_vbox.add_child(sub_scroll_down_btn)
+	sub_vbox.move_child(sub_scroll_up_btn, sub_vbox.get_child_count() - 1)
+	_update_sub_scroll_arrows()
+
 	# Hide submenu when main hides
 	popup_hide.connect(func():
 		submenu_popup.hide()
@@ -209,18 +243,18 @@ func setup(p_node_types: Dictionary, p_inputs: Array, p_outputs: Array, p_has_se
 		
 	# 3. Node items
 	var cat_map = {
-		"Control Flow": ["branch", "select", "select_multi", "switch"],
+		"Control Flow": ["input", "output", "subgraph", "loop", "branch", "select", "select_multi", "switch", "get_loop_index"],
 		"Debug": ["debug", "print_string", "sanity_check"],
 		"Density": ["curve_remap_density", "density_remap", "distance_to_density"],
 		"Filter": ["filter", "filter_data_by_tag", "filter_data_by_attribute", "filter_data_by_type", "attribute_filter_range", "point_filter_range", "self_pruning", "substract", "difference", "intersection", "union"],
 		"Math": ["math_op", "expression", "reduce", "boolean"],
 		"Metadata": ["add_attribute", "attribute_rename", "remove_attribute", "add_tags", "delete_tags", "replace_tags", "make_vector", "compose_vector", "decompose_vector", "attribute_random", "match_and_set", "mutate_seed", "random_color", "point_to_attribute_set", "attribute_set_to_point", "load_data_table", "data_table_row_to_attribute_set", "load_pcg_data_asset"],
-		"Point Ops": ["bounds_modifier", "transform", "build_rotation_from_up", "combine_points", "duplicate_point", "snap_to_grid", "point_neighborhood"],
-		"Sampler": ["copy", "copy_points", "sample_mesh", "point_from_mesh", "select_points", "sample_spline", "surface_sampler", "volume_sampler", "texture_sampler", "points_from_imported_scene", "load_alembic_file", "navigation_region_sampler"],
+		"Point Ops": ["bounds_modifier", "transform", "build_rotation_from_up", "combine_points", "duplicate_point", "point_offsets", "snap_to_grid", "point_neighborhood"],
+		"Sampler": ["copy", "copy_points", "sample_mesh", "point_from_mesh", "point_from_player_pawn", "points_from_scene", "points_from_tilemap", "points_from_gridmap", "select_points", "sample_spline", "surface_sampler", "volume_sampler", "texture_sampler", "points_from_imported_scene", "load_alembic_file", "navigation_region_sampler"],
 		"Spatial": ["create_spline", "distance", "ray_cast", "physics_overlap_query", "physics_shape_sweep", "clip_points_by_polygon", "clip_paths", "polygon_operation", "split_splines", "create_surface_from_spline", "create_surface_from_polygon"],
 		"Assets": ["assets", "spawn_meshes", "spawn_scenes", "spawn_nodes", "apply_on_actor", "points_from_imported_scene", "load_alembic_file", "load_pcg_data_asset"],
 		"Generators": ["grid", "noise", "relax", "dungeon_generator", "make_bounds", "grid_fill_bounds", "grid_connect_points", "grid_boundary"],
-		"Utility": ["input", "output", "subgraph", "loop", "sort", "merge", "merge_points", "partition", "scan_meshes", "scan_splines", "scan_nodes", "points_from_scene", "point_from_player_pawn", "points_from_tilemap", "points_from_gridmap", "sequence_sample", "size", "get_points_count", "get_data_count", "get_entries_count", "get_loop_index", "transform_points"]
+		"Utility": ["sort", "merge", "merge_points", "partition", "scan_meshes", "scan_splines", "scan_nodes", "sequence_sample", "size", "get_points_count", "get_data_count", "get_entries_count", "transform_points"]
 	}
 
 	
@@ -259,8 +293,70 @@ func setup(p_node_types: Dictionary, p_inputs: Array, p_outputs: Array, p_has_se
 			"type": "node",
 			"key": key,
 			"label": meta.title,
-			"category": get_category.call(key)
+			"category": get_category.call(key),
+			"aliases": meta.get("aliases", []),
+			"tooltip": meta.get("tooltip", "")
 		})
+
+func _item_matches_query(item: Dictionary, query: String) -> bool:
+	if item.label.to_lower().contains(query) or item.category.to_lower().contains(query):
+		return true
+	if item.get("tooltip", "").to_lower().contains(query):
+		return true
+	for alias in item.get("aliases", []):
+		if str(alias).to_lower().contains(query):
+			return true
+	return false
+
+func _create_scroll_arrow_button(label: String) -> Button:
+	var btn = Button.new()
+	btn.text = label
+	btn.flat = true
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	btn.custom_minimum_size = Vector2(MENU_WIDTH, SCROLL_ARROW_HEIGHT)
+	btn.add_theme_font_size_override("font_size", 11)
+	btn.add_theme_color_override("font_color", ACCENT_COLOR)
+	btn.add_theme_color_override("font_hover_color", Color.WHITE)
+	btn.add_theme_color_override("font_disabled_color", Color(0.55, 0.80, 0.88, 0.62))
+	var sb_normal = StyleBoxEmpty.new()
+	btn.add_theme_stylebox_override("normal", sb_normal)
+	var sb_hover = StyleBoxFlat.new()
+	sb_hover.bg_color = Color(1.0, 1.0, 1.0, 0.05)
+	btn.add_theme_stylebox_override("hover", sb_hover)
+	btn.add_theme_stylebox_override("pressed", sb_hover)
+	btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	return btn
+
+func _on_sub_scroll_gui_input(event: InputEvent):
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_set_sub_scroll_value(sub_scroll_value - ROW_HEIGHT * 3)
+			sub_scroll.accept_event()
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_set_sub_scroll_value(sub_scroll_value + ROW_HEIGHT * 3)
+			sub_scroll.accept_event()
+
+func _set_sub_scroll_value(value: float):
+	sub_scroll_value = clampf(value, 0.0, sub_scroll_max)
+	if sub_list_margin:
+		sub_list_margin.position.y = -sub_scroll_value
+	if sub_scrollbar and absf(sub_scrollbar.value - sub_scroll_value) > 0.01:
+		sub_scrollbar.value = sub_scroll_value
+	_update_sub_scroll_arrows()
+
+func _update_sub_scroll_arrows():
+	if not sub_scroll_up_btn or not sub_scroll_down_btn:
+		return
+	if not sub_has_scroll_overflow:
+		sub_scroll_up_btn.visible = false
+		sub_scroll_down_btn.visible = false
+		return
+
+	sub_scroll_up_btn.visible = sub_scroll_value > 1.0
+	sub_scroll_down_btn.visible = sub_scroll_value < sub_scroll_max - 1.0
+	sub_scroll_up_btn.disabled = false
+	sub_scroll_down_btn.disabled = false
 
 func _style_menu_button(btn: Button):
 	btn.alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_LEFT
@@ -308,7 +404,7 @@ func rebuild_list():
 	if query != "":
 		# Filter items flat across all categories
 		var filtered = all_items.filter(func(item):
-			return item.label.to_lower().contains(query) or item.category.to_lower().contains(query)
+			return _item_matches_query(item, query)
 		)
 		
 		var item_index = 0
@@ -317,6 +413,7 @@ func rebuild_list():
 			# Show path: e.g. "ASSETS > SPAWN MESHES"
 			if item.type == "node":
 				btn.text = item.category.to_upper() + " > " + item.label.to_upper()
+				btn.tooltip_text = item.get("tooltip", "")
 			else:
 				btn.text = item.label.to_upper()
 				
@@ -373,6 +470,7 @@ func rebuild_list():
 				if item.type == "node" and item.category == current_category:
 					var btn = Button.new()
 					btn.text = item.label.to_upper()
+					btn.tooltip_text = item.get("tooltip", "")
 					_style_menu_button(btn)
 					
 					current_item_index = item_index
@@ -456,8 +554,10 @@ func rebuild_list():
 		_set_highlight(0)
 		
 	# Disable vertical scrollbar if content fits
-	var main_content_height = list_vbox.get_child_count() * 24 + 12
-	if main_content_height > 320:
+	var main_content_height = list_vbox.get_child_count() * ROW_HEIGHT + 12
+	var main_scroll_height = min(main_content_height, MENU_MAX_HEIGHT)
+	scroll.custom_minimum_size = Vector2(MENU_WIDTH, main_scroll_height)
+	if main_content_height > MENU_MAX_HEIGHT:
 		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	else:
 		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -465,22 +565,57 @@ func rebuild_list():
 	update_layout()
 
 func update_layout(hovered_button: Button = null):
+	min_size = Vector2i(MENU_WIDTH, 0)
+	reset_size()
+	size.x = MENU_WIDTH
+
 	if submenu_popup.visible:
 		var item_count = sub_list_vbox.get_child_count()
-		var button_height = 24
-		var content_height = item_count * button_height + 12
-		var max_height = 320
-		var chosen_scroll_height = min(content_height, max_height)
-		
-		sub_scroll.custom_minimum_size = Vector2(190, chosen_scroll_height)
+		var content_height = item_count * ROW_HEIGHT + 12
+		var has_arrow_buttons = sub_scroll_up_btn != null and sub_scroll_down_btn != null
+		var scrollbar_width = 14
+		var scroll_max_height = MENU_MAX_HEIGHT
+		var chosen_scroll_height = min(content_height, scroll_max_height)
 		
 		# Disable vertical scrollbar if content fits
-		if content_height > max_height:
-			sub_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-		else:
-			sub_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-			
-		submenu_popup.reset_size()
+		var has_overflow = content_height > scroll_max_height
+		sub_has_scroll_overflow = has_overflow
+		sub_scroll_max = maxf(0.0, content_height - chosen_scroll_height)
+		sub_scroll_value = clampf(sub_scroll_value, 0.0, sub_scroll_max)
+		var submenu_height = maxi(ROW_HEIGHT, int(chosen_scroll_height))
+		var view_width = MENU_WIDTH - (scrollbar_width if has_overflow else 0)
+		var sub_container = sub_scroll.get_parent() as Control
+		if sub_container:
+			sub_container.custom_minimum_size = Vector2(MENU_WIDTH, submenu_height)
+			sub_container.size = Vector2(MENU_WIDTH, submenu_height)
+		sub_scroll.custom_minimum_size = Vector2(view_width, chosen_scroll_height)
+		sub_scroll.position = Vector2.ZERO
+		sub_scroll.size = Vector2(view_width, chosen_scroll_height)
+		if sub_list_margin:
+			sub_list_margin.custom_minimum_size = Vector2(view_width, content_height)
+			sub_list_margin.size = Vector2(view_width, content_height)
+			sub_list_margin.position = Vector2(0, -sub_scroll_value)
+		if sub_scrollbar:
+			sub_scrollbar.visible = has_overflow
+			sub_scrollbar.position = Vector2(view_width, 0)
+			sub_scrollbar.size = Vector2(scrollbar_width, chosen_scroll_height)
+			sub_scrollbar.min_value = 0.0
+			sub_scrollbar.max_value = content_height
+			sub_scrollbar.page = chosen_scroll_height
+			sub_scrollbar.step = 1.0
+			sub_scrollbar.value = sub_scroll_value
+		if has_arrow_buttons:
+			sub_scroll_up_btn.visible = has_overflow
+			sub_scroll_down_btn.visible = has_overflow
+			sub_scroll_up_btn.position = Vector2.ZERO
+			sub_scroll_up_btn.size = Vector2(view_width, SCROLL_ARROW_HEIGHT)
+			sub_scroll_down_btn.position = Vector2(0, chosen_scroll_height - SCROLL_ARROW_HEIGHT)
+			sub_scroll_down_btn.size = Vector2(view_width, SCROLL_ARROW_HEIGHT)
+		if not has_overflow:
+			_set_sub_scroll_value(0.0)
+
+		submenu_popup.min_size = Vector2i(MENU_WIDTH, submenu_height)
+		submenu_popup.size = Vector2i(MENU_WIDTH, submenu_height)
 		
 		# Position submenu popup to the right of the main popup
 		var x = position.x + size.x + 8
@@ -494,6 +629,7 @@ func update_layout(hovered_button: Button = null):
 			y = clamp(y, position.y, max(position.y, max_y))
 			
 		submenu_popup.position = Vector2i(x, y)
+		call_deferred("_update_sub_scroll_arrows")
 
 func _set_highlight(index: int):
 	# Clear previous highlight
@@ -615,6 +751,7 @@ func _show_sub_panel(category_name: String, category_button: Button):
 	for item in sub_items:
 		var btn = Button.new()
 		btn.text = item.label.to_upper()
+		btn.tooltip_text = item.get("tooltip", "")
 		_style_menu_button(btn)
 		
 		btn.mouse_entered.connect(func():
@@ -646,6 +783,7 @@ func _show_sub_panel(category_name: String, category_button: Button):
 		
 		sub_list_vbox.add_child(btn)
 		
+	_set_sub_scroll_value(0.0)
 	submenu_popup.visible = true
 	update_layout(category_button)
 
@@ -657,10 +795,12 @@ func _hide_sub_panel_immediately():
 
 func _start_sub_panel_hide_timer():
 	_cancel_sub_panel_hide_timer()
-	sub_panel_hide_timer = get_tree().create_timer(0.15)
+	sub_panel_hide_timer = get_tree().create_timer(SUBMENU_HIDE_DELAY)
 	sub_panel_hide_timer.timeout.connect(func():
-		if sub_panel_hide_timer:
+		if sub_panel_hide_timer and not _is_mouse_near_submenu_stack():
 			_hide_sub_panel_immediately()
+		elif sub_panel_hide_timer:
+			_start_sub_panel_hide_timer()
 	)
 
 func _cancel_sub_panel_hide_timer():
@@ -684,8 +824,19 @@ func _process(delta):
 		var sub_dist = _dist_to_rect(mouse_screen_pos, sub_rect)
 		dist = min(dist, sub_dist)
 		
-	if dist > 100.0:
+	if dist > POPUP_KEEPALIVE_DISTANCE:
 		hide()
+
+func _is_mouse_near_submenu_stack() -> bool:
+	var mouse_screen_pos = DisplayServer.mouse_get_position()
+	var main_rect = Rect2(position, size).grow(SUBMENU_KEEPALIVE_PADDING)
+	if main_rect.has_point(mouse_screen_pos):
+		return true
+	if submenu_popup.visible:
+		var sub_rect = Rect2(submenu_popup.position, submenu_popup.size).grow(SUBMENU_KEEPALIVE_PADDING)
+		if sub_rect.has_point(mouse_screen_pos):
+			return true
+	return false
 
 func _dist_to_rect(p: Vector2, rect: Rect2) -> float:
 	var dx = max(rect.position.x - p.x, 0.0, p.x - rect.end.x)

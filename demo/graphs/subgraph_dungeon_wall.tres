@@ -2,9 +2,15 @@
 
 [ext_resource type="PackedScene" uid="uid://cryqu2b13ljmr" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall.gltf.glb" id="1_yhwsy"]
 [ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="2_6i6xu"]
+[ext_resource type="PackedScene" uid="uid://uf8w4l67yqe4" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_cracked.gltf.glb" id="2_pmi3q"]
 [ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="3_gjsxd"]
+[ext_resource type="PackedScene" uid="uid://cu3gga7dm0tau" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_arched.gltf.glb" id="3_w0xid"]
+[ext_resource type="PackedScene" uid="uid://b712yatb3ml2l" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_window_closed.gltf.glb" id="4_8t357"]
+[ext_resource type="PackedScene" uid="uid://cxiuc7yapm02e" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_broken.gltf.glb" id="5_vu2vv"]
+[ext_resource type="PackedScene" uid="uid://bwap6a5lxsuas" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_doorway.glb" id="6_8t357"]
+[ext_resource type="PackedScene" uid="uid://dji6df6muod7a" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_doorway_scaffold.glb" id="7_vu2vv"]
 
-[sub_resource type="Resource" id="Resource_1tcdh"]
+[sub_resource type="Resource" id="Resource_hy2wg"]
 script = ExtResource("2_6i6xu")
 name = "points"
 
@@ -25,16 +31,19 @@ data = {
 "to_node": "spawn_walls",
 "to_port": 0
 }],
-"min_pos": Vector2(0, 100),
+"min_pos": Vector2(0, 0),
 "nodes": [{
+"args_port": {},
 "name": "input_points",
 "position": Vector2(0, 100),
 "settings": {
 "data_type": 2,
 "name": "points"
 },
+"show_disconnected_inputs": false,
 "template": "input"
 }, {
+"args_port": {},
 "name": "filter_wall",
 "position": Vector2(300, 100),
 "settings": {
@@ -42,18 +51,24 @@ data = {
 "in_nameA": "type",
 "in_nameB": "1"
 },
+"show_disconnected_inputs": false,
 "template": "filter"
 }, {
+"args_port": {},
 "name": "spawn_walls",
 "position": Vector2(600, 100),
 "settings": {
-"assign_attributes": {},
-"scene": ExtResource("1_yhwsy"),
-"scene_attribute": ""
+"random_seed": 6021,
+"randomize_scene_variants": true,
+"scene_variant_weights": [7.0, 1.4, 1.0, 0.8, 0.35, 0.35, 0.25],
+"scene_variants": [ExtResource("1_yhwsy"), ExtResource("2_pmi3q"), ExtResource("3_w0xid"), ExtResource("4_8t357"), ExtResource("5_vu2vv"), ExtResource("6_8t357"), ExtResource("7_vu2vv")]
 },
+"show_disconnected_inputs": false,
 "template": "spawn_scenes"
 }],
 "type": "flow_graph_nodes",
 "version": 1
 }
-in_params = Array[ExtResource("2_6i6xu")]([SubResource("Resource_1tcdh")])
+view_zoom = 0.75
+new_name_counter = 3
+in_params = Array[ExtResource("2_6i6xu")]([SubResource("Resource_hy2wg")])

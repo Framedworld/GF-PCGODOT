@@ -1,0 +1,403 @@
+[gd_resource type="Resource" script_class="FlowGraphResource" format=3 uid="uid://dmnrde4bnuvg0"]
+
+[ext_resource type="PackedScene" uid="uid://d25khm3xpm21x" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/banner_red.gltf.glb" id="1_skn6l"]
+[ext_resource type="PackedScene" uid="uid://bnd4iey37daus" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/banner_blue.gltf.glb" id="2_xswv1"]
+[ext_resource type="PackedScene" uid="uid://c05rcea8flmbo" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/banner_green.gltf.glb" id="3_j5ak0"]
+[ext_resource type="PackedScene" uid="uid://de8y6lnql78l1" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/banner_patternA_red.gltf.glb" id="4_3e4tf"]
+[ext_resource type="PackedScene" uid="uid://qjxfnavonuvm" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/banner_shield_blue.gltf.glb" id="5_j577g"]
+[ext_resource type="PackedScene" uid="uid://gheo0lvjuggj" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/sword_shield.gltf.glb" id="6_4uh8i"]
+[ext_resource type="PackedScene" uid="uid://skk2dpg2vhls" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/sword_shield_gold.gltf.glb" id="7_prum7"]
+[ext_resource type="PackedScene" uid="uid://djbannpf354a8" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/shelf_small_candles.gltf.glb" id="8_7gsuc"]
+[ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="9_aovpp"]
+[ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="10_i4mcx"]
+[ext_resource type="PackedScene" uid="uid://bwap6a5lxsuas" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_doorway.glb" id="11_mom2y"]
+[ext_resource type="PackedScene" uid="uid://dji6df6muod7a" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_doorway_scaffold.glb" id="12_3jcxi"]
+
+[sub_resource type="Resource" id="Resource_dr3un"]
+script = ExtResource("9_aovpp")
+name = "edges"
+
+[resource]
+script = ExtResource("10_i4mcx")
+data = {
+"frames": [],
+"links": [{
+"from_node": &"input_edges",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"select_banners",
+"to_port": 0
+}, {
+"from_node": &"banner_offsets",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"spawn_banners",
+"to_port": 0
+}, {
+"from_node": &"input_edges",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"select_wall_decor",
+"to_port": 0
+}, {
+"from_node": &"select_wall_decor",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"wall_decor_offsets",
+"to_port": 0
+}, {
+"from_node": &"wall_decor_offsets",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"spawn_wall_decor",
+"to_port": 0
+}, {
+"from_node": &"input_edges",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"select_doors",
+"to_port": 0
+}, {
+"from_node": &"select_doors",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"door_offsets",
+"to_port": 0
+}, {
+"from_node": &"door_offsets",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"spawn_doors",
+"to_port": 0
+}, {
+"from_node": &"select_banners",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"banner_offsets",
+"to_port": 0
+}],
+"min_pos": Vector2(0, 40),
+"nodes": [{
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"select_wall_decor",
+"position": Vector2(300, 240),
+"settings": {
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"inspect_enabled": false,
+"random_seed": 2601,
+"ratio": 0.12,
+"title": "Select Points",
+"trace": false,
+"weight_name": ""
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"select_doors",
+"position": Vector2(300, 460),
+"settings": {
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"inspect_enabled": false,
+"random_seed": 2751,
+"ratio": 0.045,
+"title": "Select Points",
+"trace": false,
+"weight_name": ""
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"spawn_doors",
+"position": Vector2(900, 460),
+"settings": {
+"assign_attributes": {},
+"assign_target_path": "",
+"clear_previous_instances": true,
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"inspect_enabled": false,
+"random_seed": 2761,
+"randomize_scene_variants": true,
+"scene": null,
+"scene_attribute": "",
+"scene_selector_attribute": "",
+"scene_variant_weights": Array[float]([1.0, 0.55]),
+"scene_variants": Array[PackedScene]([ExtResource("11_mom2y"), ExtResource("12_3jcxi")]),
+"spawn_parent_path": "",
+"title": "Spawn Scenes",
+"trace": false
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"select_banners",
+"position": Vector2(300, 0),
+"settings": {
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"inspect_enabled": false,
+"random_seed": 2401,
+"ratio": 0.14,
+"title": "Select Points",
+"trace": false,
+"weight_name": ""
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {},
+"name": &"input_edges",
+"position": Vector2(0, 120),
+"settings": {
+"data_type": 2,
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"inspect_enabled": false,
+"name": "edges",
+"random_seed": 2301340370,
+"title": "Input",
+"trace": false
+},
+"show_disconnected_inputs": false,
+"template": "input"
+}, {
+"args_port": {
+"Anchors": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"door_offsets",
+"position": Vector2(600, 460),
+"settings": {
+"combine_rotation": true,
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"inherit_anchor_size": false,
+"inspect_enabled": false,
+"label_attribute": "offset_label",
+"labels": Array[String](["door"]),
+"local_space": true,
+"offset_index_attribute": "offset_index",
+"offsets": Array[Vector3]([Vector3(0, 0, -0.62)]),
+"parent_index_attribute": "parent_index",
+"random_seed": 3207323691,
+"rotations": Array[Vector3]([Vector3(0, 0, 0)]),
+"scale_offsets_by_anchor_size": false,
+"sizes": Array[Vector3]([Vector3(1, 1, 1)]),
+"title": "Point Offsets",
+"trace": false
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {
+"Anchors": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"wall_decor_offsets",
+"position": Vector2(600, 240),
+"settings": {
+"combine_rotation": true,
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"inherit_anchor_size": false,
+"inspect_enabled": false,
+"label_attribute": "offset_label",
+"labels": Array[String](["wall_decor"]),
+"local_space": true,
+"offset_index_attribute": "offset_index",
+"offsets": Array[Vector3]([Vector3(0, 1.35, -0.48)]),
+"parent_index_attribute": "parent_index",
+"random_seed": 242963936,
+"rotations": Array[Vector3]([Vector3(0, 0, 0)]),
+"scale_offsets_by_anchor_size": false,
+"sizes": Array[Vector3]([Vector3(0.75, 0.75, 0.75)]),
+"title": "Point Offsets",
+"trace": false
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"spawn_wall_decor",
+"position": Vector2(900, 240),
+"settings": {
+"assign_attributes": {},
+"assign_target_path": "",
+"clear_previous_instances": true,
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"inspect_enabled": false,
+"random_seed": 2701,
+"randomize_scene_variants": true,
+"scene": null,
+"scene_attribute": "",
+"scene_selector_attribute": "",
+"scene_variant_weights": Array[float]([1.0, 0.35, 0.8]),
+"scene_variants": Array[PackedScene]([ExtResource("6_4uh8i"), ExtResource("7_prum7"), ExtResource("8_7gsuc")]),
+"spawn_parent_path": "",
+"title": "Spawn Scenes",
+"trace": false
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"spawn_banners",
+"position": Vector2(900, 0),
+"settings": {
+"assign_attributes": {},
+"assign_target_path": "",
+"clear_previous_instances": true,
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"inspect_enabled": false,
+"random_seed": 2501,
+"randomize_scene_variants": true,
+"scene": null,
+"scene_attribute": "",
+"scene_selector_attribute": "",
+"scene_variant_weights": Array[float]([1.0, 1.0, 1.0, 0.8, 0.5]),
+"scene_variants": Array[PackedScene]([ExtResource("1_skn6l"), ExtResource("2_xswv1"), ExtResource("3_j5ak0"), ExtResource("4_3e4tf"), ExtResource("5_j577g")]),
+"spawn_parent_path": "",
+"title": "Spawn Scenes",
+"trace": false
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {
+"Anchors": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"banner_offsets",
+"position": Vector2(600, 0),
+"settings": {
+"combine_rotation": true,
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"inherit_anchor_size": false,
+"inspect_enabled": false,
+"label_attribute": "offset_label",
+"labels": Array[String](["banner"]),
+"local_space": true,
+"offset_index_attribute": "offset_index",
+"offsets": Array[Vector3]([Vector3(0, 0.55, -0.18)]),
+"parent_index_attribute": "parent_index",
+"random_seed": 3627988437,
+"rotations": Array[Vector3]([Vector3(0, 0, 0)]),
+"scale_offsets_by_anchor_size": false,
+"sizes": Array[Vector3]([Vector3(0.82, 0.82, 0.82)]),
+"title": "Point Offsets",
+"trace": false
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}],
+"type": "flow_graph_nodes",
+"version": 1
+}
+view_zoom = 0.9673493
+view_offset = Vector2(206.36792, -215.35117)
+new_name_counter = 10
+in_params = Array[ExtResource("9_aovpp")]([SubResource("Resource_dr3un")])

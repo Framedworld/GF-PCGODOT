@@ -1,0 +1,348 @@
+[gd_resource type="Resource" script_class="FlowGraphResource" format=3 uid="uid://cpjh6me0pea2p"]
+
+[ext_resource type="PackedScene" uid="uid://clegv0xaik6es" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_tile_large.gltf.glb" id="1_nf6tm"]
+[ext_resource type="PackedScene" uid="uid://c1oarr4yrm5m3" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_wood_large.gltf.glb" id="2_ov01q"]
+[ext_resource type="PackedScene" uid="uid://judlwj16o64j" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_wood_large_dark.gltf.glb" id="3_pc3dh"]
+[ext_resource type="PackedScene" uid="uid://dc022j0l8cxts" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_dirt_large.gltf.glb" id="4_ve1h6"]
+[ext_resource type="PackedScene" uid="uid://cryqu2b13ljmr" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall.gltf.glb" id="5_8kqtn"]
+[ext_resource type="PackedScene" uid="uid://uf8w4l67yqe4" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_cracked.gltf.glb" id="6_cdcu3"]
+[ext_resource type="PackedScene" uid="uid://cu3gga7dm0tau" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_arched.gltf.glb" id="7_ocrpi"]
+[ext_resource type="PackedScene" uid="uid://b712yatb3ml2l" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_window_closed.gltf.glb" id="8_yfl0g"]
+[ext_resource type="PackedScene" uid="uid://cxiuc7yapm02e" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_broken.gltf.glb" id="9_h6urd"]
+[ext_resource type="PackedScene" uid="uid://fpbhnjxaha5m" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/pillar.gltf.glb" id="10_mlywp"]
+[ext_resource type="PackedScene" uid="uid://bd7upyffu0sxq" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/pillar_decorated.gltf.glb" id="11_0cuw0"]
+[ext_resource type="PackedScene" uid="uid://c28hupipebgys" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/stairs_wood.gltf.glb" id="12_wtgg5"]
+[ext_resource type="PackedScene" uid="uid://bmdmy0154d2b" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/stairs_wood_decorated.gltf.glb" id="13_it36q"]
+[ext_resource type="PackedScene" uid="uid://bxsuogd2uqm4i" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/stairs_walled.gltf.glb" id="14_la2sb"]
+[ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="15_8hd14"]
+[ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="16_isae8"]
+
+[sub_resource type="Resource" id="Resource_pv3l7"]
+script = ExtResource("15_8hd14")
+name = "rooms"
+
+[resource]
+script = ExtResource("16_isae8")
+data = {
+"frames": [],
+"links": [{
+"from_node": "input_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "select_upper_rooms",
+"to_port": 0
+}, {
+"from_node": "select_upper_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "lift_upper_rooms",
+"to_port": 0
+}, {
+"from_node": "lift_upper_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "upper_floor_cells",
+"to_port": 0
+}, {
+"from_node": "upper_floor_unit",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_upper_floors",
+"to_port": 0
+}, {
+"from_node": "upper_floor_cells",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "upper_boundary",
+"to_port": 0
+}, {
+"from_node": "upper_boundary",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "upper_wall_unit",
+"to_port": 0
+}, {
+"from_node": "upper_wall_unit",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_upper_walls",
+"to_port": 0
+}, {
+"from_node": "upper_boundary",
+"from_port": 1,
+"keep_alive": false,
+"to_node": "upper_pillar_unit",
+"to_port": 0
+}, {
+"from_node": "upper_pillar_unit",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_upper_pillars",
+"to_port": 0
+}, {
+"from_node": "select_upper_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "stair_unit",
+"to_port": 0
+}, {
+"from_node": "stair_unit",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "stair_offsets",
+"to_port": 0
+}, {
+"from_node": "stair_offsets",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_stairs",
+"to_port": 0
+}, {
+"from_node": "select_upper_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "stair_upper_cutout",
+"to_port": 0
+}, {
+"from_node": "upper_floor_cells",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "upper_floor_minus_stairs",
+"to_port": 0
+}, {
+"from_node": "stair_upper_cutout",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "upper_floor_minus_stairs",
+"to_port": 1
+}, {
+"from_node": "upper_floor_minus_stairs",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "upper_floor_unit",
+"to_port": 0
+}, {
+"from_node": "select_upper_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "stair_lower_wall_points",
+"to_port": 0
+}, {
+"from_node": "stair_lower_wall_points",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_stair_lower_walls",
+"to_port": 0
+}],
+"min_pos": Vector2(0, 0),
+"nodes": [{
+"args_port": {},
+"name": "input_rooms",
+"position": Vector2(0, 260),
+"settings": {
+"data_type": 2,
+"name": "rooms"
+},
+"show_disconnected_inputs": false,
+"template": "input"
+}, {
+"args_port": {},
+"name": "select_upper_rooms",
+"position": Vector2(300, 260),
+"settings": {
+"random_seed": 2801,
+"ratio": 0.14
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {},
+"name": "lift_upper_rooms",
+"position": Vector2(600, 120),
+"settings": {
+"offset_max": Vector3(0, 4.2, 0),
+"offset_min": Vector3(0, 4.2, 0),
+"scale_max": Vector3(1, 1, 1),
+"scale_min": Vector3(1, 1, 1)
+},
+"show_disconnected_inputs": false,
+"template": "transform"
+}, {
+"args_port": {},
+"name": "upper_floor_cells",
+"position": Vector2(900, 120),
+"settings": {
+"cell_size": Vector3(4, 1, 4),
+"copy_input_attributes": true,
+"fill_y_axis": false,
+"max_points": 256
+},
+"show_disconnected_inputs": false,
+"template": "grid_fill_bounds"
+}, {
+"args_port": {},
+"name": "upper_floor_unit",
+"position": Vector2(1200, 120),
+"settings": {
+"bounds_max": Vector3(0.515, 0.5, 0.515),
+"bounds_min": Vector3(-0.515, -0.5, -0.515)
+},
+"show_disconnected_inputs": false,
+"template": "bounds_modifier"
+}, {
+"args_port": {},
+"name": "spawn_upper_floors",
+"position": Vector2(1500, 120),
+"settings": {
+"random_seed": 2901,
+"randomize_scene_variants": true,
+"scene_variant_weights": [2.0, 1.0, 1.0, 0.5],
+"scene_variants": [ExtResource("1_nf6tm"), ExtResource("2_ov01q"), ExtResource("3_pc3dh"), ExtResource("4_ve1h6")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "upper_boundary",
+"position": Vector2(1200, 380),
+"settings": {
+"cell_size": Vector3(4, 1, 4),
+"include_corners": true,
+"wall_height": 4.0,
+"wall_thickness": 1.0
+},
+"show_disconnected_inputs": false,
+"template": "grid_boundary"
+}, {
+"args_port": {},
+"name": "upper_wall_unit",
+"position": Vector2(1500, 320),
+"settings": {
+"bounds_max": Vector3(0.5, 0.5, 0.5),
+"bounds_min": Vector3(-0.5, -0.5, -0.5)
+},
+"show_disconnected_inputs": false,
+"template": "bounds_modifier"
+}, {
+"args_port": {},
+"name": "spawn_upper_walls",
+"position": Vector2(1800, 320),
+"settings": {
+"random_seed": 3001,
+"randomize_scene_variants": true,
+"scene_variant_weights": [7.0, 1.4, 0.8, 0.4, 0.2],
+"scene_variants": [ExtResource("5_8kqtn"), ExtResource("6_cdcu3"), ExtResource("7_ocrpi"), ExtResource("8_yfl0g"), ExtResource("9_h6urd")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "upper_pillar_unit",
+"position": Vector2(1500, 500),
+"settings": {
+"bounds_max": Vector3(0.5, 0.5, 0.5),
+"bounds_min": Vector3(-0.5, -0.5, -0.5)
+},
+"show_disconnected_inputs": false,
+"template": "bounds_modifier"
+}, {
+"args_port": {},
+"name": "spawn_upper_pillars",
+"position": Vector2(1800, 500),
+"settings": {
+"random_seed": 3101,
+"randomize_scene_variants": true,
+"scene_variant_weights": [3.0, 1.0],
+"scene_variants": [ExtResource("10_mlywp"), ExtResource("11_0cuw0")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "stair_unit",
+"position": Vector2(600, 640),
+"settings": {
+"bounds_max": Vector3(0.5, 0.5, 0.5),
+"bounds_min": Vector3(-0.5, -0.5, -0.5)
+},
+"show_disconnected_inputs": false,
+"template": "bounds_modifier"
+}, {
+"args_port": {},
+"name": "stair_offsets",
+"position": Vector2(900, 640),
+"settings": {
+"labels": ["stairs"],
+"offsets": [Vector3(0, 0, -2)],
+"rotations": [Vector3(0, 0, 0)]
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "spawn_stairs",
+"position": Vector2(1200, 640),
+"settings": {
+"random_seed": 3201,
+"randomize_scene_variants": true,
+"scene_variant_weights": [1.0, 0.8, 0.0],
+"scene_variants": [ExtResource("12_wtgg5"), ExtResource("13_it36q"), ExtResource("14_la2sb")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "stair_upper_cutout",
+"position": Vector2(900, 360),
+"settings": {
+"inherit_anchor_size": false,
+"labels": ["upper_stair_opening"],
+"local_space": true,
+"offsets": [Vector3(0, 4.2, -2)],
+"rotations": [Vector3(0, 0, 0)],
+"sizes": [Vector3(3.6, 1.4, 7.6)]
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "upper_floor_minus_stairs",
+"position": Vector2(1120, 240),
+"settings": {
+"operation": 0
+},
+"show_disconnected_inputs": false,
+"template": "difference"
+}, {
+"args_port": {},
+"name": "stair_lower_wall_points",
+"position": Vector2(900, 820),
+"settings": {
+"inherit_anchor_size": false,
+"labels": ["stair_wall_l0", "stair_wall_r0", "stair_wall_l1", "stair_wall_r1"],
+"local_space": true,
+"offsets": [Vector3(-2.5, 0, -4), Vector3(2.5, 0, -4), Vector3(-2.5, 0, 0), Vector3(2.5, 0, 0)],
+"rotations": [Vector3(0, 90, 0), Vector3(0, 90, 0), Vector3(0, 90, 0), Vector3(0, 90, 0)],
+"sizes": [Vector3(1, 1, 1), Vector3(1, 1, 1), Vector3(1, 1, 1), Vector3(1, 1, 1)]
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "spawn_stair_lower_walls",
+"position": Vector2(1200, 820),
+"settings": {
+"random_seed": 3301,
+"randomize_scene_variants": true,
+"scene_variant_weights": [8.0, 1.0],
+"scene_variants": [ExtResource("5_8kqtn"), ExtResource("6_cdcu3")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}],
+"type": "flow_graph_nodes",
+"version": 1
+}
+view_zoom = 0.45
+new_name_counter = 14
+in_params = Array[ExtResource("15_8hd14")]([SubResource("Resource_pv3l7")])

@@ -25,6 +25,14 @@ extends NodeSettings
 	set(value):
 		fill_y_axis = value
 		emit_changed()
+@export var copy_input_attributes : bool = true:
+	set(value):
+		copy_input_attributes = value
+		emit_changed()
+@export var source_index_attribute : String = "":
+	set(value):
+		source_index_attribute = value.strip_edges()
+		emit_changed()
 @export var max_points : int = 100000:
 	set(value):
 		max_points = maxi(1, value)

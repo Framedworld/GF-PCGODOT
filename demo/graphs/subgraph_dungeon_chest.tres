@@ -1,10 +1,12 @@
 [gd_resource type="Resource" script_class="FlowGraphResource" format=3 uid="uid://o2uhfwqnu0jd"]
 
 [ext_resource type="PackedScene" uid="uid://biws7j841yj45" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/chest_gold.glb" id="1_554i3"]
+[ext_resource type="PackedScene" uid="uid://bbsgwk00un2q0" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/chest.glb" id="2_03l2j"]
 [ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="2_pb1yj"]
 [ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="3_03l2j"]
+[ext_resource type="PackedScene" uid="uid://chu2168t0skf0" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/trunk_large_C.gltf.glb" id="3_ojwdg"]
 
-[sub_resource type="Resource" id="Resource_ojwdg"]
+[sub_resource type="Resource" id="Resource_kdtai"]
 script = ExtResource("2_pb1yj")
 name = "points"
 
@@ -25,16 +27,19 @@ data = {
 "to_node": "spawn_chests",
 "to_port": 0
 }],
-"min_pos": Vector2(0, 100),
+"min_pos": Vector2(0, 0),
 "nodes": [{
+"args_port": {},
 "name": "input_points",
 "position": Vector2(0, 100),
 "settings": {
 "data_type": 2,
 "name": "points"
 },
+"show_disconnected_inputs": false,
 "template": "input"
 }, {
+"args_port": {},
 "name": "filter_chest",
 "position": Vector2(300, 100),
 "settings": {
@@ -42,18 +47,24 @@ data = {
 "in_nameA": "type",
 "in_nameB": "4"
 },
+"show_disconnected_inputs": false,
 "template": "filter"
 }, {
+"args_port": {},
 "name": "spawn_chests",
 "position": Vector2(600, 100),
 "settings": {
-"assign_attributes": {},
-"scene": ExtResource("1_554i3"),
-"scene_attribute": ""
+"random_seed": 8021,
+"randomize_scene_variants": true,
+"scene_variant_weights": [3.0, 1.0, 1.0],
+"scene_variants": [ExtResource("1_554i3"), ExtResource("2_03l2j"), ExtResource("3_ojwdg")]
 },
+"show_disconnected_inputs": false,
 "template": "spawn_scenes"
 }],
 "type": "flow_graph_nodes",
 "version": 1
 }
-in_params = Array[ExtResource("2_pb1yj")]([SubResource("Resource_ojwdg")])
+view_zoom = 0.75
+new_name_counter = 3
+in_params = Array[ExtResource("2_pb1yj")]([SubResource("Resource_kdtai")])

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="FlowGraphResource" load_steps=4 format=3 uid="uid://doldqxmlcvh80"]
+[gd_resource type="Resource" script_class="FlowGraphResource" format=3 uid="uid://doldqxmlcvh80"]
 
 [ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="1_hovoc"]
 [ext_resource type="PackedScene" uid="uid://b6q4l56g02tqn" path="res://scenes/scene_3p.tscn" id="1_kx8in"]
@@ -294,5 +294,4 @@ data = {
 view_zoom = 1.00902
 view_offset = Vector2(-196.173, -423.492)
 new_name_counter = 9
-in_params = Array[ExtResource("1_hovoc")]([])
 metadata/_custom_type_script = "uid://j6vjeb5cjjoy"

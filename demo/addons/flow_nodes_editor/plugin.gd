@@ -31,9 +31,6 @@ func spawnDock( res_template : String, title : String, bottom : bool ) -> Contro
 func _enter_tree():
 	print("Data Flow plugin enabled")
 	graph_dock = spawnDock("res://addons/flow_nodes_editor/flow_editor.tscn", "Data Flow", false ) as Control
-	data_inspector_dock = spawnDock("res://addons/flow_nodes_editor/data_inspector.tscn", "Data Inspector", true)
-	graph_dock.data_inspector = data_inspector_dock
-	graph_dock.make_inspector_visible = func(): make_bottom_panel_item_visible( data_inspector_dock )
 	
 	graph_input_inspector_plugin = load("res://addons/flow_nodes_editor/graph_input_parameter_inspector.gd").new()
 	add_inspector_plugin(graph_input_inspector_plugin)
@@ -58,8 +55,9 @@ func _exit_tree():
 	#remove_inspector_plugin(inspector_plugin)
 	remove_control_from_docks(graph_dock)
 	graph_dock.free()
-	remove_control_from_bottom_panel(data_inspector_dock)
-	data_inspector_dock.free()
+	if data_inspector_dock and is_instance_valid(data_inspector_dock):
+		remove_control_from_bottom_panel(data_inspector_dock)
+		data_inspector_dock.free()
 	selection.selection_changed.disconnect(_selection_changed)
 
 func _ready():

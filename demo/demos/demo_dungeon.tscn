@@ -2,11 +2,60 @@
 
 [ext_resource type="Script" uid="uid://d1krtmb1urldl" path="res://addons/flow_nodes_editor/flow_node.gd" id="1_gm5rt"]
 [ext_resource type="Resource" uid="uid://dfju7khx788ud" path="res://graphs/graph_dungeon_stress_test.tres" id="2_555ba"]
-[ext_resource type="PackedScene" uid="uid://clegv0xaik6es" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_tile_large.gltf.glb" id="3_db1kq"]
-[ext_resource type="PackedScene" uid="uid://crgqm2tj13bya" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/torch_mounted.gltf.glb" id="3_nqbag"]
-[ext_resource type="PackedScene" uid="uid://biws7j841yj45" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/chest_gold.glb" id="5_nqbag"]
-[ext_resource type="PackedScene" uid="uid://fpbhnjxaha5m" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/pillar.gltf.glb" id="6_40cwt"]
+[ext_resource type="PackedScene" uid="uid://bwap6a5lxsuas" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_doorway.glb" id="3_1o4rw"]
+[ext_resource type="PackedScene" uid="uid://d25khm3xpm21x" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/banner_red.gltf.glb" id="3_3ktqr"]
+[ext_resource type="PackedScene" uid="uid://bnd4iey37daus" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/banner_blue.gltf.glb" id="4_purtc"]
+[ext_resource type="PackedScene" uid="uid://c05rcea8flmbo" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/banner_green.gltf.glb" id="5_e8oil"]
+[ext_resource type="PackedScene" uid="uid://qjxfnavonuvm" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/banner_shield_blue.gltf.glb" id="6_ith2j"]
+[ext_resource type="PackedScene" uid="uid://de8y6lnql78l1" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/banner_patternA_red.gltf.glb" id="7_ik25o"]
 [ext_resource type="PackedScene" uid="uid://cryqu2b13ljmr" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall.gltf.glb" id="7_kiml1"]
+[ext_resource type="PackedScene" uid="uid://gheo0lvjuggj" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/sword_shield.gltf.glb" id="8_otml1"]
+[ext_resource type="PackedScene" uid="uid://djbannpf354a8" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/shelf_small_candles.gltf.glb" id="9_ic0qo"]
+[ext_resource type="PackedScene" uid="uid://skk2dpg2vhls" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/sword_shield_gold.gltf.glb" id="10_ua20h"]
+[ext_resource type="PackedScene" uid="uid://judlwj16o64j" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_wood_large_dark.gltf.glb" id="12_s6v45"]
+[ext_resource type="PackedScene" uid="uid://clegv0xaik6es" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_tile_large.gltf.glb" id="13_2e312"]
+[ext_resource type="PackedScene" uid="uid://crgqm2tj13bya" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/torch_mounted.gltf.glb" id="14_5hkb5"]
+[ext_resource type="PackedScene" uid="uid://cu3gga7dm0tau" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_arched.gltf.glb" id="15_eshve"]
+[ext_resource type="PackedScene" uid="uid://uf8w4l67yqe4" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_cracked.gltf.glb" id="16_ely2g"]
+[ext_resource type="PackedScene" uid="uid://c28hupipebgys" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/stairs_wood.gltf.glb" id="21_h4ajd"]
+[ext_resource type="PackedScene" uid="uid://bd7upyffu0sxq" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/pillar_decorated.gltf.glb" id="22_xyxb4"]
+[ext_resource type="PackedScene" uid="uid://fpbhnjxaha5m" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/pillar.gltf.glb" id="23_lbtyg"]
+[ext_resource type="PackedScene" uid="uid://c1oarr4yrm5m3" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_wood_large.gltf.glb" id="24_dkce6"]
+[ext_resource type="PackedScene" uid="uid://degdfaom3n5p" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/box_small.gltf.glb" id="25_lbp8s"]
+[ext_resource type="PackedScene" uid="uid://d322alprfss6g" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/barrel_small_stack.gltf.glb" id="26_2qcdw"]
+[ext_resource type="PackedScene" uid="uid://bagx8wffvdx7e" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/plate_stack.gltf.glb" id="27_kai37"]
+[ext_resource type="PackedScene" uid="uid://b6xnmkpkisb63" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/shelf_small.gltf.glb" id="28_jho17"]
+[ext_resource type="PackedScene" uid="uid://cy3ufuutfb2oj" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/candle_melted.gltf.glb" id="29_mhfbv"]
+[ext_resource type="PackedScene" uid="uid://b0637cdw60mbc" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/coin_stack_small.gltf.glb" id="30_c3p6w"]
+[ext_resource type="PackedScene" uid="uid://xsc1w6d2g7vo" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/box_small_decorated.gltf.glb" id="31_jmk8r"]
+[ext_resource type="PackedScene" uid="uid://vnhta1hy7cpo" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/coin_stack_medium.gltf.glb" id="32_j20va"]
+[ext_resource type="PackedScene" uid="uid://bus4frw34kk3i" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/keyring.gltf.glb" id="33_mkrht"]
+[ext_resource type="PackedScene" uid="uid://bodm0xwgrc53s" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/barrel_small.gltf.glb" id="34_8co7s"]
+[ext_resource type="PackedScene" uid="uid://b6k8qd5kpu5oq" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/box_stacked.gltf.glb" id="35_3qkbm"]
+[ext_resource type="PackedScene" uid="uid://c2uy74a4k22ri" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/box_large.gltf.glb" id="36_31yg4"]
+[ext_resource type="PackedScene" uid="uid://dlh1c85qmhfhg" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/shelf_large.gltf.glb" id="37_fsvi7"]
+[ext_resource type="PackedScene" uid="uid://48wqgal7ib35" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/barrel_large.gltf.glb" id="38_y2017"]
+[ext_resource type="PackedScene" uid="uid://b712yatb3ml2l" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_window_closed.gltf.glb" id="39_2qcdw"]
+[ext_resource type="PackedScene" uid="uid://d2vv68a54uvl1" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/crates_stacked.gltf.glb" id="39_hwc4y"]
+[ext_resource type="PackedScene" uid="uid://cxiuc7yapm02e" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_broken.gltf.glb" id="40_kai37"]
+[ext_resource type="PackedScene" uid="uid://dmyom7o3afkb8" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bed_frame.gltf.glb" id="40_rw04x"]
+[ext_resource type="PackedScene" uid="uid://dji6df6muod7a" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/wall_doorway_scaffold.glb" id="41_b0i5t"]
+[ext_resource type="PackedScene" uid="uid://cc1iygpcl31x0" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bed_floor.gltf.glb" id="41_cxr2h"]
+[ext_resource type="PackedScene" uid="uid://dbju7688geard" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/stool.gltf.glb" id="42_12tpy"]
+[ext_resource type="PackedScene" uid="uid://dy181q3xkni3t" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/chair.gltf.glb" id="43_58nvc"]
+[ext_resource type="PackedScene" uid="uid://bg46bduuer8vm" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/candle_triple.gltf.glb" id="44_amnrx"]
+[ext_resource type="PackedScene" uid="uid://c4t71kc4hgrol" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/candle_lit.gltf.glb" id="45_ndiv7"]
+[ext_resource type="PackedScene" uid="uid://dt0v6acx1ps4b" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bottle_B_brown.gltf.glb" id="46_hssur"]
+[ext_resource type="PackedScene" uid="uid://c2hrhl4seryx0" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bottle_A_brown.gltf.glb" id="47_6x3me"]
+[ext_resource type="PackedScene" uid="uid://bvgcdlns4ynry" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bottle_C_green.gltf.glb" id="48_517xx"]
+[ext_resource type="PackedScene" uid="uid://bbnanhgymwunu" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/plate.gltf.glb" id="49_l2i67"]
+[ext_resource type="PackedScene" uid="uid://ulw8xyx5rd1f" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/plate_food_B.gltf.glb" id="50_wbjo5"]
+[ext_resource type="PackedScene" uid="uid://b1dxgn6yujorv" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/plate_small.gltf.glb" id="51_8ac6j"]
+[ext_resource type="PackedScene" uid="uid://p6a0lqt74cyi" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/plate_food_A.gltf.glb" id="52_t6m7r"]
+[ext_resource type="PackedScene" uid="uid://d1067jgr7mg7h" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/table_medium.gltf.glb" id="53_l4x52"]
+[ext_resource type="PackedScene" uid="uid://blfy027ki20vn" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/table_long.gltf.glb" id="54_kcr2w"]
+[ext_resource type="PackedScene" uid="uid://cpaovd4yfflnk" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/table_long_tablecloth.gltf.glb" id="55_7v2me"]
+[ext_resource type="PackedScene" uid="uid://bbsgwk00un2q0" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/chest.glb" id="56_h7q21"]
 
 [sub_resource type="Environment" id="Environment_gm5rt"]
 background_mode = 1
@@ -20,9 +69,13 @@ sdfgi_use_occlusion = true
 glow_enabled = true
 glow_intensity = 0.8
 glow_bloom = 0.15
-volumetric_fog_density = 0.08
-volumetric_fog_albedo = Color(0.12, 0.14, 0.22, 1)
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.0172
+volumetric_fog_albedo = Color(0.21806103, 0.21806103, 0.21806103, 1)
 volumetric_fog_emission = Color(0.005, 0.005, 0.01, 1)
+volumetric_fog_gi_inject = 2.06
+volumetric_fog_anisotropy = -0.03
+volumetric_fog_length = 21.74
 
 [sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_hc2tf"]
 exposure_multiplier = 1.2
@@ -37,1013 +90,1733 @@ script = ExtResource("1_gm5rt")
 graph = ExtResource("2_555ba")
 refresh_inputs = Callable()
 
-[node name="Scene_0000" type="Node3D" parent="FlowGraphNode3D" unique_id=413009833 instance=ExtResource("5_nqbag")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -0.49592936, -12)
-metadata/flow_owner = &"spawn_chests"
+[node name="Scene_0000" type="Node3D" parent="FlowGraphNode3D" unique_id=1903513200 instance=ExtResource("3_3ktqr")]
+transform = Transform3D(0.82, 0, 0, 0, 0.82, 0, 0, 0, 0.82, -24, 0.55, -14.18)
+metadata/flow_owner = &"spawn_banners"
 
-[node name="@Node3D@134290" type="Node3D" parent="FlowGraphNode3D" unique_id=1981608065 instance=ExtResource("3_nqbag")]
+[node name="Scene_0001" type="Node3D" parent="FlowGraphNode3D" unique_id=883988737 instance=ExtResource("4_purtc")]
+transform = Transform3D(-3.584334e-08, 0, 0.82, 0, 0.82, 0, -0.82, 0, -3.584334e-08, 13.82, 0.55, 20)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="Scene_0002" type="Node3D" parent="FlowGraphNode3D" unique_id=1812741955 instance=ExtResource("3_3ktqr")]
+transform = Transform3D(-3.584334e-08, 0, 0.82, 0, 0.82, 0, -0.82, 0, -3.584334e-08, 9.82, 0.55, -20)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="Scene_0003" type="Node3D" parent="FlowGraphNode3D" unique_id=371619700 instance=ExtResource("4_purtc")]
+transform = Transform3D(-3.584334e-08, 0, 0.82, 0, 0.82, 0, -0.82, 0, -3.584334e-08, 41.82, 0.55, 4)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="Scene_0004" type="Node3D" parent="FlowGraphNode3D" unique_id=588842072 instance=ExtResource("5_e8oil")]
+transform = Transform3D(0.82, 0, 0, 0, 0.82, 0, 0, 0, 0.82, 8, 0.55, -18.18)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="Scene_0005" type="Node3D" parent="FlowGraphNode3D" unique_id=1470062790 instance=ExtResource("6_ith2j")]
+transform = Transform3D(0.82, 0, 0, 0, 0.82, 0, 0, 0, 0.82, -16, 0.55, -10.18)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="Scene_0006" type="Node3D" parent="FlowGraphNode3D" unique_id=375068882 instance=ExtResource("4_purtc")]
+transform = Transform3D(0.82, 0, 0, 0, 0.82, 0, 0, 0, 0.82, 36, 0.55, 21.82)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="Scene_0007" type="Node3D" parent="FlowGraphNode3D" unique_id=239041825 instance=ExtResource("3_3ktqr")]
+transform = Transform3D(-3.584334e-08, 0, 0.82, 0, 0.82, 0, -0.82, 0, -3.584334e-08, -38.18, 0.55, 16)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="Scene_0008" type="Node3D" parent="FlowGraphNode3D" unique_id=711885330 instance=ExtResource("5_e8oil")]
+transform = Transform3D(-3.584334e-08, 0, 0.82, 0, 0.82, 0, -0.82, 0, -3.584334e-08, 41.82, 0.55, 12)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="Scene_0009" type="Node3D" parent="FlowGraphNode3D" unique_id=206927582 instance=ExtResource("7_ik25o")]
+transform = Transform3D(0.82, 0, 0, 0, 0.82, 0, 0, 0, 0.82, -20, 0.55, 21.82)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="Scene_0010" type="Node3D" parent="FlowGraphNode3D" unique_id=610216488 instance=ExtResource("5_e8oil")]
+transform = Transform3D(-3.584334e-08, 0, 0.82, 0, 0.82, 0, -0.82, 0, -3.584334e-08, -14.18, 0.55, -20)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="Scene_0011" type="Node3D" parent="FlowGraphNode3D" unique_id=1625581292 instance=ExtResource("5_e8oil")]
+transform = Transform3D(0.82, 0, 0, 0, 0.82, 0, 0, 0, 0.82, 12, 0.55, -22.18)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="Scene_0012" type="Node3D" parent="FlowGraphNode3D" unique_id=612414959 instance=ExtResource("3_3ktqr")]
+transform = Transform3D(-3.584334e-08, 0, 0.82, 0, 0.82, 0, -0.82, 0, -3.584334e-08, 41.82, 0.55, 8)
+metadata/flow_owner = &"spawn_banners"
+
+[node name="@Node3D@24456" type="Node3D" parent="FlowGraphNode3D" unique_id=520072993 instance=ExtResource("8_otml1")]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 32, 1.35, 21.52)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24457" type="Node3D" parent="FlowGraphNode3D" unique_id=1713713354 instance=ExtResource("8_otml1")]
+transform = Transform3D(-3.278354e-08, 0, 0.75, 0, 0.75, 0, -0.75, 0, -3.278354e-08, 41.52, 1.35, 2.0981465e-08)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24458" type="Node3D" parent="FlowGraphNode3D" unique_id=2093241438 instance=ExtResource("8_otml1")]
+transform = Transform3D(-3.278354e-08, 0, 0.75, 0, 0.75, 0, -0.75, 0, -3.278354e-08, -2.48, 1.35, -8)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24459" type="Node3D" parent="FlowGraphNode3D" unique_id=500042994 instance=ExtResource("9_ic0qo")]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, -16, 1.35, -10.48)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24460" type="Node3D" parent="FlowGraphNode3D" unique_id=961736649 instance=ExtResource("8_otml1")]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 20, 1.35, -6.48)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24461" type="Node3D" parent="FlowGraphNode3D" unique_id=1671290757 instance=ExtResource("8_otml1")]
+transform = Transform3D(-3.278354e-08, 0, 0.75, 0, 0.75, 0, -0.75, 0, -3.278354e-08, -2.48, 1.35, 2.0981465e-08)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24462" type="Node3D" parent="FlowGraphNode3D" unique_id=600450083 instance=ExtResource("8_otml1")]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 24, 1.35, -6.48)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24463" type="Node3D" parent="FlowGraphNode3D" unique_id=1851967195 instance=ExtResource("10_ua20h")]
+transform = Transform3D(-3.278354e-08, 0, 0.75, 0, 0.75, 0, -0.75, 0, -3.278354e-08, -2.48, 1.35, -4)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24464" type="Node3D" parent="FlowGraphNode3D" unique_id=764819117 instance=ExtResource("8_otml1")]
+transform = Transform3D(-3.278354e-08, 0, 0.75, 0, 0.75, 0, -0.75, 0, -3.278354e-08, 13.52, 1.35, 8)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24465" type="Node3D" parent="FlowGraphNode3D" unique_id=1064176629 instance=ExtResource("10_ua20h")]
+transform = Transform3D(-3.278354e-08, 0, 0.75, 0, 0.75, 0, -0.75, 0, -3.278354e-08, -26.48, 1.35, 8)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24466" type="Node3D" parent="FlowGraphNode3D" unique_id=1892240847 instance=ExtResource("9_ic0qo")]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, -36, 1.35, 21.52)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24467" type="Node3D" parent="FlowGraphNode3D" unique_id=1651987229 instance=ExtResource("9_ic0qo")]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 40, 1.35, 21.52)
+metadata/flow_owner = &"spawn_wall_decor"
+
+[node name="@Node3D@24468" type="Node3D" parent="FlowGraphNode3D" unique_id=1388131531 instance=ExtResource("3_1o4rw")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30.62, 0, 4)
+metadata/flow_owner = &"spawn_doors"
+
+[node name="@Node3D@24469" type="Node3D" parent="FlowGraphNode3D" unique_id=956759009 instance=ExtResource("3_1o4rw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, 21.38)
+metadata/flow_owner = &"spawn_doors"
+
+[node name="@Node3D@24470" type="Node3D" parent="FlowGraphNode3D" unique_id=1719054423 instance=ExtResource("3_1o4rw")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -14.62, 0, -16)
+metadata/flow_owner = &"spawn_doors"
+
+[node name="@Node3D@24471" type="Node3D" parent="FlowGraphNode3D" unique_id=227423270 instance=ExtResource("3_1o4rw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0, 9.38)
+metadata/flow_owner = &"spawn_doors"
+
+[node name="@Node3D@24478" type="Node3D" parent="FlowGraphNode3D" unique_id=349688561 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 16, 0.3264078, -4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24479" type="Node3D" parent="FlowGraphNode3D" unique_id=588244866 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 16, 0.3264078, 0)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24480" type="Node3D" parent="FlowGraphNode3D" unique_id=1813236836 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 16, 0.3264078, 4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24481" type="Node3D" parent="FlowGraphNode3D" unique_id=1781326472 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 16, 0.3264078, 8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24482" type="Node3D" parent="FlowGraphNode3D" unique_id=119645391 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 16, 0.3264078, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24483" type="Node3D" parent="FlowGraphNode3D" unique_id=1129061894 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 16, 0.3264078, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24484" type="Node3D" parent="FlowGraphNode3D" unique_id=635032155 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 16, 0.3264078, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24485" type="Node3D" parent="FlowGraphNode3D" unique_id=35883830 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 20, 0.3264078, -4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24486" type="Node3D" parent="FlowGraphNode3D" unique_id=1225972622 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 20, 0.3264078, 0)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24487" type="Node3D" parent="FlowGraphNode3D" unique_id=1565493077 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 20, 0.3264078, 4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24488" type="Node3D" parent="FlowGraphNode3D" unique_id=1131864665 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 20, 0.3264078, 8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24489" type="Node3D" parent="FlowGraphNode3D" unique_id=1351835729 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 20, 0.3264078, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24490" type="Node3D" parent="FlowGraphNode3D" unique_id=1533601047 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 20, 0.3264078, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0013" type="Node3D" parent="FlowGraphNode3D" unique_id=2053724659 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 20, 0.3264078, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0014" type="Node3D" parent="FlowGraphNode3D" unique_id=2001293403 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 24, 0.3264078, -4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0015" type="Node3D" parent="FlowGraphNode3D" unique_id=446172158 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 24, 0.3264078, 0)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0016" type="Node3D" parent="FlowGraphNode3D" unique_id=153338886 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 24, 0.3264078, 4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0017" type="Node3D" parent="FlowGraphNode3D" unique_id=471176544 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 24, 0.3264078, 8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0018" type="Node3D" parent="FlowGraphNode3D" unique_id=1546203405 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 24, 0.3264078, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0019" type="Node3D" parent="FlowGraphNode3D" unique_id=50258107 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 24, 0.3264078, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0020" type="Node3D" parent="FlowGraphNode3D" unique_id=606070373 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 24, 0.3264078, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0021" type="Node3D" parent="FlowGraphNode3D" unique_id=2064591738 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 28, 0.3264078, -4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0022" type="Node3D" parent="FlowGraphNode3D" unique_id=2129583732 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 28, 0.3264078, 0)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0023" type="Node3D" parent="FlowGraphNode3D" unique_id=874687467 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 28, 0.3264078, 4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0024" type="Node3D" parent="FlowGraphNode3D" unique_id=176618614 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 28, 0.3264078, 8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0025" type="Node3D" parent="FlowGraphNode3D" unique_id=1630484576 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 28, 0.3264078, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0026" type="Node3D" parent="FlowGraphNode3D" unique_id=1781540029 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 28, 0.3264078, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0027" type="Node3D" parent="FlowGraphNode3D" unique_id=1525112176 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 28, 0.3264078, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0028" type="Node3D" parent="FlowGraphNode3D" unique_id=1165195037 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 32, 0.3264078, -4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0029" type="Node3D" parent="FlowGraphNode3D" unique_id=1643327100 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 32, 0.3264078, 0)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0030" type="Node3D" parent="FlowGraphNode3D" unique_id=1355716130 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 32, 0.3264078, 4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0031" type="Node3D" parent="FlowGraphNode3D" unique_id=640321370 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 32, 0.3264078, 8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0032" type="Node3D" parent="FlowGraphNode3D" unique_id=795458614 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 32, 0.3264078, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0033" type="Node3D" parent="FlowGraphNode3D" unique_id=1010387140 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 32, 0.3264078, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0034" type="Node3D" parent="FlowGraphNode3D" unique_id=181037784 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 32, 0.3264078, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0035" type="Node3D" parent="FlowGraphNode3D" unique_id=845799231 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 36, 0.3264078, -4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0036" type="Node3D" parent="FlowGraphNode3D" unique_id=982069564 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 36, 0.3264078, 0)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0037" type="Node3D" parent="FlowGraphNode3D" unique_id=886827416 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 36, 0.3264078, 4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0038" type="Node3D" parent="FlowGraphNode3D" unique_id=555532094 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 36, 0.3264078, 8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0039" type="Node3D" parent="FlowGraphNode3D" unique_id=1881483933 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 36, 0.3264078, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0040" type="Node3D" parent="FlowGraphNode3D" unique_id=132616418 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 36, 0.3264078, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0041" type="Node3D" parent="FlowGraphNode3D" unique_id=1312378768 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 36, 0.3264078, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0042" type="Node3D" parent="FlowGraphNode3D" unique_id=1914975415 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 40, 0.3264078, -4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0043" type="Node3D" parent="FlowGraphNode3D" unique_id=1678452016 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 40, 0.3264078, 0)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0044" type="Node3D" parent="FlowGraphNode3D" unique_id=1643408603 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 40, 0.3264078, 4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0045" type="Node3D" parent="FlowGraphNode3D" unique_id=75379120 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 40, 0.3264078, 8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0046" type="Node3D" parent="FlowGraphNode3D" unique_id=793645865 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 40, 0.3264078, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0047" type="Node3D" parent="FlowGraphNode3D" unique_id=331103604 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 40, 0.3264078, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0048" type="Node3D" parent="FlowGraphNode3D" unique_id=993051067 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 40, 0.3264078, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0049" type="Node3D" parent="FlowGraphNode3D" unique_id=1825468728 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 12, 0.34580946, -20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0050" type="Node3D" parent="FlowGraphNode3D" unique_id=720734999 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 12, 0.34580946, -16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0051" type="Node3D" parent="FlowGraphNode3D" unique_id=379096811 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 12, 0.34580946, -12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0052" type="Node3D" parent="FlowGraphNode3D" unique_id=1632909860 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 16, 0.34580946, -20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0053" type="Node3D" parent="FlowGraphNode3D" unique_id=1349229877 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 16, 0.34580946, -16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0054" type="Node3D" parent="FlowGraphNode3D" unique_id=1919456935 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 16, 0.34580946, -12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0055" type="Node3D" parent="FlowGraphNode3D" unique_id=1916731714 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 20, 0.34580946, -20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0056" type="Node3D" parent="FlowGraphNode3D" unique_id=816979451 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 20, 0.34580946, -16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0057" type="Node3D" parent="FlowGraphNode3D" unique_id=1883372883 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 20, 0.34580946, -12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0058" type="Node3D" parent="FlowGraphNode3D" unique_id=264789024 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -12, -0.49592936, -24)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0059" type="Node3D" parent="FlowGraphNode3D" unique_id=497110107 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -12, -0.49592936, -20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0060" type="Node3D" parent="FlowGraphNode3D" unique_id=1871136363 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -12, -0.49592936, -16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0061" type="Node3D" parent="FlowGraphNode3D" unique_id=1264961982 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -12, -0.49592936, -12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0062" type="Node3D" parent="FlowGraphNode3D" unique_id=1841896138 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -12, -0.49592936, -8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0063" type="Node3D" parent="FlowGraphNode3D" unique_id=805685876 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -12, -0.49592936, -4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0064" type="Node3D" parent="FlowGraphNode3D" unique_id=1550159940 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -12, -0.49592936, 0)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0065" type="Node3D" parent="FlowGraphNode3D" unique_id=767041146 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -8, -0.49592936, -24)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0066" type="Node3D" parent="FlowGraphNode3D" unique_id=981864603 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -8, -0.49592936, -20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0067" type="Node3D" parent="FlowGraphNode3D" unique_id=75674219 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -8, -0.49592936, -16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0068" type="Node3D" parent="FlowGraphNode3D" unique_id=58297794 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -8, -0.49592936, -12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0069" type="Node3D" parent="FlowGraphNode3D" unique_id=1577663122 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -8, -0.49592936, -8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0070" type="Node3D" parent="FlowGraphNode3D" unique_id=932502550 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -8, -0.49592936, -4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0071" type="Node3D" parent="FlowGraphNode3D" unique_id=309938070 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -8, -0.49592936, 0)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0072" type="Node3D" parent="FlowGraphNode3D" unique_id=480505306 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -4, -0.49592936, -24)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0073" type="Node3D" parent="FlowGraphNode3D" unique_id=127500598 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -4, -0.49592936, -20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0074" type="Node3D" parent="FlowGraphNode3D" unique_id=865111855 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -4, -0.49592936, -16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0075" type="Node3D" parent="FlowGraphNode3D" unique_id=1507485334 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -4, -0.49592936, -12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0076" type="Node3D" parent="FlowGraphNode3D" unique_id=1383575788 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -4, -0.49592936, -8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0077" type="Node3D" parent="FlowGraphNode3D" unique_id=1935625679 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -4, -0.49592936, -4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0078" type="Node3D" parent="FlowGraphNode3D" unique_id=1894172649 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -4, -0.49592936, 0)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0079" type="Node3D" parent="FlowGraphNode3D" unique_id=1804561530 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -36, -0.3971836, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0080" type="Node3D" parent="FlowGraphNode3D" unique_id=2024589114 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -36, -0.3971836, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0081" type="Node3D" parent="FlowGraphNode3D" unique_id=1110146902 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -36, -0.3971836, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0082" type="Node3D" parent="FlowGraphNode3D" unique_id=1091345578 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -32, -0.3971836, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0083" type="Node3D" parent="FlowGraphNode3D" unique_id=610964113 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -32, -0.3971836, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0084" type="Node3D" parent="FlowGraphNode3D" unique_id=966143200 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -32, -0.3971836, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0085" type="Node3D" parent="FlowGraphNode3D" unique_id=2146771041 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -28, -0.3971836, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0086" type="Node3D" parent="FlowGraphNode3D" unique_id=2038922441 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -28, -0.3971836, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0087" type="Node3D" parent="FlowGraphNode3D" unique_id=329114077 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -28, -0.3971836, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0088" type="Node3D" parent="FlowGraphNode3D" unique_id=858063019 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -24, -0.3971836, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0089" type="Node3D" parent="FlowGraphNode3D" unique_id=1481671269 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -24, -0.3971836, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0090" type="Node3D" parent="FlowGraphNode3D" unique_id=1800343713 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -24, -0.3971836, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0091" type="Node3D" parent="FlowGraphNode3D" unique_id=2118136044 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -20, -0.3971836, 12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0092" type="Node3D" parent="FlowGraphNode3D" unique_id=1619046268 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -20, -0.3971836, 16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0093" type="Node3D" parent="FlowGraphNode3D" unique_id=108215704 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -20, -0.3971836, 20)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0094" type="Node3D" parent="FlowGraphNode3D" unique_id=383966959 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 16, 0, -8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0095" type="Node3D" parent="FlowGraphNode3D" unique_id=134955584 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 8, 0, -16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0096" type="Node3D" parent="FlowGraphNode3D" unique_id=1799553018 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 4, 0, -16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0097" type="Node3D" parent="FlowGraphNode3D" unique_id=920255677 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, 0, 0, -16)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0098" type="Node3D" parent="FlowGraphNode3D" unique_id=1161800064 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -16, 0, -12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0099" type="Node3D" parent="FlowGraphNode3D" unique_id=1856822423 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -20, 0, -12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0100" type="Node3D" parent="FlowGraphNode3D" unique_id=1126845963 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -24, 0, -12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0101" type="Node3D" parent="FlowGraphNode3D" unique_id=1694195338 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -28, 0, -12)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0102" type="Node3D" parent="FlowGraphNode3D" unique_id=405108815 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -28, 0, -8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0103" type="Node3D" parent="FlowGraphNode3D" unique_id=1894945907 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -28, 0, -4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0104" type="Node3D" parent="FlowGraphNode3D" unique_id=292396351 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -28, 0, 0)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0105" type="Node3D" parent="FlowGraphNode3D" unique_id=625703107 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -28, 0, 4)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="Scene_0106" type="Node3D" parent="FlowGraphNode3D" unique_id=275936391 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -28, 0, 8)
+metadata/flow_owner = &"spawn_floors"
+
+[node name="@Node3D@24505" type="Node3D" parent="FlowGraphNode3D" unique_id=1981608065 instance=ExtResource("14_5hkb5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, 22)
 metadata/flow_owner = &"spawn_torch_meshes"
 
-[node name="Scene_0001" type="Node3D" parent="FlowGraphNode3D" unique_id=1435970822 instance=ExtResource("3_nqbag")]
+[node name="@Node3D@24506" type="Node3D" parent="FlowGraphNode3D" unique_id=855238114 instance=ExtResource("14_5hkb5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, -14)
 metadata/flow_owner = &"spawn_torch_meshes"
 
-[node name="Scene_0002" type="Node3D" parent="FlowGraphNode3D" unique_id=294408262 instance=ExtResource("3_nqbag")]
+[node name="@Node3D@24507" type="Node3D" parent="FlowGraphNode3D" unique_id=538936638 instance=ExtResource("14_5hkb5")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, -24)
 metadata/flow_owner = &"spawn_torch_meshes"
 
-[node name="Scene_0003" type="Node3D" parent="FlowGraphNode3D" unique_id=1430636619 instance=ExtResource("3_nqbag")]
+[node name="@Node3D@24508" type="Node3D" parent="FlowGraphNode3D" unique_id=2120368284 instance=ExtResource("14_5hkb5")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, -12)
 metadata/flow_owner = &"spawn_torch_meshes"
 
-[node name="Scene_0004" type="Node3D" parent="FlowGraphNode3D" unique_id=1229340181 instance=ExtResource("3_nqbag")]
+[node name="@Node3D@24509" type="Node3D" parent="FlowGraphNode3D" unique_id=423218749 instance=ExtResource("14_5hkb5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 22)
 metadata/flow_owner = &"spawn_torch_meshes"
 
-[node name="Scene_0005" type="Node3D" parent="FlowGraphNode3D" unique_id=377160089 instance=ExtResource("3_nqbag")]
+[node name="@Node3D@24510" type="Node3D" parent="FlowGraphNode3D" unique_id=907251854 instance=ExtResource("14_5hkb5")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, 0)
 metadata/flow_owner = &"spawn_torch_meshes"
 
-[node name="Scene_0006" type="Node3D" parent="FlowGraphNode3D" unique_id=1919390411 instance=ExtResource("3_nqbag")]
+[node name="@Node3D@24511" type="Node3D" parent="FlowGraphNode3D" unique_id=911859294 instance=ExtResource("14_5hkb5")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30, 0, -8)
 metadata/flow_owner = &"spawn_torch_meshes"
 
-[node name="Scene_0007" type="Node3D" parent="FlowGraphNode3D" unique_id=1913692619 instance=ExtResource("3_nqbag")]
+[node name="@Node3D@24512" type="Node3D" parent="FlowGraphNode3D" unique_id=1481570107 instance=ExtResource("14_5hkb5")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -18, 0, 12)
 metadata/flow_owner = &"spawn_torch_meshes"
 
-[node name="OmniLight3D_0000" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=394000321]
+[node name="OmniLight3D_0000" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=386772476]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, 22)
 light_color = Color(0, 0, 0, 1)
 light_energy = 0.0
 metadata/flow_owner = &"spawn_lights"
 
-[node name="OmniLight3D_0001" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=492436219]
+[node name="OmniLight3D_0001" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=1197488997]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, -14)
 light_color = Color(0, 0, 0, 1)
 light_energy = 0.0
 metadata/flow_owner = &"spawn_lights"
 
-[node name="OmniLight3D_0002" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=2033441115]
+[node name="OmniLight3D_0002" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=1339178598]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, -24)
 light_color = Color(0, 0, 0, 1)
 light_energy = 0.0
 metadata/flow_owner = &"spawn_lights"
 
-[node name="OmniLight3D_0003" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=1682697146]
+[node name="OmniLight3D_0003" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=1182956754]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, -12)
 light_color = Color(0, 0, 0, 1)
 light_energy = 0.0
 metadata/flow_owner = &"spawn_lights"
 
-[node name="OmniLight3D_0004" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=709066320]
+[node name="OmniLight3D_0004" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=1649909193]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 22)
 light_color = Color(0, 0, 0, 1)
 light_energy = 0.0
 metadata/flow_owner = &"spawn_lights"
 
-[node name="OmniLight3D_0005" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=498323789]
+[node name="OmniLight3D_0005" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=521812192]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, 0)
 light_color = Color(0, 0, 0, 1)
 light_energy = 0.0
 metadata/flow_owner = &"spawn_lights"
 
-[node name="OmniLight3D_0006" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=1705318807]
+[node name="OmniLight3D_0006" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=1851410229]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30, 0, -8)
 light_color = Color(0, 0, 0, 1)
 light_energy = 0.0
 metadata/flow_owner = &"spawn_lights"
 
-[node name="OmniLight3D_0007" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=1356513136]
+[node name="OmniLight3D_0007" type="OmniLight3D" parent="FlowGraphNode3D" unique_id=566071113]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -18, 0, 12)
 light_color = Color(0, 0, 0, 1)
 light_energy = 0.0
 metadata/flow_owner = &"spawn_lights"
 
-[node name="@Node3D@134297" type="Node3D" parent="FlowGraphNode3D" unique_id=1083384557 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -6)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="@Node3D@134298" type="Node3D" parent="FlowGraphNode3D" unique_id=1079370448 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 22)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="@Node3D@134299" type="Node3D" parent="FlowGraphNode3D" unique_id=1434302744 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 0, -6)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="@Node3D@134300" type="Node3D" parent="FlowGraphNode3D" unique_id=2040905836 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 0, 22)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="@Node3D@134301" type="Node3D" parent="FlowGraphNode3D" unique_id=1748169544 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -22)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="@Node3D@134302" type="Node3D" parent="FlowGraphNode3D" unique_id=221264131 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -18)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="@Node3D@134303" type="Node3D" parent="FlowGraphNode3D" unique_id=616629901 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -14)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="@Node3D@134304" type="Node3D" parent="FlowGraphNode3D" unique_id=1839533239 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -10)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0008" type="Node3D" parent="FlowGraphNode3D" unique_id=426442542 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, -10)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0009" type="Node3D" parent="FlowGraphNode3D" unique_id=1330290220 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -10)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0010" type="Node3D" parent="FlowGraphNode3D" unique_id=1909710704 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, -22)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0011" type="Node3D" parent="FlowGraphNode3D" unique_id=250404438 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, -10)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0012" type="Node3D" parent="FlowGraphNode3D" unique_id=1864193054 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, -26)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0013" type="Node3D" parent="FlowGraphNode3D" unique_id=153083267 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, -14)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0014" type="Node3D" parent="FlowGraphNode3D" unique_id=1973599619 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, -10)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0015" type="Node3D" parent="FlowGraphNode3D" unique_id=350790115 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, 2)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0016" type="Node3D" parent="FlowGraphNode3D" unique_id=1613299788 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -26)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0017" type="Node3D" parent="FlowGraphNode3D" unique_id=1244135660 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -18)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0018" type="Node3D" parent="FlowGraphNode3D" unique_id=1635402624 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -14)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0019" type="Node3D" parent="FlowGraphNode3D" unique_id=586923356 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 2)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0020" type="Node3D" parent="FlowGraphNode3D" unique_id=547746311 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 0, 10)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0021" type="Node3D" parent="FlowGraphNode3D" unique_id=549188500 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 0, 22)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0022" type="Node3D" parent="FlowGraphNode3D" unique_id=1293955292 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, 10)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0023" type="Node3D" parent="FlowGraphNode3D" unique_id=422478198 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0, 10)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0024" type="Node3D" parent="FlowGraphNode3D" unique_id=192180010 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0, 10)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0025" type="Node3D" parent="FlowGraphNode3D" unique_id=1459318355 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0, 22)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0026" type="Node3D" parent="FlowGraphNode3D" unique_id=1199554017 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0, -10)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="Scene_0027" type="Node3D" parent="FlowGraphNode3D" unique_id=906034044 instance=ExtResource("6_40cwt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, -14)
-metadata/flow_owner = &"spawn_pillars"
-
-[node name="@Node3D@134311" type="Node3D" parent="FlowGraphNode3D" unique_id=1054087193 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24519" type="Node3D" parent="FlowGraphNode3D" unique_id=1054087193 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 14, 0, -4)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134312" type="Node3D" parent="FlowGraphNode3D" unique_id=338079239 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24520" type="Node3D" parent="FlowGraphNode3D" unique_id=1750429947 instance=ExtResource("3_1o4rw")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 14, 0, 0)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134313" type="Node3D" parent="FlowGraphNode3D" unique_id=3264311 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24521" type="Node3D" parent="FlowGraphNode3D" unique_id=1927212146 instance=ExtResource("39_2qcdw")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 14, 0, 4)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134314" type="Node3D" parent="FlowGraphNode3D" unique_id=1030519843 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24522" type="Node3D" parent="FlowGraphNode3D" unique_id=870486968 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 14, 0, 8)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134315" type="Node3D" parent="FlowGraphNode3D" unique_id=509246331 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24523" type="Node3D" parent="FlowGraphNode3D" unique_id=968842903 instance=ExtResource("16_ely2g")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 14, 0, 12)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134316" type="Node3D" parent="FlowGraphNode3D" unique_id=279603306 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24524" type="Node3D" parent="FlowGraphNode3D" unique_id=1757603951 instance=ExtResource("16_ely2g")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 14, 0, 16)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134317" type="Node3D" parent="FlowGraphNode3D" unique_id=1448639557 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24525" type="Node3D" parent="FlowGraphNode3D" unique_id=165139051 instance=ExtResource("16_ely2g")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 14, 0, 20)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134318" type="Node3D" parent="FlowGraphNode3D" unique_id=1534033024 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24526" type="Node3D" parent="FlowGraphNode3D" unique_id=669350577 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134319" type="Node3D" parent="FlowGraphNode3D" unique_id=552567156 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24527" type="Node3D" parent="FlowGraphNode3D" unique_id=98179228 instance=ExtResource("16_ely2g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -6)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134320" type="Node3D" parent="FlowGraphNode3D" unique_id=1003134076 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24528" type="Node3D" parent="FlowGraphNode3D" unique_id=2071812089 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134321" type="Node3D" parent="FlowGraphNode3D" unique_id=482356236 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24529" type="Node3D" parent="FlowGraphNode3D" unique_id=1335396843 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, -6)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134322" type="Node3D" parent="FlowGraphNode3D" unique_id=1875756063 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24530" type="Node3D" parent="FlowGraphNode3D" unique_id=361468816 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134323" type="Node3D" parent="FlowGraphNode3D" unique_id=1555542232 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24531" type="Node3D" parent="FlowGraphNode3D" unique_id=120197076 instance=ExtResource("39_2qcdw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0, -6)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134324" type="Node3D" parent="FlowGraphNode3D" unique_id=1513182291 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24532" type="Node3D" parent="FlowGraphNode3D" unique_id=1810002554 instance=ExtResource("3_1o4rw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134325" type="Node3D" parent="FlowGraphNode3D" unique_id=2101616383 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24533" type="Node3D" parent="FlowGraphNode3D" unique_id=1831443978 instance=ExtResource("16_ely2g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, -6)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134326" type="Node3D" parent="FlowGraphNode3D" unique_id=1689737594 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24534" type="Node3D" parent="FlowGraphNode3D" unique_id=1270821084 instance=ExtResource("16_ely2g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134327" type="Node3D" parent="FlowGraphNode3D" unique_id=1470734846 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24535" type="Node3D" parent="FlowGraphNode3D" unique_id=1696331975 instance=ExtResource("15_eshve")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, -6)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134328" type="Node3D" parent="FlowGraphNode3D" unique_id=1035386058 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24536" type="Node3D" parent="FlowGraphNode3D" unique_id=473632617 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134329" type="Node3D" parent="FlowGraphNode3D" unique_id=765821100 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24537" type="Node3D" parent="FlowGraphNode3D" unique_id=2012515415 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 42, 0, -4)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134330" type="Node3D" parent="FlowGraphNode3D" unique_id=2032826375 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24538" type="Node3D" parent="FlowGraphNode3D" unique_id=510644604 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, -6)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134331" type="Node3D" parent="FlowGraphNode3D" unique_id=1674838105 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24539" type="Node3D" parent="FlowGraphNode3D" unique_id=485051726 instance=ExtResource("16_ely2g")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 42, 0, 0)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134332" type="Node3D" parent="FlowGraphNode3D" unique_id=181506278 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24540" type="Node3D" parent="FlowGraphNode3D" unique_id=935874916 instance=ExtResource("16_ely2g")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 42, 0, 4)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134333" type="Node3D" parent="FlowGraphNode3D" unique_id=766313282 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24541" type="Node3D" parent="FlowGraphNode3D" unique_id=2095271171 instance=ExtResource("39_2qcdw")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 42, 0, 8)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134334" type="Node3D" parent="FlowGraphNode3D" unique_id=102445670 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24542" type="Node3D" parent="FlowGraphNode3D" unique_id=1538419634 instance=ExtResource("41_b0i5t")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 42, 0, 12)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134335" type="Node3D" parent="FlowGraphNode3D" unique_id=1252228207 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24543" type="Node3D" parent="FlowGraphNode3D" unique_id=2052977109 instance=ExtResource("39_2qcdw")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 42, 0, 16)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134336" type="Node3D" parent="FlowGraphNode3D" unique_id=1372704002 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24544" type="Node3D" parent="FlowGraphNode3D" unique_id=806965372 instance=ExtResource("39_2qcdw")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 42, 0, 20)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134337" type="Node3D" parent="FlowGraphNode3D" unique_id=123135989 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24545" type="Node3D" parent="FlowGraphNode3D" unique_id=778795953 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134338" type="Node3D" parent="FlowGraphNode3D" unique_id=1076182351 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24546" type="Node3D" parent="FlowGraphNode3D" unique_id=232058042 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 10, 0, -20)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0028" type="Node3D" parent="FlowGraphNode3D" unique_id=1174269548 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24547" type="Node3D" parent="FlowGraphNode3D" unique_id=353292614 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, -22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0029" type="Node3D" parent="FlowGraphNode3D" unique_id=1158557823 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24548" type="Node3D" parent="FlowGraphNode3D" unique_id=1481860314 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 10, 0, -12)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0030" type="Node3D" parent="FlowGraphNode3D" unique_id=334018888 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24549" type="Node3D" parent="FlowGraphNode3D" unique_id=16329727 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, -10)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0031" type="Node3D" parent="FlowGraphNode3D" unique_id=1734592117 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24550" type="Node3D" parent="FlowGraphNode3D" unique_id=1546118167 instance=ExtResource("16_ely2g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0032" type="Node3D" parent="FlowGraphNode3D" unique_id=718749165 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24551" type="Node3D" parent="FlowGraphNode3D" unique_id=1619758246 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 22, 0, -20)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0033" type="Node3D" parent="FlowGraphNode3D" unique_id=740224259 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24552" type="Node3D" parent="FlowGraphNode3D" unique_id=792233225 instance=ExtResource("3_1o4rw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0034" type="Node3D" parent="FlowGraphNode3D" unique_id=637062836 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24553" type="Node3D" parent="FlowGraphNode3D" unique_id=1266322638 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 22, 0, -16)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0035" type="Node3D" parent="FlowGraphNode3D" unique_id=666922231 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24554" type="Node3D" parent="FlowGraphNode3D" unique_id=620004105 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 22, 0, -12)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0036" type="Node3D" parent="FlowGraphNode3D" unique_id=64151161 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24555" type="Node3D" parent="FlowGraphNode3D" unique_id=2070571903 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -10)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0037" type="Node3D" parent="FlowGraphNode3D" unique_id=1559134384 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24556" type="Node3D" parent="FlowGraphNode3D" unique_id=1729013680 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -14, 0, -24)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0038" type="Node3D" parent="FlowGraphNode3D" unique_id=1510987714 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24557" type="Node3D" parent="FlowGraphNode3D" unique_id=1723263457 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0, -26)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0039" type="Node3D" parent="FlowGraphNode3D" unique_id=110517684 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24558" type="Node3D" parent="FlowGraphNode3D" unique_id=681715060 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -14, 0, -20)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0040" type="Node3D" parent="FlowGraphNode3D" unique_id=1667113458 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24559" type="Node3D" parent="FlowGraphNode3D" unique_id=372378718 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -14, 0, -16)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0041" type="Node3D" parent="FlowGraphNode3D" unique_id=1227548437 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24560" type="Node3D" parent="FlowGraphNode3D" unique_id=570878068 instance=ExtResource("15_eshve")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -14, 0, -8)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0042" type="Node3D" parent="FlowGraphNode3D" unique_id=954415645 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24561" type="Node3D" parent="FlowGraphNode3D" unique_id=542921492 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -14, 0, -4)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0043" type="Node3D" parent="FlowGraphNode3D" unique_id=228762114 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24562" type="Node3D" parent="FlowGraphNode3D" unique_id=1360313931 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -14, 0, 0)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0044" type="Node3D" parent="FlowGraphNode3D" unique_id=2145499610 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24563" type="Node3D" parent="FlowGraphNode3D" unique_id=390561178 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0, 2)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0045" type="Node3D" parent="FlowGraphNode3D" unique_id=472915573 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24564" type="Node3D" parent="FlowGraphNode3D" unique_id=1329750030 instance=ExtResource("16_ely2g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -26)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0046" type="Node3D" parent="FlowGraphNode3D" unique_id=339060414 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24565" type="Node3D" parent="FlowGraphNode3D" unique_id=1533108318 instance=ExtResource("15_eshve")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 2)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0047" type="Node3D" parent="FlowGraphNode3D" unique_id=63407393 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24566" type="Node3D" parent="FlowGraphNode3D" unique_id=1460856586 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, -24)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0048" type="Node3D" parent="FlowGraphNode3D" unique_id=1588012394 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24567" type="Node3D" parent="FlowGraphNode3D" unique_id=818118389 instance=ExtResource("16_ely2g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, -26)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0049" type="Node3D" parent="FlowGraphNode3D" unique_id=1532596 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24568" type="Node3D" parent="FlowGraphNode3D" unique_id=990496426 instance=ExtResource("15_eshve")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, -20)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0050" type="Node3D" parent="FlowGraphNode3D" unique_id=112476668 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24569" type="Node3D" parent="FlowGraphNode3D" unique_id=1192650052 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, -12)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0051" type="Node3D" parent="FlowGraphNode3D" unique_id=1785989497 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24570" type="Node3D" parent="FlowGraphNode3D" unique_id=325921368 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, -8)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0052" type="Node3D" parent="FlowGraphNode3D" unique_id=1259005324 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24571" type="Node3D" parent="FlowGraphNode3D" unique_id=1651215655 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, -4)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0053" type="Node3D" parent="FlowGraphNode3D" unique_id=991238194 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24572" type="Node3D" parent="FlowGraphNode3D" unique_id=436011698 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -2, 0, 0)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0054" type="Node3D" parent="FlowGraphNode3D" unique_id=1904002612 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24573" type="Node3D" parent="FlowGraphNode3D" unique_id=2112284189 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 2)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0055" type="Node3D" parent="FlowGraphNode3D" unique_id=94553344 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24574" type="Node3D" parent="FlowGraphNode3D" unique_id=1552301396 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -38, 0, 12)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0056" type="Node3D" parent="FlowGraphNode3D" unique_id=870535464 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24575" type="Node3D" parent="FlowGraphNode3D" unique_id=1974733223 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 0, 10)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0057" type="Node3D" parent="FlowGraphNode3D" unique_id=527799132 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24576" type="Node3D" parent="FlowGraphNode3D" unique_id=1699943828 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -38, 0, 16)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0058" type="Node3D" parent="FlowGraphNode3D" unique_id=511168716 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24577" type="Node3D" parent="FlowGraphNode3D" unique_id=133838128 instance=ExtResource("16_ely2g")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -38, 0, 20)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0059" type="Node3D" parent="FlowGraphNode3D" unique_id=1094854573 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24578" type="Node3D" parent="FlowGraphNode3D" unique_id=1541385046 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0060" type="Node3D" parent="FlowGraphNode3D" unique_id=1214850296 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24579" type="Node3D" parent="FlowGraphNode3D" unique_id=82400373 instance=ExtResource("40_kai37")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0, 10)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0061" type="Node3D" parent="FlowGraphNode3D" unique_id=1383401615 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24580" type="Node3D" parent="FlowGraphNode3D" unique_id=461774513 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0062" type="Node3D" parent="FlowGraphNode3D" unique_id=863160733 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24581" type="Node3D" parent="FlowGraphNode3D" unique_id=1283414386 instance=ExtResource("39_2qcdw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0063" type="Node3D" parent="FlowGraphNode3D" unique_id=976411879 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24582" type="Node3D" parent="FlowGraphNode3D" unique_id=1987212448 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, 10)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0064" type="Node3D" parent="FlowGraphNode3D" unique_id=1165358048 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24583" type="Node3D" parent="FlowGraphNode3D" unique_id=1906098234 instance=ExtResource("16_ely2g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0065" type="Node3D" parent="FlowGraphNode3D" unique_id=1041333952 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24584" type="Node3D" parent="FlowGraphNode3D" unique_id=487994348 instance=ExtResource("15_eshve")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -18, 0, 12)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0066" type="Node3D" parent="FlowGraphNode3D" unique_id=1314609255 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24585" type="Node3D" parent="FlowGraphNode3D" unique_id=1448305052 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, 10)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0067" type="Node3D" parent="FlowGraphNode3D" unique_id=236781174 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24586" type="Node3D" parent="FlowGraphNode3D" unique_id=813257690 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -18, 0, 16)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0068" type="Node3D" parent="FlowGraphNode3D" unique_id=2093116959 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24587" type="Node3D" parent="FlowGraphNode3D" unique_id=269964937 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -18, 0, 20)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0069" type="Node3D" parent="FlowGraphNode3D" unique_id=92673357 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24588" type="Node3D" parent="FlowGraphNode3D" unique_id=1150876915 instance=ExtResource("16_ely2g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, 22)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0070" type="Node3D" parent="FlowGraphNode3D" unique_id=463465197 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24589" type="Node3D" parent="FlowGraphNode3D" unique_id=1870701114 instance=ExtResource("16_ely2g")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 18, 0, -8)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0071" type="Node3D" parent="FlowGraphNode3D" unique_id=1517142881 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24590" type="Node3D" parent="FlowGraphNode3D" unique_id=1930433970 instance=ExtResource("3_1o4rw")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 14, 0, -8)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0072" type="Node3D" parent="FlowGraphNode3D" unique_id=2104229790 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24591" type="Node3D" parent="FlowGraphNode3D" unique_id=1624810425 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -14)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0073" type="Node3D" parent="FlowGraphNode3D" unique_id=1715869213 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24592" type="Node3D" parent="FlowGraphNode3D" unique_id=333897265 instance=ExtResource("40_kai37")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -18)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0074" type="Node3D" parent="FlowGraphNode3D" unique_id=1716831719 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24593" type="Node3D" parent="FlowGraphNode3D" unique_id=424564059 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -14)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0075" type="Node3D" parent="FlowGraphNode3D" unique_id=1183251648 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24594" type="Node3D" parent="FlowGraphNode3D" unique_id=1488880772 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -18)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0076" type="Node3D" parent="FlowGraphNode3D" unique_id=500175741 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24595" type="Node3D" parent="FlowGraphNode3D" unique_id=972636948 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -14)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0077" type="Node3D" parent="FlowGraphNode3D" unique_id=937980010 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24596" type="Node3D" parent="FlowGraphNode3D" unique_id=1037734638 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -18)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0078" type="Node3D" parent="FlowGraphNode3D" unique_id=1119770126 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24597" type="Node3D" parent="FlowGraphNode3D" unique_id=1773730408 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -10)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0079" type="Node3D" parent="FlowGraphNode3D" unique_id=1892741811 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24598" type="Node3D" parent="FlowGraphNode3D" unique_id=1392324118 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -14)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0080" type="Node3D" parent="FlowGraphNode3D" unique_id=242401608 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24599" type="Node3D" parent="FlowGraphNode3D" unique_id=61340239 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -10)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0081" type="Node3D" parent="FlowGraphNode3D" unique_id=1631306920 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24600" type="Node3D" parent="FlowGraphNode3D" unique_id=565470649 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -14)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0082" type="Node3D" parent="FlowGraphNode3D" unique_id=151584465 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24601" type="Node3D" parent="FlowGraphNode3D" unique_id=989390233 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, -10)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0083" type="Node3D" parent="FlowGraphNode3D" unique_id=2017374002 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24602" type="Node3D" parent="FlowGraphNode3D" unique_id=712743567 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, -14)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0084" type="Node3D" parent="FlowGraphNode3D" unique_id=811368523 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24603" type="Node3D" parent="FlowGraphNode3D" unique_id=989617268 instance=ExtResource("16_ely2g")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30, 0, -12)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0085" type="Node3D" parent="FlowGraphNode3D" unique_id=1501142000 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24604" type="Node3D" parent="FlowGraphNode3D" unique_id=368182043 instance=ExtResource("7_kiml1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, -14)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0086" type="Node3D" parent="FlowGraphNode3D" unique_id=1735977328 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24605" type="Node3D" parent="FlowGraphNode3D" unique_id=130724894 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -26, 0, -8)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0087" type="Node3D" parent="FlowGraphNode3D" unique_id=628772328 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24606" type="Node3D" parent="FlowGraphNode3D" unique_id=777641077 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30, 0, -8)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0088" type="Node3D" parent="FlowGraphNode3D" unique_id=1402174290 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24607" type="Node3D" parent="FlowGraphNode3D" unique_id=646765494 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -26, 0, -4)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0089" type="Node3D" parent="FlowGraphNode3D" unique_id=790783406 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24608" type="Node3D" parent="FlowGraphNode3D" unique_id=290888819 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30, 0, -4)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0090" type="Node3D" parent="FlowGraphNode3D" unique_id=880060388 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24609" type="Node3D" parent="FlowGraphNode3D" unique_id=114636168 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -26, 0, 0)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0091" type="Node3D" parent="FlowGraphNode3D" unique_id=526822944 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24610" type="Node3D" parent="FlowGraphNode3D" unique_id=945824738 instance=ExtResource("15_eshve")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30, 0, 0)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0092" type="Node3D" parent="FlowGraphNode3D" unique_id=408067000 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24611" type="Node3D" parent="FlowGraphNode3D" unique_id=644052476 instance=ExtResource("15_eshve")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -26, 0, 4)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0093" type="Node3D" parent="FlowGraphNode3D" unique_id=1341683538 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24612" type="Node3D" parent="FlowGraphNode3D" unique_id=965395135 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30, 0, 4)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0094" type="Node3D" parent="FlowGraphNode3D" unique_id=320904999 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24613" type="Node3D" parent="FlowGraphNode3D" unique_id=1330207990 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -26, 0, 8)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="Scene_0095" type="Node3D" parent="FlowGraphNode3D" unique_id=797790106 instance=ExtResource("7_kiml1")]
+[node name="@Node3D@24614" type="Node3D" parent="FlowGraphNode3D" unique_id=47018117 instance=ExtResource("7_kiml1")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30, 0, 8)
 metadata/flow_owner = &"spawn_walls"
 
-[node name="@Node3D@134345" type="Node3D" parent="FlowGraphNode3D" unique_id=1825468728 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.3264078, -4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134346" type="Node3D" parent="FlowGraphNode3D" unique_id=1988417048 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.3264078, 0)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134347" type="Node3D" parent="FlowGraphNode3D" unique_id=667845396 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.3264078, 4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134348" type="Node3D" parent="FlowGraphNode3D" unique_id=713672578 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.3264078, 8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134349" type="Node3D" parent="FlowGraphNode3D" unique_id=1277937167 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.3264078, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134350" type="Node3D" parent="FlowGraphNode3D" unique_id=331907525 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.3264078, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134351" type="Node3D" parent="FlowGraphNode3D" unique_id=318030760 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.3264078, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134352" type="Node3D" parent="FlowGraphNode3D" unique_id=2116128129 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.3264078, -4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134353" type="Node3D" parent="FlowGraphNode3D" unique_id=1462394348 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.3264078, 0)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134354" type="Node3D" parent="FlowGraphNode3D" unique_id=333122372 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.3264078, 4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134355" type="Node3D" parent="FlowGraphNode3D" unique_id=245560645 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.3264078, 8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134356" type="Node3D" parent="FlowGraphNode3D" unique_id=197118373 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.3264078, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134357" type="Node3D" parent="FlowGraphNode3D" unique_id=1013161064 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.3264078, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134358" type="Node3D" parent="FlowGraphNode3D" unique_id=366597941 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.3264078, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134359" type="Node3D" parent="FlowGraphNode3D" unique_id=2006509219 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.3264078, -4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134360" type="Node3D" parent="FlowGraphNode3D" unique_id=1287439047 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.3264078, 0)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134361" type="Node3D" parent="FlowGraphNode3D" unique_id=1293337351 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.3264078, 4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134362" type="Node3D" parent="FlowGraphNode3D" unique_id=1375237382 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.3264078, 8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134363" type="Node3D" parent="FlowGraphNode3D" unique_id=1758415761 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.3264078, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134364" type="Node3D" parent="FlowGraphNode3D" unique_id=1407998307 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.3264078, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134365" type="Node3D" parent="FlowGraphNode3D" unique_id=707701895 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.3264078, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134366" type="Node3D" parent="FlowGraphNode3D" unique_id=2029414736 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.3264078, -4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134367" type="Node3D" parent="FlowGraphNode3D" unique_id=530275271 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.3264078, 0)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134368" type="Node3D" parent="FlowGraphNode3D" unique_id=1229424223 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.3264078, 4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134369" type="Node3D" parent="FlowGraphNode3D" unique_id=1803986702 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.3264078, 8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134370" type="Node3D" parent="FlowGraphNode3D" unique_id=1399113808 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.3264078, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134371" type="Node3D" parent="FlowGraphNode3D" unique_id=1347910426 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.3264078, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134372" type="Node3D" parent="FlowGraphNode3D" unique_id=675162734 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.3264078, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134373" type="Node3D" parent="FlowGraphNode3D" unique_id=911630781 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0.3264078, -4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134374" type="Node3D" parent="FlowGraphNode3D" unique_id=1448378434 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0.3264078, 0)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134375" type="Node3D" parent="FlowGraphNode3D" unique_id=577487917 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0.3264078, 4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134376" type="Node3D" parent="FlowGraphNode3D" unique_id=828657071 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0.3264078, 8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134377" type="Node3D" parent="FlowGraphNode3D" unique_id=1093794621 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0.3264078, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134378" type="Node3D" parent="FlowGraphNode3D" unique_id=874427849 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0.3264078, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134379" type="Node3D" parent="FlowGraphNode3D" unique_id=526442525 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0.3264078, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134380" type="Node3D" parent="FlowGraphNode3D" unique_id=207577720 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0.3264078, -4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134381" type="Node3D" parent="FlowGraphNode3D" unique_id=866430127 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0.3264078, 0)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134382" type="Node3D" parent="FlowGraphNode3D" unique_id=791435770 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0.3264078, 4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134383" type="Node3D" parent="FlowGraphNode3D" unique_id=623065589 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0.3264078, 8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134384" type="Node3D" parent="FlowGraphNode3D" unique_id=669673545 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0.3264078, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134385" type="Node3D" parent="FlowGraphNode3D" unique_id=1737780506 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0.3264078, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134386" type="Node3D" parent="FlowGraphNode3D" unique_id=1949902438 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0.3264078, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134387" type="Node3D" parent="FlowGraphNode3D" unique_id=1310436031 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0.3264078, -4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134388" type="Node3D" parent="FlowGraphNode3D" unique_id=674804126 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0.3264078, 0)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134389" type="Node3D" parent="FlowGraphNode3D" unique_id=1962528543 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0.3264078, 4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134390" type="Node3D" parent="FlowGraphNode3D" unique_id=1294059024 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0.3264078, 8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134391" type="Node3D" parent="FlowGraphNode3D" unique_id=959307523 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0.3264078, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134392" type="Node3D" parent="FlowGraphNode3D" unique_id=1103777731 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0.3264078, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134393" type="Node3D" parent="FlowGraphNode3D" unique_id=1649471485 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0.3264078, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134394" type="Node3D" parent="FlowGraphNode3D" unique_id=38865364 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.34580946, -20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134395" type="Node3D" parent="FlowGraphNode3D" unique_id=722066246 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.34580946, -16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134396" type="Node3D" parent="FlowGraphNode3D" unique_id=1380853999 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.34580946, -12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134397" type="Node3D" parent="FlowGraphNode3D" unique_id=1512601667 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.34580946, -20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134398" type="Node3D" parent="FlowGraphNode3D" unique_id=1239072842 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.34580946, -16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134399" type="Node3D" parent="FlowGraphNode3D" unique_id=1732921094 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.34580946, -12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134400" type="Node3D" parent="FlowGraphNode3D" unique_id=376540448 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.34580946, -20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134401" type="Node3D" parent="FlowGraphNode3D" unique_id=445308269 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.34580946, -16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134402" type="Node3D" parent="FlowGraphNode3D" unique_id=456130969 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.34580946, -12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134403" type="Node3D" parent="FlowGraphNode3D" unique_id=1427747690 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -0.49592936, -24)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134404" type="Node3D" parent="FlowGraphNode3D" unique_id=1294405649 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -0.49592936, -20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134405" type="Node3D" parent="FlowGraphNode3D" unique_id=1146249131 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -0.49592936, -16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134406" type="Node3D" parent="FlowGraphNode3D" unique_id=1247580421 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -0.49592936, -12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134407" type="Node3D" parent="FlowGraphNode3D" unique_id=806020512 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -0.49592936, -8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134408" type="Node3D" parent="FlowGraphNode3D" unique_id=965629342 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -0.49592936, -4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134409" type="Node3D" parent="FlowGraphNode3D" unique_id=1489480520 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -0.49592936, 0)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134410" type="Node3D" parent="FlowGraphNode3D" unique_id=1408333267 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -0.49592936, -24)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134411" type="Node3D" parent="FlowGraphNode3D" unique_id=396931177 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -0.49592936, -20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134412" type="Node3D" parent="FlowGraphNode3D" unique_id=1587523847 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -0.49592936, -16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134413" type="Node3D" parent="FlowGraphNode3D" unique_id=48894069 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -0.49592936, -12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134414" type="Node3D" parent="FlowGraphNode3D" unique_id=1427938163 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -0.49592936, -8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134415" type="Node3D" parent="FlowGraphNode3D" unique_id=345802866 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -0.49592936, -4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134416" type="Node3D" parent="FlowGraphNode3D" unique_id=400402622 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, -0.49592936, 0)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134417" type="Node3D" parent="FlowGraphNode3D" unique_id=108480962 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, -0.49592936, -24)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134418" type="Node3D" parent="FlowGraphNode3D" unique_id=198810176 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, -0.49592936, -20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134419" type="Node3D" parent="FlowGraphNode3D" unique_id=1622332519 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, -0.49592936, -16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134420" type="Node3D" parent="FlowGraphNode3D" unique_id=724880255 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, -0.49592936, -12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134421" type="Node3D" parent="FlowGraphNode3D" unique_id=491079628 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, -0.49592936, -8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134422" type="Node3D" parent="FlowGraphNode3D" unique_id=178264434 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, -0.49592936, -4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134423" type="Node3D" parent="FlowGraphNode3D" unique_id=346486385 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, -0.49592936, 0)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134424" type="Node3D" parent="FlowGraphNode3D" unique_id=1647851991 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, -0.3971836, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134425" type="Node3D" parent="FlowGraphNode3D" unique_id=1624989468 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, -0.3971836, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134426" type="Node3D" parent="FlowGraphNode3D" unique_id=463022203 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, -0.3971836, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134427" type="Node3D" parent="FlowGraphNode3D" unique_id=399529897 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, -0.3971836, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134428" type="Node3D" parent="FlowGraphNode3D" unique_id=277901037 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, -0.3971836, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134429" type="Node3D" parent="FlowGraphNode3D" unique_id=679596659 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, -0.3971836, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134430" type="Node3D" parent="FlowGraphNode3D" unique_id=1167897065 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, -0.3971836, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134431" type="Node3D" parent="FlowGraphNode3D" unique_id=573982255 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, -0.3971836, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134432" type="Node3D" parent="FlowGraphNode3D" unique_id=1808747833 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, -0.3971836, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134433" type="Node3D" parent="FlowGraphNode3D" unique_id=1564866968 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, -0.3971836, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134434" type="Node3D" parent="FlowGraphNode3D" unique_id=1578137273 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, -0.3971836, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134435" type="Node3D" parent="FlowGraphNode3D" unique_id=278926158 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, -0.3971836, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134436" type="Node3D" parent="FlowGraphNode3D" unique_id=998322544 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, -0.3971836, 12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134437" type="Node3D" parent="FlowGraphNode3D" unique_id=1649585627 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, -0.3971836, 16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134438" type="Node3D" parent="FlowGraphNode3D" unique_id=1642995345 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, -0.3971836, 20)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134439" type="Node3D" parent="FlowGraphNode3D" unique_id=721452076 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="@Node3D@134440" type="Node3D" parent="FlowGraphNode3D" unique_id=1630976430 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="Scene_0096" type="Node3D" parent="FlowGraphNode3D" unique_id=348070325 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="Scene_0097" type="Node3D" parent="FlowGraphNode3D" unique_id=175760575 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -16)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="Scene_0098" type="Node3D" parent="FlowGraphNode3D" unique_id=1597596186 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="Scene_0099" type="Node3D" parent="FlowGraphNode3D" unique_id=1745348074 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="Scene_0100" type="Node3D" parent="FlowGraphNode3D" unique_id=1632641225 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, -12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="Scene_0101" type="Node3D" parent="FlowGraphNode3D" unique_id=1421806627 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, -12)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="Scene_0102" type="Node3D" parent="FlowGraphNode3D" unique_id=229854211 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, -8)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="Scene_0103" type="Node3D" parent="FlowGraphNode3D" unique_id=88906006 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, -4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="Scene_0104" type="Node3D" parent="FlowGraphNode3D" unique_id=1612945489 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, 0)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="Scene_0105" type="Node3D" parent="FlowGraphNode3D" unique_id=2109241390 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, 4)
-metadata/flow_owner = &"spawn_floors"
-
-[node name="Scene_0106" type="Node3D" parent="FlowGraphNode3D" unique_id=836354988 instance=ExtResource("3_db1kq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, 8)
-metadata/flow_owner = &"spawn_floors"
+[node name="@Node3D@24651" type="Node3D" parent="FlowGraphNode3D" unique_id=483885747 instance=ExtResource("7_kiml1")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30.5, -0.3971836, 12)
+metadata/flow_owner = &"spawn_stair_lower_walls"
+
+[node name="@Node3D@24652" type="Node3D" parent="FlowGraphNode3D" unique_id=1980109607 instance=ExtResource("7_kiml1")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -25.5, -0.3971836, 12)
+metadata/flow_owner = &"spawn_stair_lower_walls"
+
+[node name="@Node3D@24653" type="Node3D" parent="FlowGraphNode3D" unique_id=1861630076 instance=ExtResource("7_kiml1")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -30.5, -0.3971836, 16)
+metadata/flow_owner = &"spawn_stair_lower_walls"
+
+[node name="@Node3D@24654" type="Node3D" parent="FlowGraphNode3D" unique_id=968686308 instance=ExtResource("16_ely2g")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -25.5, -0.3971836, 16)
+metadata/flow_owner = &"spawn_stair_lower_walls"
+
+[node name="@Node3D@24655" type="Node3D" parent="FlowGraphNode3D" unique_id=399706025 instance=ExtResource("21_h4ajd")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, -0.3971836, 14)
+metadata/flow_owner = &"spawn_stairs"
+
+[node name="@Node3D@24656" type="Node3D" parent="FlowGraphNode3D" unique_id=1554076471 instance=ExtResource("22_xyxb4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 4, 10)
+metadata/flow_owner = &"spawn_upper_pillars"
+
+[node name="@Node3D@24657" type="Node3D" parent="FlowGraphNode3D" unique_id=1083384557 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 4, 22)
+metadata/flow_owner = &"spawn_upper_pillars"
+
+[node name="@Node3D@24658" type="Node3D" parent="FlowGraphNode3D" unique_id=620099363 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 4, 10)
+metadata/flow_owner = &"spawn_upper_pillars"
+
+[node name="@Node3D@24659" type="Node3D" parent="FlowGraphNode3D" unique_id=2044408806 instance=ExtResource("22_xyxb4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 4, 22)
+metadata/flow_owner = &"spawn_upper_pillars"
+
+[node name="@Node3D@24660" type="Node3D" parent="FlowGraphNode3D" unique_id=753030547 instance=ExtResource("7_kiml1")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -38, 4, 12)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24661" type="Node3D" parent="FlowGraphNode3D" unique_id=2056434789 instance=ExtResource("7_kiml1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 4, 10)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24662" type="Node3D" parent="FlowGraphNode3D" unique_id=935794494 instance=ExtResource("7_kiml1")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -38, 4, 16)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24663" type="Node3D" parent="FlowGraphNode3D" unique_id=1082414878 instance=ExtResource("7_kiml1")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -38, 4, 20)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24664" type="Node3D" parent="FlowGraphNode3D" unique_id=1293040724 instance=ExtResource("7_kiml1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 4, 22)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24665" type="Node3D" parent="FlowGraphNode3D" unique_id=465213262 instance=ExtResource("15_eshve")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 4, 10)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24666" type="Node3D" parent="FlowGraphNode3D" unique_id=1795405466 instance=ExtResource("7_kiml1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 4, 22)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24667" type="Node3D" parent="FlowGraphNode3D" unique_id=1492271111 instance=ExtResource("15_eshve")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 4, 10)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24668" type="Node3D" parent="FlowGraphNode3D" unique_id=146191740 instance=ExtResource("15_eshve")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 4, 22)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24669" type="Node3D" parent="FlowGraphNode3D" unique_id=1880817814 instance=ExtResource("7_kiml1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 4, 10)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24670" type="Node3D" parent="FlowGraphNode3D" unique_id=825819238 instance=ExtResource("7_kiml1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 4, 22)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24671" type="Node3D" parent="FlowGraphNode3D" unique_id=1467134939 instance=ExtResource("15_eshve")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -18, 4, 12)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24672" type="Node3D" parent="FlowGraphNode3D" unique_id=1999275436 instance=ExtResource("7_kiml1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 4, 10)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24673" type="Node3D" parent="FlowGraphNode3D" unique_id=1858737546 instance=ExtResource("7_kiml1")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -18, 4, 16)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24674" type="Node3D" parent="FlowGraphNode3D" unique_id=2107465581 instance=ExtResource("7_kiml1")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -18, 4, 20)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24675" type="Node3D" parent="FlowGraphNode3D" unique_id=1142529628 instance=ExtResource("16_ely2g")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 4, 22)
+metadata/flow_owner = &"spawn_upper_walls"
+
+[node name="@Node3D@24676" type="Node3D" parent="FlowGraphNode3D" unique_id=566551976 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -36, 3.8028162, 12)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24677" type="Node3D" parent="FlowGraphNode3D" unique_id=1109682266 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -36, 3.8028162, 16)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24678" type="Node3D" parent="FlowGraphNode3D" unique_id=111003715 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -36, 3.8028162, 20)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24679" type="Node3D" parent="FlowGraphNode3D" unique_id=56640693 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -32, 3.8028162, 12)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24680" type="Node3D" parent="FlowGraphNode3D" unique_id=578372820 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -32, 3.8028162, 16)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24681" type="Node3D" parent="FlowGraphNode3D" unique_id=695662619 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -32, 3.8028162, 20)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24682" type="Node3D" parent="FlowGraphNode3D" unique_id=78473963 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -28, 3.8028162, 20)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24683" type="Node3D" parent="FlowGraphNode3D" unique_id=793203392 instance=ExtResource("12_s6v45")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -24, 3.8028162, 12)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24684" type="Node3D" parent="FlowGraphNode3D" unique_id=28386131 instance=ExtResource("24_dkce6")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -24, 3.8028162, 16)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24685" type="Node3D" parent="FlowGraphNode3D" unique_id=1577332517 instance=ExtResource("24_dkce6")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -24, 3.8028162, 20)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24686" type="Node3D" parent="FlowGraphNode3D" unique_id=1998405265 instance=ExtResource("24_dkce6")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -20, 3.8028162, 12)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24687" type="Node3D" parent="FlowGraphNode3D" unique_id=1511933128 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -20, 3.8028162, 16)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24688" type="Node3D" parent="FlowGraphNode3D" unique_id=107953669 instance=ExtResource("13_2e312")]
+transform = Transform3D(1.03, 0, 0, 0, 1, 0, 0, 0, 1.03, -20, 3.8028162, 20)
+metadata/flow_owner = &"spawn_upper_floors"
+
+[node name="@Node3D@24761" type="Node3D" parent="FlowGraphNode3D" unique_id=1238437056 instance=ExtResource("25_lbp8s")]
+transform = Transform3D(0.67244035, 0, -0.0483067, 0, 0.67417324, 0, 0.0483067, 0, 0.67244035, -28.139713, -0.3971836, 15.602076)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24762" type="Node3D" parent="FlowGraphNode3D" unique_id=1453986683 instance=ExtResource("26_2qcdw")]
+transform = Transform3D(-0.5621959, 0, 0.20929311, 0, 0.5998899, 0, -0.20929311, 0, -0.5621959, -27.800873, -0.3971836, 15.722539)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24763" type="Node3D" parent="FlowGraphNode3D" unique_id=1359120753 instance=ExtResource("25_lbp8s")]
+transform = Transform3D(0.77280277, 0, -0.41913196, 0, 0.87914485, 0, 0.41913196, 0, 0.77280277, -28.079155, -0.3971836, 16.397516)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24764" type="Node3D" parent="FlowGraphNode3D" unique_id=1540603719 instance=ExtResource("26_2qcdw")]
+transform = Transform3D(-0.6014879, 0, -0.54106957, 0, 0.80903894, 0, 0.54106957, 0, -0.6014879, -27.743515, -0.3971836, 15.831413)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24765" type="Node3D" parent="FlowGraphNode3D" unique_id=998966597 instance=ExtResource("27_kai37")]
+transform = Transform3D(0.4293766, 0, 0.43325177, 0, 0.60997653, 0, -0.43325177, 0, 0.4293766, -28.518219, -0.3971836, 16.119993)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24766" type="Node3D" parent="FlowGraphNode3D" unique_id=486561636 instance=ExtResource("28_jho17")]
+transform = Transform3D(0.39558002, 0, 0.6336488, 0, 0.7469902, 0, -0.6336488, 0, 0.39558002, -27.583063, -0.3971836, 15.546835)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24767" type="Node3D" parent="FlowGraphNode3D" unique_id=484932557 instance=ExtResource("26_2qcdw")]
+transform = Transform3D(-0.6233288, 0, 0.44681874, 0, 0.7669327, 0, -0.44681874, 0, -0.6233288, 15.453021, 0.34580946, -16.286087)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24768" type="Node3D" parent="FlowGraphNode3D" unique_id=1547518642 instance=ExtResource("25_lbp8s")]
+transform = Transform3D(-0.5440773, 0, -0.15667276, 0, 0.5661859, 0, 0.15667276, 0, -0.5440773, 16.370966, 0.34580946, -15.550906)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24769" type="Node3D" parent="FlowGraphNode3D" unique_id=1658681168 instance=ExtResource("29_mhfbv")]
+transform = Transform3D(-0.9046814, 0, 0.09718384, 0, 0.90988636, 0, -0.09718384, 0, -0.9046814, 15.595739, 0.34580946, -15.733664)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24770" type="Node3D" parent="FlowGraphNode3D" unique_id=1396940607 instance=ExtResource("30_c3p6w")]
+transform = Transform3D(-0.29540947, 0, -0.74986655, 0, 0.80595696, 0, 0.74986655, 0, -0.29540947, 16.349134, 0.34580946, -16.312027)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24771" type="Node3D" parent="FlowGraphNode3D" unique_id=762511883 instance=ExtResource("26_2qcdw")]
+transform = Transform3D(0.21052428, 0, -0.63981813, 0, 0.6735634, 0, 0.63981813, 0, 0.21052428, 15.881174, 0.34580946, -15.945593)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24772" type="Node3D" parent="FlowGraphNode3D" unique_id=592593480 instance=ExtResource("27_kai37")]
+transform = Transform3D(-0.215281, 0, 0.48025465, 0, 0.5262988, 0, -0.48025465, 0, -0.215281, 16.194313, 0.34580946, -16.580816)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24773" type="Node3D" parent="FlowGraphNode3D" unique_id=1790672064 instance=ExtResource("31_jmk8r")]
+transform = Transform3D(-0.6543979, 0, 0.1151291, 0, 0.66444814, 0, -0.1151291, 0, -0.6543979, 27.744646, 0.3264078, 8.082558)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24774" type="Node3D" parent="FlowGraphNode3D" unique_id=1571349598 instance=ExtResource("29_mhfbv")]
+transform = Transform3D(0.53252494, 0, -0.23061538, 0, 0.58031565, 0, 0.23061538, 0, 0.53252494, 28.560461, 0.3264078, 8.063733)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24775" type="Node3D" parent="FlowGraphNode3D" unique_id=1697878853 instance=ExtResource("26_2qcdw")]
+transform = Transform3D(0.27115625, 0, 0.8635519, 0, 0.905123, 0, -0.8635519, 0, 0.27115625, 28.053493, 0.3264078, 8.066204)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24776" type="Node3D" parent="FlowGraphNode3D" unique_id=1850682018 instance=ExtResource("25_lbp8s")]
+transform = Transform3D(0.19231784, 0, -0.82507104, 0, 0.8471885, 0, 0.82507104, 0, 0.19231784, 27.971132, 0.3264078, 7.779184)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24777" type="Node3D" parent="FlowGraphNode3D" unique_id=612021408 instance=ExtResource("31_jmk8r")]
+transform = Transform3D(-0.45755184, 0, -0.44746035, 0, 0.63998, 0, 0.44746035, 0, -0.45755184, 27.627579, 0.3264078, 8.059085)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24778" type="Node3D" parent="FlowGraphNode3D" unique_id=1344049153 instance=ExtResource("27_kai37")]
+transform = Transform3D(0.04970865, 0, 0.62602365, 0, 0.62799406, 0, -0.62602365, 0, 0.04970865, 28.164732, 0.3264078, 7.5225196)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24779" type="Node3D" parent="FlowGraphNode3D" unique_id=277420290 instance=ExtResource("29_mhfbv")]
+transform = Transform3D(-0.5509336, 0, 0.28100568, 0, 0.6184594, 0, -0.28100568, 0, -0.5509336, -7.987385, -0.49592936, -12.39458)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24780" type="Node3D" parent="FlowGraphNode3D" unique_id=101001816 instance=ExtResource("27_kai37")]
+transform = Transform3D(0.46875745, 0, -0.587199, 0, 0.75135624, 0, 0.587199, 0, 0.46875745, -7.8660717, -0.49592936, -11.603663)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24781" type="Node3D" parent="FlowGraphNode3D" unique_id=1655565403 instance=ExtResource("27_kai37")]
+transform = Transform3D(0.82513654, 0, -0.13082583, 0, 0.83544344, 0, 0.13082583, 0, 0.82513654, -8.541229, -0.49592936, -11.635491)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24782" type="Node3D" parent="FlowGraphNode3D" unique_id=1972266387 instance=ExtResource("26_2qcdw")]
+transform = Transform3D(-0.49994403, 0, 0.41627723, 0, 0.65056187, 0, -0.41627723, 0, -0.49994403, -7.764534, -0.49592936, -12.053613)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24783" type="Node3D" parent="FlowGraphNode3D" unique_id=1523133618 instance=ExtResource("30_c3p6w")]
+transform = Transform3D(0.5424727, 0, 0.23916213, 0, 0.5928534, 0, -0.23916213, 0, 0.5424727, -8.516554, -0.49592936, -11.845247)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24784" type="Node3D" parent="FlowGraphNode3D" unique_id=1627550922 instance=ExtResource("31_jmk8r")]
+transform = Transform3D(-0.6015495, 0, 0.2752152, 0, 0.6615174, 0, -0.2752152, 0, -0.6015495, -7.480162, -0.49592936, -12.041647)
+metadata/flow_owner = &"spawn_clutter"
+
+[node name="@Node3D@24785" type="Node3D" parent="FlowGraphNode3D" unique_id=731017001 instance=ExtResource("32_j20va")]
+transform = Transform3D(0.65532166, 0, 0.45886117, 0, 0.8, 0, -0.45886117, 0, 0.65532166, 16.34, 0.34580946, -15.66)
+metadata/flow_owner = &"spawn_treasure"
+
+[node name="@Node3D@24786" type="Node3D" parent="FlowGraphNode3D" unique_id=2132586321 instance=ExtResource("33_mkrht")]
+transform = Transform3D(0.67973083, 0, -0.31696373, 0, 0.75, 0, 0.31696373, 0, 0.67973083, 15.66, 0.34580946, -15.72)
+metadata/flow_owner = &"spawn_treasure"
+
+[node name="@Node3D@24787" type="Node3D" parent="FlowGraphNode3D" unique_id=1378259848 instance=ExtResource("34_8co7s")]
+transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, 27.68, 0.3264078, -1.28)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24788" type="Node3D" parent="FlowGraphNode3D" unique_id=1260723026 instance=ExtResource("35_3qkbm")]
+transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 28.32, 0.3264078, -1.28)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24789" type="Node3D" parent="FlowGraphNode3D" unique_id=766123022 instance=ExtResource("36_31yg4")]
+transform = Transform3D(-0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, -0.70710677, 27.68, 0.3264078, -0.64000005)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24790" type="Node3D" parent="FlowGraphNode3D" unique_id=1547160299 instance=ExtResource("37_fsvi7")]
+transform = Transform3D(-0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, -0.70710677, 28.32, 0.3264078, -0.64000005)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24791" type="Node3D" parent="FlowGraphNode3D" unique_id=960444533 instance=ExtResource("34_8co7s")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 27.68, 0.3264078, -0.96000004)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24792" type="Node3D" parent="FlowGraphNode3D" unique_id=1387882999 instance=ExtResource("34_8co7s")]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 28.32, 0.3264078, -0.96000004)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24793" type="Node3D" parent="FlowGraphNode3D" unique_id=36202722 instance=ExtResource("34_8co7s")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.3264078, -1.28)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24794" type="Node3D" parent="FlowGraphNode3D" unique_id=15119729 instance=ExtResource("34_8co7s")]
+transform = Transform3D(-1, 0, -1.509958e-07, 0, 1, 0, 1.509958e-07, 0, -1, 28, 0.3264078, -0.64000005)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24795" type="Node3D" parent="FlowGraphNode3D" unique_id=985614328 instance=ExtResource("36_31yg4")]
+transform = Transform3D(-0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, -0.70710677, 11.84, 0.34580946, -15.68)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24796" type="Node3D" parent="FlowGraphNode3D" unique_id=1220100692 instance=ExtResource("38_y2017")]
+transform = Transform3D(0.7071067, 0, 0.7071068, 0, 1, 0, -0.7071068, 0, 0.7071067, 11.84, 0.34580946, -16.32)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24797" type="Node3D" parent="FlowGraphNode3D" unique_id=271241769 instance=ExtResource("34_8co7s")]
+transform = Transform3D(-0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, -0.70710677, 12.48, 0.34580946, -15.68)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24798" type="Node3D" parent="FlowGraphNode3D" unique_id=336912330 instance=ExtResource("38_y2017")]
+transform = Transform3D(0.7071068, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.7071068, 12.48, 0.34580946, -16.32)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24799" type="Node3D" parent="FlowGraphNode3D" unique_id=1958941404 instance=ExtResource("37_fsvi7")]
+transform = Transform3D(-1, 0, -1.509958e-07, 0, 1, 0, 1.509958e-07, 0, -1, 12.16, 0.34580946, -15.68)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24800" type="Node3D" parent="FlowGraphNode3D" unique_id=1896113955 instance=ExtResource("34_8co7s")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.16, 0.34580946, -16.32)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24801" type="Node3D" parent="FlowGraphNode3D" unique_id=124672674 instance=ExtResource("34_8co7s")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 11.84, 0.34580946, -16)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24802" type="Node3D" parent="FlowGraphNode3D" unique_id=254869943 instance=ExtResource("38_y2017")]
+transform = Transform3D(7.54979e-08, 0, -1, 0, 1, 0, 1, 0, 7.54979e-08, 12.48, 0.34580946, -16)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24803" type="Node3D" parent="FlowGraphNode3D" unique_id=671978936 instance=ExtResource("34_8co7s")]
+transform = Transform3D(0.7071067, 0, -0.7071068, 0, 1, 0, 0.7071068, 0, 0.7071067, -21.28, -0.3971836, 15.68)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24804" type="Node3D" parent="FlowGraphNode3D" unique_id=379046856 instance=ExtResource("34_8co7s")]
+transform = Transform3D(-0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, -0.70710677, -21.28, -0.3971836, 16.32)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24805" type="Node3D" parent="FlowGraphNode3D" unique_id=308081760 instance=ExtResource("36_31yg4")]
+transform = Transform3D(0.7071068, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.7071068, -21.92, -0.3971836, 15.68)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24806" type="Node3D" parent="FlowGraphNode3D" unique_id=1512962983 instance=ExtResource("35_3qkbm")]
+transform = Transform3D(-0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, -0.70710677, -21.92, -0.3971836, 16.32)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24807" type="Node3D" parent="FlowGraphNode3D" unique_id=1779288812 instance=ExtResource("38_y2017")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.6, -0.3971836, 15.68)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24808" type="Node3D" parent="FlowGraphNode3D" unique_id=1128104975 instance=ExtResource("35_3qkbm")]
+transform = Transform3D(-1, 0, 1.509958e-07, 0, 1, 0, -1.509958e-07, 0, -1, -21.6, -0.3971836, 16.32)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24809" type="Node3D" parent="FlowGraphNode3D" unique_id=68522182 instance=ExtResource("35_3qkbm")]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -21.28, -0.3971836, 16)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24810" type="Node3D" parent="FlowGraphNode3D" unique_id=387281845 instance=ExtResource("38_y2017")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -21.92, -0.3971836, 16)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24811" type="Node3D" parent="FlowGraphNode3D" unique_id=840833475 instance=ExtResource("38_y2017")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 18.587452, 0.3264078, -0.96000004)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24812" type="Node3D" parent="FlowGraphNode3D" unique_id=250858515 instance=ExtResource("36_31yg4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.04, 0.3264078, -1.4125483)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24813" type="Node3D" parent="FlowGraphNode3D" unique_id=2071914882 instance=ExtResource("38_y2017")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 19.04, 0.3264078, -0.5074517)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24814" type="Node3D" parent="FlowGraphNode3D" unique_id=1706404624 instance=ExtResource("39_hwc4y")]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 19.49255, 0.3264078, -0.96000004)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24815" type="Node3D" parent="FlowGraphNode3D" unique_id=809406457 instance=ExtResource("36_31yg4")]
+transform = Transform3D(-0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, -0.70710677, 18.813726, 0.3264078, -0.7337259)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24816" type="Node3D" parent="FlowGraphNode3D" unique_id=1884801475 instance=ExtResource("36_31yg4")]
+transform = Transform3D(0.7071067, 0, -0.7071068, 0, 1, 0, 0.7071068, 0, 0.7071067, 19.266275, 0.3264078, -1.1862742)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24817" type="Node3D" parent="FlowGraphNode3D" unique_id=1705377123 instance=ExtResource("35_3qkbm")]
+transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, 18.813726, 0.3264078, -1.1862742)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24818" type="Node3D" parent="FlowGraphNode3D" unique_id=1820174 instance=ExtResource("39_hwc4y")]
+transform = Transform3D(-0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, -0.70710677, 19.266275, 0.3264078, -0.7337259)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24819" type="Node3D" parent="FlowGraphNode3D" unique_id=1961122789 instance=ExtResource("38_y2017")]
+transform = Transform3D(-0.7071066, 0, -0.70710695, 0, 1, 0, 0.70710695, 0, -0.7071066, 28.32, 0.3264078, 17.279999)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24820" type="Node3D" parent="FlowGraphNode3D" unique_id=2094205793 instance=ExtResource("39_hwc4y")]
+transform = Transform3D(-0.70710695, 0, 0.7071066, 0, 1, 0, -0.7071066, 0, -0.70710695, 27.68, 0.3264078, 17.279999)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24821" type="Node3D" parent="FlowGraphNode3D" unique_id=1775129449 instance=ExtResource("34_8co7s")]
+transform = Transform3D(0.7071069, 0, -0.70710665, 0, 1, 0, 0.70710665, 0, 0.7071069, 28.32, 0.3264078, 16.64)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24822" type="Node3D" parent="FlowGraphNode3D" unique_id=1922740064 instance=ExtResource("38_y2017")]
+transform = Transform3D(0.7071067, 0, 0.7071069, 0, 1, 0, -0.7071069, 0, 0.7071067, 27.68, 0.3264078, 16.64)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24823" type="Node3D" parent="FlowGraphNode3D" unique_id=445169501 instance=ExtResource("39_hwc4y")]
+transform = Transform3D(7.54979e-08, 0, -1, 0, 1, 0, 1, 0, 7.54979e-08, 28.32, 0.3264078, 16.96)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24824" type="Node3D" parent="FlowGraphNode3D" unique_id=797107824 instance=ExtResource("38_y2017")]
+transform = Transform3D(-1.6292068e-07, 0, 1, 0, 1, 0, -1, 0, -1.6292068e-07, 27.68, 0.3264078, 16.96)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24825" type="Node3D" parent="FlowGraphNode3D" unique_id=506700080 instance=ExtResource("35_3qkbm")]
+transform = Transform3D(-1, 0, -1.509958e-07, 0, 1, 0, 1.509958e-07, 0, -1, 28, 0.3264078, 17.279999)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24826" type="Node3D" parent="FlowGraphNode3D" unique_id=1515845150 instance=ExtResource("34_8co7s")]
+transform = Transform3D(1, 0, 2.3841858e-07, 0, 1, 0, -2.3841858e-07, 0, 1, 28, 0.3264078, 16.64)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24827" type="Node3D" parent="FlowGraphNode3D" unique_id=1213391565 instance=ExtResource("36_31yg4")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 19.04, 0.3264078, 17.412548)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24828" type="Node3D" parent="FlowGraphNode3D" unique_id=349721697 instance=ExtResource("38_y2017")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 18.587452, 0.3264078, 16.96)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24829" type="Node3D" parent="FlowGraphNode3D" unique_id=1895958127 instance=ExtResource("39_hwc4y")]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 19.49255, 0.3264078, 16.96)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24830" type="Node3D" parent="FlowGraphNode3D" unique_id=1145023406 instance=ExtResource("37_fsvi7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.04, 0.3264078, 16.50745)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24831" type="Node3D" parent="FlowGraphNode3D" unique_id=846570026 instance=ExtResource("39_hwc4y")]
+transform = Transform3D(-0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, -0.70710677, 19.266275, 0.3264078, 17.186274)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24832" type="Node3D" parent="FlowGraphNode3D" unique_id=65519267 instance=ExtResource("37_fsvi7")]
+transform = Transform3D(0.7071068, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.7071068, 18.813726, 0.3264078, 16.733725)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24833" type="Node3D" parent="FlowGraphNode3D" unique_id=1367886529 instance=ExtResource("39_hwc4y")]
+transform = Transform3D(-0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, -0.70710677, 18.813726, 0.3264078, 17.186274)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24834" type="Node3D" parent="FlowGraphNode3D" unique_id=2111744605 instance=ExtResource("38_y2017")]
+transform = Transform3D(0.7071068, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.7071068, 19.266275, 0.3264078, 16.733725)
+metadata/flow_owner = &"spawn_storage"
+
+[node name="@Node3D@24835" type="Node3D" parent="FlowGraphNode3D" unique_id=721987774 instance=ExtResource("40_rw04x")]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -28, -0.3971836, 19.96)
+metadata/flow_owner = &"spawn_beds"
+
+[node name="@Node3D@24836" type="Node3D" parent="FlowGraphNode3D" unique_id=2061227253 instance=ExtResource("41_cxr2h")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -28, -0.3971836, 20.68)
+metadata/flow_owner = &"spawn_beds"
+
+[node name="@Node3D@24837" type="Node3D" parent="FlowGraphNode3D" unique_id=1885996746 instance=ExtResource("41_cxr2h")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.64, -0.3971836, 20.32)
+metadata/flow_owner = &"spawn_beds"
+
+[node name="@Node3D@24838" type="Node3D" parent="FlowGraphNode3D" unique_id=66354749 instance=ExtResource("40_rw04x")]
+transform = Transform3D(-1, 0, 1.509958e-07, 0, 1, 0, -1.509958e-07, 0, -1, -28.36, -0.3971836, 20.32)
+metadata/flow_owner = &"spawn_beds"
+
+[node name="@Node3D@24839" type="Node3D" parent="FlowGraphNode3D" unique_id=150295295 instance=ExtResource("42_12tpy")]
+transform = Transform3D(0.95396966, 0, -0.29990306, 0, 1, 0, 0.29990306, 0, 0.95396966, -23.26946, -0.3971836, 19.165327)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24840" type="Node3D" parent="FlowGraphNode3D" unique_id=1283436752 instance=ExtResource("43_58nvc")]
+transform = Transform3D(-0.64462423, 0, 0.7644996, 0, 1, 0, -0.7644996, 0, -0.64462423, 31.67643, 0.3264078, 12.384658)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24841" type="Node3D" parent="FlowGraphNode3D" unique_id=1574353493 instance=ExtResource("43_58nvc")]
+transform = Transform3D(0.6446243, 0, -0.76449955, 0, 1, 0, 0.76449955, 0, 0.6446243, 34.403572, 0.3264078, 13.695342)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24842" type="Node3D" parent="FlowGraphNode3D" unique_id=216623376 instance=ExtResource("42_12tpy")]
+transform = Transform3D(0.15858549, 0, -0.9873453, 0, 1, 0, 0.9873453, 0, 0.15858549, -8.393306, -0.49592936, -10.539141)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24843" type="Node3D" parent="FlowGraphNode3D" unique_id=2146970212 instance=ExtResource("43_58nvc")]
+transform = Transform3D(-0.15858546, 0, 0.9873453, 0, 1, 0, -0.9873453, 0, -0.15858546, -8.831002, -0.49592936, -13.264214)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24844" type="Node3D" parent="FlowGraphNode3D" unique_id=779714910 instance=ExtResource("43_58nvc")]
+transform = Transform3D(-0.95396966, 0, 0.29990312, 0, 1, 0, -0.29990312, 0, -0.95396966, -25.530539, -0.3971836, 17.154673)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24845" type="Node3D" parent="FlowGraphNode3D" unique_id=2066090775 instance=ExtResource("43_58nvc")]
+transform = Transform3D(0.21514177, 0, -0.9765828, 0, 1, 0, 0.9765828, 0, 0.21514177, -9.257623, -0.49592936, -15.825705)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24846" type="Node3D" parent="FlowGraphNode3D" unique_id=1659950126 instance=ExtResource("43_58nvc")]
+transform = Transform3D(0.21514177, 0, -0.9765828, 0, 1, 0, 0.9765828, 0, 0.21514177, -10.468586, -0.49592936, -15.5589285)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24847" type="Node3D" parent="FlowGraphNode3D" unique_id=1114950707 instance=ExtResource("43_58nvc")]
+transform = Transform3D(-0.21514174, 0, 0.9765828, 0, 1, 0, -0.9765828, 0, -0.21514174, -9.851414, -0.49592936, -18.521072)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24848" type="Node3D" parent="FlowGraphNode3D" unique_id=623350385 instance=ExtResource("43_58nvc")]
+transform = Transform3D(0.15858549, 0, -0.9873453, 0, 1, 0, 0.9873453, 0, 0.15858549, -7.168998, -0.49592936, -10.735786)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24849" type="Node3D" parent="FlowGraphNode3D" unique_id=1018442198 instance=ExtResource("42_12tpy")]
+transform = Transform3D(-0.64462423, 0, 0.7644996, 0, 1, 0, -0.7644996, 0, -0.64462423, 32.62441, 0.3264078, 11.585323)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24850" type="Node3D" parent="FlowGraphNode3D" unique_id=491283007 instance=ExtResource("42_12tpy")]
+transform = Transform3D(-0.15858546, 0, 0.9873453, 0, 1, 0, -0.9873453, 0, -0.15858546, -7.6066937, -0.49592936, -13.460859)
+metadata/flow_owner = &"spawn_seats"
+
+[node name="@Node3D@24851" type="Node3D" parent="FlowGraphNode3D" unique_id=2023318413 instance=ExtResource("44_amnrx")]
+transform = Transform3D(-0.5914612, 0, 0.18593994, 0, 0.62, 0, -0.18593994, 0, -0.5914612, -24.423992, 0.63781637, 18.236317)
+metadata/flow_owner = &"spawn_candles"
+
+[node name="@Node3D@24852" type="Node3D" parent="FlowGraphNode3D" unique_id=1177651273 instance=ExtResource("44_amnrx")]
+transform = Transform3D(-0.09832299, 0, 0.61215407, 0, 0.62, 0, -0.61215407, 0, -0.09832299, -8.078988, 0.5390706, -11.987313)
+metadata/flow_owner = &"spawn_candles"
+
+[node name="@Node3D@24853" type="Node3D" parent="FlowGraphNode3D" unique_id=2083389100 instance=ExtResource("45_ndiv7")]
+transform = Transform3D(-0.13338788, 0, 0.6054813, 0, 0.62, 0, -0.6054813, 0, -0.13338788, -10.238127, 0.5390706, -17.022789)
+metadata/flow_owner = &"spawn_candles"
+
+[node name="@Node3D@24854" type="Node3D" parent="FlowGraphNode3D" unique_id=333880523 instance=ExtResource("45_ndiv7")]
+transform = Transform3D(-0.39966702, 0, 0.47398975, 0, 0.62, 0, -0.47398975, 0, -0.39966702, 32.97884, 1.3614078, 13.09157)
+metadata/flow_owner = &"spawn_candles"
+
+[node name="@Node3D@24855" type="Node3D" parent="FlowGraphNode3D" unique_id=1635940011 instance=ExtResource("46_hssur")]
+transform = Transform3D(-0.46412948, 0, 0.5504397, 0, 0.72, 0, -0.5504397, 0, -0.46412948, 33.24628, 1.3564078, 13.284639)
+metadata/flow_owner = &"spawn_bottles"
+
+[node name="@Node3D@24856" type="Node3D" parent="FlowGraphNode3D" unique_id=1255731336 instance=ExtResource("47_6x3me")]
+transform = Transform3D(-0.15490206, 0, 0.70313966, 0, 0.72, 0, -0.70313966, 0, -0.15490206, -10.091154, 0.5340706, -16.727495)
+metadata/flow_owner = &"spawn_bottles"
+
+[node name="@Node3D@24857" type="Node3D" parent="FlowGraphNode3D" unique_id=248199168 instance=ExtResource("48_517xx")]
+transform = Transform3D(-0.46412948, 0, 0.5504397, 0, 0.72, 0, -0.5504397, 0, -0.46412948, 33.15481, 1.3564078, 12.524618)
+metadata/flow_owner = &"spawn_bottles"
+
+[node name="@Node3D@24858" type="Node3D" parent="FlowGraphNode3D" unique_id=1202225634 instance=ExtResource("48_517xx")]
+transform = Transform3D(-0.15490206, 0, 0.70313966, 0, 0.72, 0, -0.70313966, 0, -0.15490206, -9.818681, 0.5340706, -17.442867)
+metadata/flow_owner = &"spawn_bottles"
+
+[node name="@Node3D@24859" type="Node3D" parent="FlowGraphNode3D" unique_id=374030912 instance=ExtResource("47_6x3me")]
+transform = Transform3D(-0.11418153, 0, 0.7108886, 0, 0.72, 0, -0.7108886, 0, -0.11418153, -7.636062, 0.5340706, -12.382556)
+metadata/flow_owner = &"spawn_bottles"
+
+[node name="@Node3D@24860" type="Node3D" parent="FlowGraphNode3D" unique_id=448961023 instance=ExtResource("49_l2i67")]
+transform = Transform3D(-0.044737656, 0, 0.578272, 0, 0.58, 0, -0.578272, 0, -0.044737656, -10.67297, 0.5340706, -16.486683)
+metadata/flow_owner = &"spawn_plates"
+
+[node name="@Node3D@24861" type="Node3D" parent="FlowGraphNode3D" unique_id=94429699 instance=ExtResource("50_wbjo5")]
+transform = Transform3D(-0.411105, 0, 0.40913647, 0, 0.58, 0, -0.40913647, 0, -0.411105, 33.79118, 1.3564078, 12.969068)
+metadata/flow_owner = &"spawn_plates"
+
+[node name="@Node3D@24862" type="Node3D" parent="FlowGraphNode3D" unique_id=746170803 instance=ExtResource("51_8ac6j")]
+transform = Transform3D(-0.1610837, 0, 0.5571822, 0, 0.58, 0, -0.5571822, 0, -0.1610837, -8.680346, 0.5340706, -12.326236)
+metadata/flow_owner = &"spawn_plates"
+
+[node name="@Node3D@24863" type="Node3D" parent="FlowGraphNode3D" unique_id=1196543011 instance=ExtResource("50_wbjo5")]
+transform = Transform3D(-0.5703766, 0, 0.10521664, 0, 0.58, 0, -0.10521664, 0, -0.5703766, -24.996147, 0.6328164, 18.622503)
+metadata/flow_owner = &"spawn_plates"
+
+[node name="@Node3D@24864" type="Node3D" parent="FlowGraphNode3D" unique_id=187016337 instance=ExtResource("51_8ac6j")]
+transform = Transform3D(-0.30853277, 0, 0.49112883, 0, 0.58, 0, -0.49112883, 0, -0.30853277, 32.8432, 1.3564078, 13.768402)
+metadata/flow_owner = &"spawn_plates"
+
+[node name="@Node3D@24865" type="Node3D" parent="FlowGraphNode3D" unique_id=608089462 instance=ExtResource("52_t6m7r")]
+transform = Transform3D(-0.031616393, 0, 0.5791376, 0, 0.58, 0, -0.5791376, 0, -0.031616393, -7.4560375, 0.5340706, -12.5228815)
+metadata/flow_owner = &"spawn_plates"
+
+[node name="@Node3D@24866" type="Node3D" parent="FlowGraphNode3D" unique_id=2064894849 instance=ExtResource("50_wbjo5")]
+transform = Transform3D(-0.42513323, 0, 0.39453986, 0, 0.58, 0, -0.39453986, 0, -0.42513323, 32.288822, 1.3564078, 13.110932)
+metadata/flow_owner = &"spawn_plates"
+
+[node name="@Node3D@24867" type="Node3D" parent="FlowGraphNode3D" unique_id=1733725993 instance=ExtResource("51_8ac6j")]
+transform = Transform3D(-0.17367394, 0, 0.55338717, 0, 0.58, 0, -0.55338717, 0, -0.17367394, -9.4620075, 0.5340706, -16.753458)
+metadata/flow_owner = &"spawn_plates"
+
+[node name="@Node3D@24868" type="Node3D" parent="FlowGraphNode3D" unique_id=367528750 instance=ExtResource("52_t6m7r")]
+transform = Transform3D(-0.06489183, 0, 0.57635844, 0, 0.58, 0, -0.57635844, 0, -0.06489183, -9.64703, 0.5340706, -17.593319)
+metadata/flow_owner = &"spawn_plates"
+
+[node name="@Node3D@24869" type="Node3D" parent="FlowGraphNode3D" unique_id=1269413603 instance=ExtResource("49_l2i67")]
+transform = Transform3D(-0.011385566, 0, 0.5798882, 0, 0.58, 0, -0.5798882, 0, -0.011385566, -8.5439625, 0.5340706, -11.4771185)
+metadata/flow_owner = &"spawn_plates"
+
+[node name="@Node3D@24870" type="Node3D" parent="FlowGraphNode3D" unique_id=1314954318 instance=ExtResource("53_l4x52")]
+transform = Transform3D(-0.95396966, 0, 0.29990312, 0, 1, 0, -0.29990312, 0, -0.95396966, -24.4, -0.3971836, 18.16)
+metadata/flow_owner = &"spawn_tables"
+
+[node name="@Node3D@24871" type="Node3D" parent="FlowGraphNode3D" unique_id=1181659430 instance=ExtResource("54_kcr2w")]
+transform = Transform3D(-0.15858546, 0, 0.9873453, 0, 1, 0, -0.9873453, 0, -0.15858546, -8, -0.49592936, -12)
+metadata/flow_owner = &"spawn_tables"
+
+[node name="@Node3D@24872" type="Node3D" parent="FlowGraphNode3D" unique_id=841717171 instance=ExtResource("53_l4x52")]
+transform = Transform3D(-0.21514174, 0, 0.9765828, 0, 1, 0, -0.9765828, 0, -0.21514174, -10.16, -0.49592936, -17.04)
+metadata/flow_owner = &"spawn_tables"
+
+[node name="@Node3D@24873" type="Node3D" parent="FlowGraphNode3D" unique_id=140461952 instance=ExtResource("55_7v2me")]
+transform = Transform3D(-0.64462423, 0, 0.7644996, 0, 1, 0, -0.7644996, 0, -0.64462423, 33.04, 0.3264078, 13.04)
+metadata/flow_owner = &"spawn_tables"
+
+[node name="@Node3D@24880" type="Node3D" parent="FlowGraphNode3D" unique_id=416831277 instance=ExtResource("56_h7q21")]
+transform = Transform3D(-0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, -0.70710677, -3.44, -0.49592936, -1.3600006)
+metadata/flow_owner = &"spawn_chests"
+
+[node name="@Node3D@24887" type="Node3D" parent="FlowGraphNode3D" unique_id=1058357721 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -6)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24888" type="Node3D" parent="FlowGraphNode3D" unique_id=2138562939 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 22)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24889" type="Node3D" parent="FlowGraphNode3D" unique_id=1830819876 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 0, -6)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24890" type="Node3D" parent="FlowGraphNode3D" unique_id=1628944926 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 0, 22)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24891" type="Node3D" parent="FlowGraphNode3D" unique_id=1311832313 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -22)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24892" type="Node3D" parent="FlowGraphNode3D" unique_id=2004750941 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -18)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24893" type="Node3D" parent="FlowGraphNode3D" unique_id=380868422 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -14)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24894" type="Node3D" parent="FlowGraphNode3D" unique_id=91126519 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -10)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24895" type="Node3D" parent="FlowGraphNode3D" unique_id=487918954 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, -10)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24896" type="Node3D" parent="FlowGraphNode3D" unique_id=1881346518 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -10)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24897" type="Node3D" parent="FlowGraphNode3D" unique_id=369248731 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, -22)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24898" type="Node3D" parent="FlowGraphNode3D" unique_id=1064682545 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, -10)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24899" type="Node3D" parent="FlowGraphNode3D" unique_id=1706993313 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, -26)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24900" type="Node3D" parent="FlowGraphNode3D" unique_id=1406043473 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, -14)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24901" type="Node3D" parent="FlowGraphNode3D" unique_id=1018552730 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, -10)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24902" type="Node3D" parent="FlowGraphNode3D" unique_id=736750431 instance=ExtResource("22_xyxb4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, 2)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24903" type="Node3D" parent="FlowGraphNode3D" unique_id=595824893 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -26)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24904" type="Node3D" parent="FlowGraphNode3D" unique_id=1003605952 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -18)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24905" type="Node3D" parent="FlowGraphNode3D" unique_id=608941787 instance=ExtResource("22_xyxb4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -14)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24906" type="Node3D" parent="FlowGraphNode3D" unique_id=2098973486 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 2)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24907" type="Node3D" parent="FlowGraphNode3D" unique_id=1695966073 instance=ExtResource("22_xyxb4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 0, 10)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24908" type="Node3D" parent="FlowGraphNode3D" unique_id=727239827 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 0, 22)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24909" type="Node3D" parent="FlowGraphNode3D" unique_id=1640741541 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, 10)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24910" type="Node3D" parent="FlowGraphNode3D" unique_id=2121697883 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0, 10)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24911" type="Node3D" parent="FlowGraphNode3D" unique_id=1524183867 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0, 10)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24912" type="Node3D" parent="FlowGraphNode3D" unique_id=1160036703 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0, 22)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24913" type="Node3D" parent="FlowGraphNode3D" unique_id=496900472 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0, -10)
+metadata/flow_owner = &"spawn_pillars"
+
+[node name="@Node3D@24914" type="Node3D" parent="FlowGraphNode3D" unique_id=383801841 instance=ExtResource("23_lbtyg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, -14)
+metadata/flow_owner = &"spawn_pillars"
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1374874553]
 environment = SubResource("Environment_gm5rt")
@@ -1056,10 +1829,10 @@ light_energy = 0.1
 shadow_enabled = true
 
 [node name="RenderCamera" type="Camera3D" parent="." unique_id=109047196]
-transform = Transform3D(0.5923561, -0.35903746, 0.72125334, -0.03776832, 0.8818561, 0.47000363, -0.80479056, -0.30565003, 0.5088126, 34.291214, 19.43883, 6.9456215)
+transform = Transform3D(0.59348303, -0.42807063, 0.68156695, 0.009486739, 0.8504903, 0.52590525, -0.80479056, -0.30565006, 0.5088126, 36.32265, 26.500563, 21.13765)
 attributes = SubResource("CameraAttributesPractical_hc2tf")
 current = true
-fov = 29.5
+fov = 53.3
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1511936033]
 transform = Transform3D(0.53658736, -0.83268225, -0.13679989, 0.59593797, 0.25915793, 0.7600627, -0.59743786, -0.48936424, 0.63528776, 0, 0, 0)

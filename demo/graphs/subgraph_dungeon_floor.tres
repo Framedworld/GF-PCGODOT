@@ -1,10 +1,13 @@
 [gd_resource type="Resource" script_class="FlowGraphResource" format=3 uid="uid://ck1mnk4ux41ch"]
 
 [ext_resource type="PackedScene" uid="uid://clegv0xaik6es" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_tile_large.gltf.glb" id="1_mebns"]
+[ext_resource type="PackedScene" uid="uid://c1oarr4yrm5m3" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_wood_large.gltf.glb" id="2_dwevm"]
 [ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="2_heo7b"]
 [ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="3_6yxkt"]
+[ext_resource type="PackedScene" uid="uid://judlwj16o64j" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_wood_large_dark.gltf.glb" id="3_j8oct"]
+[ext_resource type="PackedScene" uid="uid://dc022j0l8cxts" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/floor_dirt_large.gltf.glb" id="4_pipew"]
 
-[sub_resource type="Resource" id="Resource_dwevm"]
+[sub_resource type="Resource" id="Resource_gbokd"]
 script = ExtResource("2_heo7b")
 name = "points"
 
@@ -25,16 +28,19 @@ data = {
 "to_node": "spawn_floors",
 "to_port": 0
 }],
-"min_pos": Vector2(0, 100),
+"min_pos": Vector2(0, 0),
 "nodes": [{
+"args_port": {},
 "name": "input_points",
 "position": Vector2(0, 100),
 "settings": {
 "data_type": 2,
 "name": "points"
 },
+"show_disconnected_inputs": false,
 "template": "input"
 }, {
+"args_port": {},
 "name": "filter_floor",
 "position": Vector2(300, 100),
 "settings": {
@@ -42,18 +48,25 @@ data = {
 "in_nameA": "type",
 "in_nameB": "0"
 },
+"show_disconnected_inputs": false,
 "template": "filter"
 }, {
+"args_port": {},
 "name": "spawn_floors",
 "position": Vector2(600, 100),
 "settings": {
-"assign_attributes": {},
-"scene": ExtResource("1_mebns"),
-"scene_attribute": ""
+"random_seed": 5011,
+"scene_selector_attribute": "room_style",
+"scene_variant_weights": [3.0, 1.3, 1.0, 0.9],
+"scene_variants": [ExtResource("1_mebns"), ExtResource("2_dwevm"), ExtResource("3_j8oct"), ExtResource("4_pipew")]
 },
+"show_disconnected_inputs": false,
 "template": "spawn_scenes"
 }],
 "type": "flow_graph_nodes",
 "version": 1
 }
-in_params = Array[ExtResource("2_heo7b")]([SubResource("Resource_dwevm")])
+view_zoom = 0.75
+view_offset = Vector2(-306, -203)
+new_name_counter = 3
+in_params = Array[ExtResource("2_heo7b")]([SubResource("Resource_gbokd")])

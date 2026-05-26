@@ -136,7 +136,9 @@ func _populate_node_properties(node: GraphNode, settings: Object):
 	var type_box = VBoxContainer.new()
 	type_box.add_theme_constant_override("separation", 10)
 	content_vbox.add_child(type_box)
-	
+
+	type_box.add_child(_create_row("Title", _create_string_input(settings, "title")))
+
 	# Gather subclass-specific properties
 	var props = settings.get_property_list()
 	var has_custom_props = false
@@ -145,6 +147,8 @@ func _populate_node_properties(node: GraphNode, settings: Object):
 		if prop.name in BASE_SETTINGS_PROPS:
 			continue
 		if prop.usage & PROPERTY_USAGE_STORAGE == 0:
+			continue
+		if settings.has_method("exposeParam") and not settings.exposeParam(prop.name):
 			continue
 			
 		var ctrl = _create_control_for_property(settings, prop)
@@ -192,6 +196,8 @@ func _populate_node_properties(node: GraphNode, settings: Object):
 		if prop.name in ["resource_local_to_scene", "resource_path", "resource_name", "script", "title", "disabled", "trace"]:
 			continue
 		if prop.usage & PROPERTY_USAGE_STORAGE == 0:
+			continue
+		if settings.has_method("exposeParam") and not settings.exposeParam(prop.name):
 			continue
 			
 		var ctrl = _create_control_for_property(settings, prop)
@@ -299,6 +305,12 @@ func _create_control_for_property(obj: Object, prop: Dictionary) -> Control:
 			return _create_string_input(obj, prop_name)
 		TYPE_COLOR:
 			return _create_color_input(obj, prop_name)
+		TYPE_VECTOR3:
+			return _create_vector3_input(obj, prop_name)
+		TYPE_ARRAY:
+			return _create_array_input(obj, prop_name, val if val is Array else [], prop)
+		TYPE_DICTIONARY:
+			return _create_dictionary_input(obj, prop_name, val if val is Dictionary else {})
 		TYPE_OBJECT:
 			var hbc = HBoxContainer.new()
 			var lbl = Label.new()
@@ -311,7 +323,7 @@ func _create_control_for_property(obj: Object, prop: Dictionary) -> Control:
 			var btn = Button.new()
 			btn.text = "..."
 			btn.pressed.connect(func():
-				_show_file_dialog_for_property(obj, prop_name, lbl)
+				_show_file_dialog_for_property(obj, prop_name, lbl, prop)
 			)
 			hbc.add_child(btn)
 			return hbc
@@ -356,23 +368,340 @@ func _create_color_input(obj: Object, prop_name: String) -> ColorPickerButton:
 	)
 	return cpb
 
+func _create_vector3_input(obj: Object, prop_name: String) -> Control:
+	var current_val = obj.get(prop_name)
+	var value: Vector3 = current_val if current_val is Vector3 else Vector3.ZERO
+	var hbc = HBoxContainer.new()
+	hbc.add_theme_constant_override("separation", 4)
+	for axis in ["x", "y", "z"]:
+		var this_axis = axis
+		var sb = SpinBox.new()
+		sb.min_value = -999999.0
+		sb.max_value = 999999.0
+		sb.step = 0.01
+		sb.custom_minimum_size.x = 52
+		sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if axis == "x":
+			sb.value = value.x
+		elif axis == "y":
+			sb.value = value.y
+		else:
+			sb.value = value.z
+		sb.value_changed.connect(func(new_val):
+			var current = obj.get(prop_name)
+			var next: Vector3 = current if current is Vector3 else Vector3.ZERO
+			if this_axis == "x":
+				next.x = new_val
+			elif this_axis == "y":
+				next.y = new_val
+			else:
+				next.z = new_val
+			_on_value_changed(obj, prop_name, next)
+		)
+		hbc.add_child(sb)
+	return hbc
+
+func _infer_array_mode(prop_name: String, prop: Dictionary, arr_val: Array) -> String:
+	var hint = str(prop.get("hint_string", "")).to_lower()
+	var hint_prefix = hint
+	if hint.find(":") != -1:
+		hint_prefix = hint.split(":")[0]
+	if hint.find("packedscene") != -1 or prop_name == "scene_variants":
+		return "packedscene"
+	if hint.find("vector3") != -1 or prop_name in ["offsets", "rotations", "sizes"]:
+		return "vector3"
+	if hint.find("float") != -1 or prop_name == "scene_variant_weights":
+		return "float"
+	if hint.find("string") != -1 or prop_name == "labels":
+		return "string"
+	if hint_prefix == "9":
+		return "vector3"
+	if hint_prefix == "4":
+		return "string"
+	if hint_prefix == "3":
+		return "float"
+	if arr_val.size() > 0:
+		var first = arr_val[0]
+		if first is PackedScene:
+			return "packedscene"
+		match typeof(first):
+			TYPE_VECTOR3:
+				return "vector3"
+			TYPE_FLOAT:
+				return "float"
+			TYPE_STRING:
+				return "string"
+	return "string"
+
+func _create_array_input(obj: Object, prop_name: String, arr_val: Array, prop: Dictionary) -> Control:
+	var wrapper = VBoxContainer.new()
+	wrapper.add_theme_constant_override("separation", 4)
+	var mode = _infer_array_mode(prop_name, prop, arr_val)
+
+	for idx in range(arr_val.size()):
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
+		var this_idx = idx
+
+		match mode:
+			"vector3":
+				var vec_val = arr_val[this_idx]
+				var vec: Vector3 = vec_val if vec_val is Vector3 else Vector3.ZERO
+				for axis in ["x", "y", "z"]:
+					var this_axis = axis
+					var sb_axis = SpinBox.new()
+					sb_axis.min_value = -999999.0
+					sb_axis.max_value = 999999.0
+					sb_axis.step = 0.01
+					sb_axis.custom_minimum_size.x = 48
+					sb_axis.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					if axis == "x":
+						sb_axis.value = vec.x
+					elif axis == "y":
+						sb_axis.value = vec.y
+					else:
+						sb_axis.value = vec.z
+					sb_axis.value_changed.connect(func(new_val):
+						var current_arr = obj.get(prop_name)
+						var next: Array = current_arr.duplicate(true) if current_arr is Array else []
+						var cur = next[this_idx]
+						var next_vec: Vector3 = cur if cur is Vector3 else Vector3.ZERO
+						if this_axis == "x":
+							next_vec.x = new_val
+						elif this_axis == "y":
+							next_vec.y = new_val
+						else:
+							next_vec.z = new_val
+						next[this_idx] = next_vec
+						_on_value_changed(obj, prop_name, next)
+					)
+					row.add_child(sb_axis)
+			"float":
+				var sb = SpinBox.new()
+				sb.min_value = -999999.0
+				sb.max_value = 999999.0
+				sb.step = 0.01
+				sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				sb.value = float(arr_val[this_idx])
+				sb.value_changed.connect(func(new_val):
+					var current_arr = obj.get(prop_name)
+					var next: Array = current_arr.duplicate(true) if current_arr is Array else []
+					next[this_idx] = new_val
+					_on_value_changed(obj, prop_name, next)
+				)
+				row.add_child(sb)
+			"packedscene":
+				var lbl = Label.new()
+				var res = arr_val[this_idx]
+				lbl.text = "None" if res == null else res.resource_path.get_file()
+				lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				lbl.clip_text = true
+				lbl.add_theme_font_size_override("font_size", 11)
+				row.add_child(lbl)
+				var btn_pick = Button.new()
+				btn_pick.text = "..."
+				btn_pick.pressed.connect(func():
+					_show_file_dialog_for_array_resource(obj, prop_name, this_idx, lbl, "packedscene")
+				)
+				row.add_child(btn_pick)
+			_:
+				var le = LineEdit.new()
+				le.text = str(arr_val[this_idx])
+				le.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				var sb_style := StyleBoxFlat.new()
+				sb_style.bg_color = Color("111318")
+				sb_style.set_corner_radius_all(3)
+				sb_style.content_margin_left = 6
+				sb_style.content_margin_right = 6
+				le.add_theme_stylebox_override("normal", sb_style)
+				le.text_submitted.connect(func(new_text):
+					var current_arr = obj.get(prop_name)
+					var next: Array = current_arr.duplicate(true) if current_arr is Array else []
+					next[this_idx] = new_text
+					_on_value_changed(obj, prop_name, next)
+				)
+				le.focus_exited.connect(func():
+					var current_arr = obj.get(prop_name)
+					var next: Array = current_arr.duplicate(true) if current_arr is Array else []
+					if str(next[this_idx]) != le.text:
+						next[this_idx] = le.text
+						_on_value_changed(obj, prop_name, next)
+				)
+				row.add_child(le)
+
+		var btn_remove = Button.new()
+		btn_remove.text = "-"
+		btn_remove.tooltip_text = "Remove item"
+		btn_remove.pressed.connect(func():
+			var current_arr = obj.get(prop_name)
+			var next: Array = current_arr.duplicate(true) if current_arr is Array else []
+			if this_idx >= 0 and this_idx < next.size():
+				next.remove_at(this_idx)
+				_on_value_changed(obj, prop_name, next)
+			edit(current_node)
+		)
+		row.add_child(btn_remove)
+		wrapper.add_child(row)
+
+	var add_row = HBoxContainer.new()
+	add_row.add_theme_constant_override("separation", 4)
+	var add_btn = Button.new()
+	add_btn.text = "+ Add"
+	add_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_btn.pressed.connect(func():
+		var current_arr = obj.get(prop_name)
+		var next: Array = current_arr.duplicate(true) if current_arr is Array else []
+		match mode:
+			"vector3":
+				next.append(Vector3.ZERO)
+			"float":
+				next.append(1.0)
+			"packedscene":
+				next.append(null)
+			_:
+				next.append("")
+		_on_value_changed(obj, prop_name, next)
+		edit(current_node)
+	)
+	add_row.add_child(add_btn)
+	wrapper.add_child(add_row)
+
+	return wrapper
+
+func _create_dictionary_input(obj: Object, prop_name: String, dict_val: Dictionary) -> Control:
+	var wrapper = VBoxContainer.new()
+	wrapper.add_theme_constant_override("separation", 4)
+
+	for key in dict_val.keys():
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
+
+		var key_le = LineEdit.new()
+		key_le.text = str(key)
+		key_le.custom_minimum_size.x = 80
+		key_le.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(key_le)
+
+		var value_le = LineEdit.new()
+		value_le.text = str(dict_val[key])
+		value_le.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(value_le)
+
+		var btn_remove = Button.new()
+		btn_remove.text = "-"
+		btn_remove.tooltip_text = "Remove entry"
+		var original_key = key
+		btn_remove.pressed.connect(func():
+			var current_dict = obj.get(prop_name)
+			var next: Dictionary = current_dict.duplicate(true) if current_dict is Dictionary else {}
+			if next.has(original_key):
+				next.erase(original_key)
+				_on_value_changed(obj, prop_name, next)
+			edit(current_node)
+		)
+		row.add_child(btn_remove)
+
+		key_le.focus_exited.connect(func():
+			var current_dict = obj.get(prop_name)
+			var next: Dictionary = current_dict.duplicate(true) if current_dict is Dictionary else {}
+			var new_key = key_le.text.strip_edges()
+			if new_key == "":
+				key_le.text = str(original_key)
+				return
+			var current_val = next[original_key] if next.has(original_key) else value_le.text
+			if new_key != str(original_key):
+				next.erase(original_key)
+				next[new_key] = current_val
+				_on_value_changed(obj, prop_name, next)
+				edit(current_node)
+		)
+
+		value_le.focus_exited.connect(func():
+			var current_dict = obj.get(prop_name)
+			var next: Dictionary = current_dict.duplicate(true) if current_dict is Dictionary else {}
+			var target_key = key_le.text.strip_edges()
+			if target_key == "":
+				target_key = str(original_key)
+			next[target_key] = value_le.text
+			_on_value_changed(obj, prop_name, next)
+		)
+
+		wrapper.add_child(row)
+
+	var add_row = HBoxContainer.new()
+	add_row.add_theme_constant_override("separation", 4)
+	var add_key = LineEdit.new()
+	add_key.placeholder_text = "key"
+	add_key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_row.add_child(add_key)
+	var add_value = LineEdit.new()
+	add_value.placeholder_text = "value"
+	add_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_row.add_child(add_value)
+	var add_btn = Button.new()
+	add_btn.text = "+"
+	add_btn.pressed.connect(func():
+		var key = add_key.text.strip_edges()
+		if key == "":
+			return
+		var current_dict = obj.get(prop_name)
+		var next: Dictionary = current_dict.duplicate(true) if current_dict is Dictionary else {}
+		next[key] = add_value.text
+		_on_value_changed(obj, prop_name, next)
+		edit(current_node)
+	)
+	add_row.add_child(add_btn)
+	wrapper.add_child(add_row)
+
+	return wrapper
+
 func _on_value_changed(obj: Object, prop_name: String, new_val):
 	obj.set(prop_name, new_val)
 	if obj is Resource:
 		obj.emit_changed()
 	property_edited.emit(prop_name)
 
-func _show_file_dialog_for_property(obj: Object, prop_name: String, label: Label):
+func _show_file_dialog_for_property(obj: Object, prop_name: String, label: Label, prop: Dictionary = {}):
 	var fd = FileDialog.new()
 	fd.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	fd.access = FileDialog.ACCESS_RESOURCES
-	fd.add_filter("*.tres", "Flow Graph Resource")
-	fd.add_filter("*.res", "Flow Graph Resource")
+	var hint = str(prop.get("hint_string", "")).to_lower()
+	if hint.find("packedscene") != -1 or prop_name.find("scene") != -1:
+		fd.add_filter("*.tscn,*.scn", "Scene Files")
+		fd.add_filter("*.tres,*.res", "Resource Files")
+	else:
+		fd.add_filter("*.tres,*.res", "Resource Files")
+		fd.add_filter("*.tscn,*.scn", "Scene Files")
 	fd.file_selected.connect(func(path):
 		var res = load(path)
 		if res:
 			_on_value_changed(obj, prop_name, res)
 			label.text = path.get_file()
+		fd.queue_free()
+	)
+	fd.canceled.connect(func():
+		fd.queue_free()
+	)
+	add_child(fd)
+	fd.popup_centered_ratio(0.4)
+
+func _show_file_dialog_for_array_resource(obj: Object, prop_name: String, index: int, label: Label, mode: String):
+	var fd = FileDialog.new()
+	fd.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	fd.access = FileDialog.ACCESS_RESOURCES
+	if mode == "packedscene":
+		fd.add_filter("*.tscn,*.scn", "Scene Files")
+	else:
+		fd.add_filter("*.tres,*.res", "Resource Files")
+	fd.file_selected.connect(func(path):
+		var res = load(path)
+		if res:
+			var current_arr = obj.get(prop_name)
+			var next: Array = current_arr.duplicate(true) if current_arr is Array else []
+			if index >= 0 and index < next.size():
+				next[index] = res
+				_on_value_changed(obj, prop_name, next)
+				label.text = path.get_file()
 		fd.queue_free()
 	)
 	fd.canceled.connect(func():

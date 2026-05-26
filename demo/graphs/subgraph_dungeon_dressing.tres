@@ -1,0 +1,678 @@
+[gd_resource type="Resource" script_class="FlowGraphResource" format=3 uid="uid://csx5rbkvpakpb"]
+
+[ext_resource type="PackedScene" uid="uid://blfy027ki20vn" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/table_long.gltf.glb" id="1_x7rkb"]
+[ext_resource type="PackedScene" uid="uid://cpaovd4yfflnk" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/table_long_tablecloth.gltf.glb" id="2_dgih6"]
+[ext_resource type="PackedScene" uid="uid://d1067jgr7mg7h" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/table_medium.gltf.glb" id="3_2fuaf"]
+[ext_resource type="PackedScene" uid="uid://duxrjwuovbflh" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/table_medium_tablecloth.gltf.glb" id="4_wgrn1"]
+[ext_resource type="PackedScene" uid="uid://p6a0lqt74cyi" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/plate_food_A.gltf.glb" id="5_ns3kw"]
+[ext_resource type="PackedScene" uid="uid://ulw8xyx5rd1f" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/plate_food_B.gltf.glb" id="6_2c7rp"]
+[ext_resource type="PackedScene" uid="uid://bbnanhgymwunu" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/plate.gltf.glb" id="7_jhjao"]
+[ext_resource type="PackedScene" uid="uid://b1dxgn6yujorv" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/plate_small.gltf.glb" id="8_pixxs"]
+[ext_resource type="PackedScene" uid="uid://c2hrhl4seryx0" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bottle_A_brown.gltf.glb" id="9_a8481"]
+[ext_resource type="PackedScene" uid="uid://bv2qo8pn46cjm" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bottle_A_green.gltf.glb" id="10_raa5a"]
+[ext_resource type="PackedScene" uid="uid://dt0v6acx1ps4b" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bottle_B_brown.gltf.glb" id="11_l60l6"]
+[ext_resource type="PackedScene" uid="uid://bvgcdlns4ynry" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bottle_C_green.gltf.glb" id="12_dd5eb"]
+[ext_resource type="PackedScene" uid="uid://c4t71kc4hgrol" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/candle_lit.gltf.glb" id="13_4i8pr"]
+[ext_resource type="PackedScene" uid="uid://bg46bduuer8vm" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/candle_triple.gltf.glb" id="14_xaku3"]
+[ext_resource type="PackedScene" uid="uid://dkqrhv5eyxkc6" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/candle_thin_lit.gltf.glb" id="15_7klc6"]
+[ext_resource type="PackedScene" uid="uid://dy181q3xkni3t" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/chair.gltf.glb" id="16_pvwxj"]
+[ext_resource type="PackedScene" uid="uid://dbju7688geard" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/stool.gltf.glb" id="17_2xhk4"]
+[ext_resource type="PackedScene" uid="uid://dmyom7o3afkb8" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bed_frame.gltf.glb" id="18_pv2jp"]
+[ext_resource type="PackedScene" uid="uid://e83xp1p2nend" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bed_decorated.gltf.glb" id="19_7ok48"]
+[ext_resource type="PackedScene" uid="uid://cc1iygpcl31x0" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/bed_floor.gltf.glb" id="20_quy1f"]
+[ext_resource type="PackedScene" uid="uid://48wqgal7ib35" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/barrel_large.gltf.glb" id="21_s7yth"]
+[ext_resource type="PackedScene" uid="uid://bodm0xwgrc53s" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/barrel_small.gltf.glb" id="22_e68vx"]
+[ext_resource type="PackedScene" uid="uid://c2uy74a4k22ri" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/box_large.gltf.glb" id="23_ihulv"]
+[ext_resource type="PackedScene" uid="uid://b6k8qd5kpu5oq" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/box_stacked.gltf.glb" id="24_uegej"]
+[ext_resource type="PackedScene" uid="uid://d2vv68a54uvl1" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/crates_stacked.gltf.glb" id="25_3hrt5"]
+[ext_resource type="PackedScene" uid="uid://dlh1c85qmhfhg" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/shelf_large.gltf.glb" id="26_3q2wd"]
+[ext_resource type="PackedScene" uid="uid://vnhta1hy7cpo" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/coin_stack_medium.gltf.glb" id="27_x8ito"]
+[ext_resource type="PackedScene" uid="uid://jtqau82fxahn" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/coin_stack_large.gltf.glb" id="28_avcpc"]
+[ext_resource type="PackedScene" uid="uid://bus4frw34kk3i" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/keyring.gltf.glb" id="29_vifbp"]
+[ext_resource type="PackedScene" uid="uid://degdfaom3n5p" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/box_small.gltf.glb" id="30_a8481"]
+[ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="30_s3gcd"]
+[ext_resource type="PackedScene" uid="uid://xsc1w6d2g7vo" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/box_small_decorated.gltf.glb" id="31_raa5a"]
+[ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="31_xv8yy"]
+[ext_resource type="PackedScene" uid="uid://d322alprfss6g" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/barrel_small_stack.gltf.glb" id="32_l60l6"]
+[ext_resource type="PackedScene" uid="uid://bagx8wffvdx7e" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/plate_stack.gltf.glb" id="33_dd5eb"]
+[ext_resource type="PackedScene" uid="uid://cy3ufuutfb2oj" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/candle_melted.gltf.glb" id="34_4i8pr"]
+[ext_resource type="PackedScene" uid="uid://b0637cdw60mbc" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/coin_stack_small.gltf.glb" id="35_xaku3"]
+[ext_resource type="PackedScene" uid="uid://bhciy7kjxcbrs" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/key.gltf.glb" id="36_7klc6"]
+[ext_resource type="PackedScene" uid="uid://b6xnmkpkisb63" path="res://addons/kaykit_dungeon_remastered/Assets/gltf/shelf_small.gltf.glb" id="37_pvwxj"]
+
+[sub_resource type="Resource" id="Resource_jfvob"]
+script = ExtResource("30_s3gcd")
+name = "rooms"
+
+[resource]
+script = ExtResource("31_xv8yy")
+data = {
+"frames": [],
+"links": [{
+"from_node": "select_table_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "table_unit_size",
+"to_port": 0
+}, {
+"from_node": "table_unit_size",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "rotate_tables",
+"to_port": 0
+}, {
+"from_node": "rotate_tables",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_tables",
+"to_port": 0
+}, {
+"from_node": "rotate_tables",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "tabletop_plates",
+"to_port": 0
+}, {
+"from_node": "rotate_tables",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "tabletop_bottles",
+"to_port": 0
+}, {
+"from_node": "tabletop_bottles",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "select_bottles",
+"to_port": 0
+}, {
+"from_node": "select_bottles",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_bottles",
+"to_port": 0
+}, {
+"from_node": "rotate_tables",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "tabletop_candles",
+"to_port": 0
+}, {
+"from_node": "tabletop_candles",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_candles",
+"to_port": 0
+}, {
+"from_node": "rotate_tables",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "table_seats",
+"to_port": 0
+}, {
+"from_node": "select_bed_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "bed_unit_size",
+"to_port": 0
+}, {
+"from_node": "bed_unit_size",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "bed_offsets",
+"to_port": 0
+}, {
+"from_node": "bed_offsets",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_beds",
+"to_port": 0
+}, {
+"from_node": "select_storage_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "storage_unit_size",
+"to_port": 0
+}, {
+"from_node": "storage_unit_size",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "storage_offsets",
+"to_port": 0
+}, {
+"from_node": "storage_offsets",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_storage",
+"to_port": 0
+}, {
+"from_node": "input_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "select_treasure_rooms",
+"to_port": 0
+}, {
+"from_node": "select_treasure_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "treasure_unit_size",
+"to_port": 0
+}, {
+"from_node": "treasure_unit_size",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "treasure_offsets",
+"to_port": 0
+}, {
+"from_node": "treasure_offsets",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_treasure",
+"to_port": 0
+}, {
+"from_node": "input_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "table_room_slots",
+"to_port": 0
+}, {
+"from_node": "table_room_slots",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "select_table_rooms",
+"to_port": 0
+}, {
+"from_node": "tabletop_plates",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "select_table_plates",
+"to_port": 0
+}, {
+"from_node": "select_table_plates",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_plates",
+"to_port": 0
+}, {
+"from_node": "table_seats",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "select_table_seats",
+"to_port": 0
+}, {
+"from_node": "select_table_seats",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_seats",
+"to_port": 0
+}, {
+"from_node": "input_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "storage_wall_slots",
+"to_port": 0
+}, {
+"from_node": "storage_wall_slots",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "select_storage_rooms",
+"to_port": 0
+}, {
+"from_node": "input_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "bed_wall_slots",
+"to_port": 0
+}, {
+"from_node": "bed_wall_slots",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "select_bed_rooms",
+"to_port": 0
+}, {
+"from_node": "input_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "select_clutter_rooms",
+"to_port": 0
+}, {
+"from_node": "select_clutter_rooms",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "clutter_unit_size",
+"to_port": 0
+}, {
+"from_node": "clutter_unit_size",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "clutter_offsets",
+"to_port": 0
+}, {
+"from_node": "clutter_offsets",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "jitter_clutter",
+"to_port": 0
+}, {
+"from_node": "jitter_clutter",
+"from_port": 0,
+"keep_alive": false,
+"to_node": "spawn_clutter",
+"to_port": 0
+}],
+"min_pos": Vector2(0, 0),
+"nodes": [{
+"args_port": {},
+"name": "input_rooms",
+"position": Vector2(0, 300),
+"settings": {
+"data_type": 2,
+"name": "rooms"
+},
+"show_disconnected_inputs": false,
+"template": "input"
+}, {
+"args_port": {},
+"name": "select_table_rooms",
+"position": Vector2(300, 80),
+"settings": {
+"random_seed": 1101,
+"ratio": 0.2
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {},
+"name": "table_unit_size",
+"position": Vector2(600, 80),
+"settings": {
+"bounds_max": Vector3(0.5, 0.5, 0.5),
+"bounds_min": Vector3(-0.5, -0.5, -0.5)
+},
+"show_disconnected_inputs": false,
+"template": "bounds_modifier"
+}, {
+"args_port": {},
+"name": "rotate_tables",
+"position": Vector2(900, 80),
+"settings": {
+"rotation_max": Vector3(0, 360, 0),
+"rotation_min": Vector3(0, 0, 0),
+"scale_max": Vector3(1, 1, 1),
+"scale_min": Vector3(1, 1, 1)
+},
+"show_disconnected_inputs": false,
+"template": "transform"
+}, {
+"args_port": {},
+"name": "spawn_tables",
+"position": Vector2(1200, 80),
+"settings": {
+"random_seed": 1201,
+"randomize_scene_variants": true,
+"scene_variant_weights": [3.0, 1.1, 1.4, 0.8],
+"scene_variants": [ExtResource("1_x7rkb"), ExtResource("2_dgih6"), ExtResource("3_2fuaf"), ExtResource("4_wgrn1")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "tabletop_plates",
+"position": Vector2(1200, 260),
+"settings": {
+"labels": ["plate", "plate", "plate", "plate"],
+"offsets": [Vector3(-0.43, 1.03, -0.62), Vector3(0.43, 1.03, -0.62), Vector3(-0.43, 1.03, 0.62), Vector3(0.43, 1.03, 0.62)],
+"rotations": [Vector3(0, -8, 0), Vector3(0, 7, 0), Vector3(0, 5, 0), Vector3(0, -6, 0)],
+"sizes": [Vector3(0.58, 0.58, 0.58), Vector3(0.58, 0.58, 0.58), Vector3(0.58, 0.58, 0.58), Vector3(0.58, 0.58, 0.58)]
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "spawn_plates",
+"position": Vector2(1500, 260),
+"settings": {
+"random_seed": 1301,
+"randomize_scene_variants": true,
+"scene_variant_weights": [1.0, 1.0, 2.4, 1.6],
+"scene_variants": [ExtResource("5_ns3kw"), ExtResource("6_2c7rp"), ExtResource("7_jhjao"), ExtResource("8_pixxs")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "tabletop_bottles",
+"position": Vector2(1200, 440),
+"settings": {
+"labels": ["bottle", "bottle"],
+"offsets": [Vector3(-0.32, 1.03, 0), Vector3(0.32, 1.03, 0.42)],
+"sizes": [Vector3(0.72, 0.72, 0.72), Vector3(0.72, 0.72, 0.72)]
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "select_bottles",
+"position": Vector2(1500, 440),
+"settings": {
+"random_seed": 1401,
+"ratio": 0.62
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {},
+"name": "spawn_bottles",
+"position": Vector2(1800, 440),
+"settings": {
+"random_seed": 1501,
+"randomize_scene_variants": true,
+"scene_variant_weights": [1.0, 1.0, 0.8, 0.6],
+"scene_variants": [ExtResource("9_a8481"), ExtResource("10_raa5a"), ExtResource("11_l60l6"), ExtResource("12_dd5eb")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "tabletop_candles",
+"position": Vector2(1200, 620),
+"settings": {
+"labels": ["candle"],
+"offsets": [Vector3(0, 1.035, -0.08)],
+"sizes": [Vector3(0.62, 0.62, 0.62)]
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "spawn_candles",
+"position": Vector2(1500, 620),
+"settings": {
+"random_seed": 1601,
+"randomize_scene_variants": true,
+"scene_variant_weights": [2.0, 0.8, 1.0],
+"scene_variants": [ExtResource("13_4i8pr"), ExtResource("14_xaku3"), ExtResource("15_7klc6")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "table_seats",
+"position": Vector2(1200, -100),
+"settings": {
+"labels": ["seat", "seat", "seat", "seat"],
+"offsets": [Vector3(-1.38, 0, -0.62), Vector3(-1.38, 0, 0.62), Vector3(1.38, 0, -0.62), Vector3(1.38, 0, 0.62)],
+"rotations": [Vector3(0, 180, 0), Vector3(0, 180, 0), Vector3(0, 0, 0), Vector3(0, 0, 0)]
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "spawn_seats",
+"position": Vector2(1500, -100),
+"settings": {
+"random_seed": 1701,
+"randomize_scene_variants": true,
+"scene_variant_weights": [3.0, 1.0],
+"scene_variants": [ExtResource("16_pvwxj"), ExtResource("17_2xhk4")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "select_bed_rooms",
+"position": Vector2(300, 760),
+"settings": {
+"random_seed": 1801,
+"ratio": 0.09
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {},
+"name": "bed_unit_size",
+"position": Vector2(600, 760),
+"settings": {
+"bounds_max": Vector3(0.5, 0.5, 0.5),
+"bounds_min": Vector3(-0.5, -0.5, -0.5)
+},
+"show_disconnected_inputs": false,
+"template": "bounds_modifier"
+}, {
+"args_port": {},
+"name": "bed_offsets",
+"position": Vector2(900, 760),
+"settings": {
+"labels": ["bed"],
+"offsets": [Vector3(-0.36, 0, 0), Vector3(0.36, 0, 0), Vector3(0, 0, -0.36), Vector3(0, 0, 0.36)],
+"rotations": [Vector3(0, 0, 0), Vector3(0, 180, 0), Vector3(0, 90, 0), Vector3(0, -90, 0)],
+"scale_offsets_by_anchor_size": true
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "spawn_beds",
+"position": Vector2(1200, 760),
+"settings": {
+"random_seed": 1901,
+"randomize_scene_variants": true,
+"scene_variant_weights": [1.4, 1.0, 0.8],
+"scene_variants": [ExtResource("18_pv2jp"), ExtResource("19_7ok48"), ExtResource("20_quy1f")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "select_storage_rooms",
+"position": Vector2(300, 960),
+"settings": {
+"random_seed": 2001,
+"ratio": 0.2
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {},
+"name": "storage_unit_size",
+"position": Vector2(600, 960),
+"settings": {
+"bounds_max": Vector3(0.5, 0.5, 0.5),
+"bounds_min": Vector3(-0.5, -0.5, -0.5)
+},
+"show_disconnected_inputs": false,
+"template": "bounds_modifier"
+}, {
+"args_port": {},
+"name": "storage_offsets",
+"position": Vector2(900, 960),
+"settings": {
+"labels": ["storage", "storage"],
+"offsets": [Vector3(-0.32, 0, -0.32), Vector3(0.32, 0, -0.32), Vector3(-0.32, 0, 0.32), Vector3(0.32, 0, 0.32), Vector3(-0.32, 0, 0), Vector3(0.32, 0, 0), Vector3(0, 0, -0.32), Vector3(0, 0, 0.32)],
+"rotations": [Vector3(0, 45, 0), Vector3(0, -45, 0), Vector3(0, 135, 0), Vector3(0, -135, 0), Vector3(0, 90, 0), Vector3(0, -90, 0), Vector3(0, 0, 0), Vector3(0, 180, 0)],
+"scale_offsets_by_anchor_size": true
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "spawn_storage",
+"position": Vector2(1200, 960),
+"settings": {
+"random_seed": 2101,
+"randomize_scene_variants": true,
+"scene_variant_weights": [1.5, 2.0, 1.2, 0.8, 0.8, 0.5],
+"scene_variants": [ExtResource("21_s7yth"), ExtResource("22_e68vx"), ExtResource("23_ihulv"), ExtResource("24_uegej"), ExtResource("25_3hrt5"), ExtResource("26_3q2wd")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "select_treasure_rooms",
+"position": Vector2(300, 1160),
+"settings": {
+"random_seed": 2201,
+"ratio": 0.28
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {},
+"name": "treasure_unit_size",
+"position": Vector2(600, 1160),
+"settings": {
+"bounds_max": Vector3(0.5, 0.5, 0.5),
+"bounds_min": Vector3(-0.5, -0.5, -0.5)
+},
+"show_disconnected_inputs": false,
+"template": "bounds_modifier"
+}, {
+"args_port": {},
+"name": "treasure_offsets",
+"position": Vector2(900, 1160),
+"settings": {
+"labels": ["treasure"],
+"offsets": [Vector3(0.34, 0, 0.34), Vector3(-0.34, 0, 0.28)],
+"rotations": [Vector3(0, 35, 0), Vector3(0, -25, 0)],
+"scale_offsets_by_anchor_size": true,
+"sizes": [Vector3(0.8, 0.8, 0.8), Vector3(0.75, 0.75, 0.75)]
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "spawn_treasure",
+"position": Vector2(1200, 1160),
+"settings": {
+"random_seed": 2301,
+"randomize_scene_variants": true,
+"scene_variant_weights": [2.0, 1.0, 0.5],
+"scene_variants": [ExtResource("27_x8ito"), ExtResource("28_avcpc"), ExtResource("29_vifbp")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}, {
+"args_port": {},
+"name": "table_room_slots",
+"position": Vector2(160, 80),
+"settings": {
+"inherit_anchor_size": false,
+"labels": ["table_slot", "table_slot", "table_slot", "table_slot", "table_slot"],
+"offsets": [Vector3(0, 0, 0), Vector3(-0.18, 0, -0.18), Vector3(0.18, 0, -0.18), Vector3(-0.18, 0, 0.18), Vector3(0.18, 0, 0.18)],
+"rotations": [Vector3(0, 0, 0), Vector3(0, 90, 0), Vector3(0, -90, 0), Vector3(0, 180, 0), Vector3(0, 0, 0)],
+"scale_offsets_by_anchor_size": true
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "storage_wall_slots",
+"position": Vector2(160, 960),
+"settings": {
+"inherit_anchor_size": false,
+"labels": ["storage_slot", "storage_slot", "storage_slot", "storage_slot", "storage_slot", "storage_slot", "storage_slot", "storage_slot"],
+"offsets": [Vector3(-0.32, 0, -0.32), Vector3(0.32, 0, -0.32), Vector3(-0.32, 0, 0.32), Vector3(0.32, 0, 0.32), Vector3(-0.32, 0, 0), Vector3(0.32, 0, 0), Vector3(0, 0, -0.32), Vector3(0, 0, 0.32)],
+"rotations": [Vector3(0, 45, 0), Vector3(0, -45, 0), Vector3(0, 135, 0), Vector3(0, -135, 0), Vector3(0, 90, 0), Vector3(0, -90, 0), Vector3(0, 0, 0), Vector3(0, 180, 0)],
+"scale_offsets_by_anchor_size": true
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "bed_wall_slots",
+"position": Vector2(160, 760),
+"settings": {
+"inherit_anchor_size": false,
+"labels": ["bed_slot", "bed_slot", "bed_slot", "bed_slot"],
+"offsets": [Vector3(-0.36, 0, 0), Vector3(0.36, 0, 0), Vector3(0, 0, -0.36), Vector3(0, 0, 0.36)],
+"rotations": [Vector3(0, 0, 0), Vector3(0, 180, 0), Vector3(0, 90, 0), Vector3(0, -90, 0)],
+"scale_offsets_by_anchor_size": true
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "select_table_plates",
+"position": Vector2(1370, 260),
+"settings": {
+"random_seed": 1351,
+"ratio": 0.65
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {},
+"name": "select_table_seats",
+"position": Vector2(1370, -100),
+"settings": {
+"random_seed": 1751,
+"ratio": 0.75
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {},
+"name": "select_clutter_rooms",
+"position": Vector2(300, 1380),
+"settings": {
+"random_seed": 2401,
+"ratio": 0.9
+},
+"show_disconnected_inputs": false,
+"template": "select_points"
+}, {
+"args_port": {},
+"name": "clutter_unit_size",
+"position": Vector2(600, 1380),
+"settings": {
+"bounds_max": Vector3(0.5, 0.5, 0.5),
+"bounds_min": Vector3(-0.5, -0.5, -0.5)
+},
+"show_disconnected_inputs": false,
+"template": "bounds_modifier"
+}, {
+"args_port": {},
+"name": "clutter_offsets",
+"position": Vector2(900, 1380),
+"settings": {
+"labels": ["clutter", "clutter", "clutter", "clutter", "clutter", "clutter"],
+"offsets": [Vector3(-0.32, 0, -0.14), Vector3(0.32, 0, 0.14), Vector3(-0.16, 0, 0.32), Vector3(0.16, 0, -0.32), Vector3(-0.3, 0, 0.3), Vector3(0.3, 0, -0.3)],
+"rotations": [Vector3(0, 0, 0), Vector3(0, 60, 0), Vector3(0, 130, 0), Vector3(0, 210, 0), Vector3(0, 280, 0), Vector3(0, 320, 0)],
+"scale_offsets_by_anchor_size": true,
+"sizes": [Vector3(0.75, 0.75, 0.75), Vector3(0.7, 0.7, 0.7), Vector3(0.85, 0.85, 0.85), Vector3(0.8, 0.8, 0.8), Vector3(0.65, 0.65, 0.65), Vector3(0.7, 0.7, 0.7)]
+},
+"show_disconnected_inputs": false,
+"template": "point_offsets"
+}, {
+"args_port": {},
+"name": "jitter_clutter",
+"position": Vector2(1200, 1380),
+"settings": {
+"offset_max": Vector3(0.35, 0, 0.35),
+"offset_min": Vector3(-0.35, 0, -0.35),
+"rotation_max": Vector3(0, 360, 0),
+"rotation_min": Vector3(0, 0, 0),
+"scale_max": Vector3(1.08, 1.08, 1.08),
+"scale_min": Vector3(0.75, 0.75, 0.75),
+"uniform_scale": true
+},
+"show_disconnected_inputs": false,
+"template": "transform"
+}, {
+"args_port": {},
+"name": "spawn_clutter",
+"position": Vector2(1500, 1380),
+"settings": {
+"random_seed": 2501,
+"randomize_scene_variants": true,
+"scene_variant_weights": [1.2, 0.8, 1.4, 1.0, 0.7, 0.6, 0.5, 0.4],
+"scene_variants": [ExtResource("30_a8481"), ExtResource("31_raa5a"), ExtResource("32_l60l6"), ExtResource("33_dd5eb"), ExtResource("34_4i8pr"), ExtResource("35_xaku3"), ExtResource("36_7klc6"), ExtResource("37_pvwxj")]
+},
+"show_disconnected_inputs": false,
+"template": "spawn_scenes"
+}],
+"type": "flow_graph_nodes",
+"version": 1
+}
+view_zoom = 0.45
+new_name_counter = 26
+in_params = Array[ExtResource("30_s3gcd")]([SubResource("Resource_jfvob")])

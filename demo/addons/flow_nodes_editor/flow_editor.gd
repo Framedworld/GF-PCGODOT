@@ -65,6 +65,8 @@ var tab_bar: TabBar
 var open_tabs: Array[Dictionary] = []
 var active_tab_index: int = -1
 var open_file_dialog: FileDialog
+var analyze_panel: PanelContainer
+var current_analyzed_node: FlowNodeBase
 
 func setResourceToEdit( new_resource : FlowGraphResource, new_resource_owner : FlowGraphNode3D ):
 	if new_resource == null:
@@ -193,6 +195,9 @@ func _clear_ui_nodes():
 	gedit_nodes_by_name.clear()
 	inspector.edit( null )
 	inspected_node = null
+	if data_inspector:
+		data_inspector.setNode(null)
+	_set_analyze_panel_visible(false)
 
 func _update_tab_titles():
 	for i in range(open_tabs.size()):
@@ -441,7 +446,7 @@ func populatePopupMenu() -> PopupMenu:
 		"Spatial": ["substract", "difference", "intersection", "union", "point_neighborhood", "ray_cast", "physics_overlap_query", "physics_shape_sweep", "navigation_region_sampler"],
 		"Assets": ["assets", "spawn_meshes", "spawn_scenes", "apply_on_actor", "points_from_imported_scene", "load_alembic_file", "load_pcg_data_asset"],
 		"Generators": ["grid", "grid_fill_bounds", "grid_connect_points", "grid_boundary", "noise", "relax", "self_pruning", "dungeon_generator", "volume_sampler"],
-		"Utility": ["input", "output", "subgraph", "loop", "debug", "sort", "merge", "merge_points", "partition", "filter", "copy", "copy_points", "transform_points", "points_from_scene", "point_from_player_pawn", "points_from_tilemap", "points_from_gridmap", "size", "get_points_count", "get_data_count", "get_entries_count", "get_loop_index"]
+		"Utility": ["input", "output", "subgraph", "loop", "debug", "sort", "merge", "merge_points", "partition", "filter", "copy", "copy_points", "point_offsets", "transform_points", "points_from_scene", "point_from_player_pawn", "points_from_tilemap", "points_from_gridmap", "size", "get_points_count", "get_data_count", "get_entries_count", "get_loop_index"]
 	}
 	
 	# Helper to find category of a node template
@@ -539,10 +544,19 @@ func _ready():
 	# Initialize Open Graph Button
 	var btn_open := Button.new()
 	btn_open.text = "Open Graph"
+	btn_open.tooltip_text = "Open a FlowGraph resource"
 	btn_open.pressed.connect(_on_button_open_pressed)
 	var toolbar = $VBoxContainer/ScrollContainer/HBoxContainer
 	toolbar.add_child(btn_open)
 	toolbar.move_child(btn_open, 0)
+
+	# Unreal-style analyze: inspect selected node raw output
+	var btn_analyze := Button.new()
+	btn_analyze.text = "Analyze"
+	btn_analyze.tooltip_text = "Inspect selected node raw data (A)"
+	btn_analyze.pressed.connect(_on_button_analyze_pressed)
+	toolbar.add_child(btn_analyze)
+	toolbar.move_child(btn_analyze, 1)
 	
 	# Style the toolbar background #171a24
 	var toolbar_container = $VBoxContainer/ScrollContainer
@@ -591,6 +605,7 @@ func _ready():
 	bg_grid.gedit = gedit
 	gedit.add_child(bg_grid)
 	gedit.move_child(bg_grid, 0)
+	_setup_inline_analyze_panel()
 	
 	# Custom Sidebar Inspector
 	inspector = FlowInspector.new()
@@ -693,6 +708,64 @@ func _style_toolbar_button(btn: Button):
 	btn.add_theme_color_override("font_color", Color("cdd0dc"))
 	btn.add_theme_color_override("font_hover_color", Color.WHITE)
 	btn.add_theme_color_override("font_pressed_color", Color("a1a1aa"))
+
+func _setup_inline_analyze_panel():
+	var panel := PanelContainer.new()
+	panel.name = "InlineAnalyzePanel"
+	panel.visible = false
+	panel.anchor_left = 0.0
+	panel.anchor_top = 1.0
+	panel.anchor_right = 1.0
+	panel.anchor_bottom = 1.0
+	panel.offset_left = 8.0
+	panel.offset_top = -280.0
+	panel.offset_right = -8.0
+	panel.offset_bottom = -8.0
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.z_index = 100
+
+	var panel_sb := StyleBoxFlat.new()
+	panel_sb.bg_color = Color("10141f")
+	panel_sb.set_border_width_all(1)
+	panel_sb.border_color = Color(1.0, 1.0, 1.0, 0.08)
+	panel_sb.set_corner_radius_all(4)
+	panel_sb.content_margin_left = 8
+	panel_sb.content_margin_right = 8
+	panel_sb.content_margin_top = 8
+	panel_sb.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", panel_sb)
+
+	var packed := load("res://addons/flow_nodes_editor/data_inspector.tscn") as PackedScene
+	if not packed:
+		push_error("Failed to load inline data inspector scene")
+		return
+	var inline_inspector = packed.instantiate() as Control
+	if not inline_inspector:
+		push_error("Failed to instantiate inline data inspector")
+		return
+	inline_inspector.name = "InlineDataInspector"
+	inline_inspector.anchor_left = 0.0
+	inline_inspector.anchor_top = 0.0
+	inline_inspector.anchor_right = 1.0
+	inline_inspector.anchor_bottom = 1.0
+	inline_inspector.offset_left = 0.0
+	inline_inspector.offset_top = 0.0
+	inline_inspector.offset_right = 0.0
+	inline_inspector.offset_bottom = 0.0
+
+	panel.add_child(inline_inspector)
+	gedit.add_child(panel)
+	analyze_panel = panel
+	data_inspector = inline_inspector
+
+func _set_analyze_panel_visible(visible: bool):
+	if not analyze_panel:
+		return
+	analyze_panel.visible = visible
+	if visible:
+		analyze_panel.move_to_front()
+	else:
+		current_analyzed_node = null
 
 func update_status_bar(eval_msg: String = ""):
 	var nodes_count = 0
@@ -971,6 +1044,8 @@ func _on_graph_edit_gui_input(event):
 		elif key == KEY_A:
 			if evt_key.shift_pressed:
 				openAddMenu()
+			elif no_modifiers:
+				analyzeSelection()
 		elif key == KEY_C:
 			if no_modifiers:
 				addComment()
@@ -981,12 +1056,9 @@ func _on_graph_edit_gui_input(event):
 		elif key == KEY_D:
 			if no_modifiers:
 				toggleDebug()
-				evalGraph()
 		elif key == KEY_E:
 			if no_modifiers:
-				toggleInspection()
-				evalGraph()
-				make_inspector_visible.call()
+				analyzeSelection()
 		elif key == KEY_R:
 			if no_modifiers:
 				for node in getSelectedNodes():
@@ -1027,10 +1099,14 @@ func _on_graph_edit_gui_input(event):
 
 func toggleDebug():
 	var nodes = getSelectedNodes()
+	var prev_auto_regen := auto_regen
+	auto_regen = false
 	for node in nodes:
-		node.dirty = true
 		node.settings.debug_enabled = !node.settings.debug_enabled
 		node.refreshFromSettings()
+		node.setupDrawDebug()
+	auto_regen = prev_auto_regen
+	regen_pending = false
 
 func toggleDisabled():
 	var nodes = getSelectedNodes()
@@ -1043,13 +1119,57 @@ func toggleInspection():
 	if not data_inspector:
 		return
 	var nodes = getSelectedNodes()
+	var prev_auto_regen := auto_regen
+	auto_regen = false
 	if nodes.size() != 1:
 		data_inspector.setNode( null )
+		_set_analyze_panel_visible(false)
+		auto_regen = prev_auto_regen
+		regen_pending = false
 		return
 	var node = nodes[0]
 	data_inspector.setNode( node )
 	node.dirty = true
 	node.refreshFromSettings()
+	_set_analyze_panel_visible(true)
+	current_analyzed_node = node
+	auto_regen = prev_auto_regen
+	regen_pending = false
+	data_inspector.refresh()
+
+func analyzeSelection():
+	if not data_inspector:
+		return
+	var nodes = getSelectedNodes()
+	var prev_auto_regen := auto_regen
+	auto_regen = false
+	# Toggle off: if analyzer is open and user re-runs Analyze on the same node (or with no node selected).
+	if analyze_panel and analyze_panel.visible:
+		if nodes.size() != 1 or (current_analyzed_node and nodes[0] == current_analyzed_node):
+			data_inspector.setNode(null)
+			_set_analyze_panel_visible(false)
+			auto_regen = prev_auto_regen
+			regen_pending = false
+			return
+	if nodes.size() != 1:
+		data_inspector.setNode(null)
+		_set_analyze_panel_visible(false)
+		auto_regen = prev_auto_regen
+		regen_pending = false
+		return
+	var node = nodes[0]
+	# Force rebind so repeated Analyze on the same node stays active.
+	data_inspector.setNode(null)
+	data_inspector.setNode(node)
+	node.dirty = true
+	node.refreshFromSettings()
+	_set_analyze_panel_visible(true)
+	current_analyzed_node = node
+	auto_regen = prev_auto_regen
+	regen_pending = false
+	data_inspector.refresh()
+	if make_inspector_visible and make_inspector_visible.is_valid():
+		make_inspector_visible.call()
 
 func addComment():
 	var nodes = getSelectedNodes()
@@ -1773,6 +1893,9 @@ func evalGraph():
 	removeGeneratedNodes()
 	
 	cacheConnections()
+	# Generated instances are cleared globally; keep all final producers dirty so
+	# unaffected branches respawn instead of disappearing during analyze/debug.
+	markFinalNodesAsDirty()
 	
 	active_intensity = 1.0
 	active_nodes.clear()
@@ -1829,6 +1952,9 @@ func evalGraph():
 func _on_button_reload_pressed() -> void:
 	scanAvailableNodes()
 
+func _on_button_analyze_pressed() -> void:
+	analyzeSelection()
+
 func _on_button_save_pressed() -> void:
 	if current_resource:
 		saveResource()
@@ -1837,6 +1963,13 @@ func _on_button_save_pressed() -> void:
 func markAllNodesAsDirty():
 	for node in getAllNodes():
 		node.dirty = true	
+
+func markFinalNodesAsDirty():
+	for node in getAllNodes():
+		if node.settings.disabled:
+			continue
+		if node.getMeta().get("is_final", false):
+			node.dirty = true
 
 func _on_button_regenerate_pressed() -> void:
 	#for key in input_sources.keys():
@@ -1967,6 +2100,8 @@ func clear_graph():
 	inspected_node = null
 	if data_inspector:
 		data_inspector.setNode(null)
+	_set_analyze_panel_visible(false)
+	current_analyzed_node = null
 
 func load_graph_state(state: Dictionary):
 	clear_graph()
@@ -2002,6 +2137,8 @@ func load_graph_state(state: Dictionary):
 				inspector.edit(node.settings)
 				if data_inspector:
 					data_inspector.setNode(node)
+					_set_analyze_panel_visible(true)
+					current_analyzed_node = node
 			elif node is GraphFrame:
 				inspector.edit(node)
 				

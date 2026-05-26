@@ -70,6 +70,21 @@ static func dict_to_resource(data: Dictionary, resource: Resource) -> void:
 				else:
 					resource.set(name, value)
 
+static func _stabilize_missing_seed(settings_res: Resource, node_name: String, template: String, serialized_settings: Dictionary) -> void:
+	if settings_res == null:
+		return
+	if not ("random_seed" in settings_res):
+		return
+	if serialized_settings.has("random_seed"):
+		return
+	# Legacy graph entries may miss random_seed. Use a deterministic fallback per node
+	# so repeated evaluate_graph calls (analyze/debug) remain stable.
+	var seed_hash := hash("%s::%s" % [template, node_name])
+	var stable_seed := int(seed_hash & 0x7fffffff)
+	if stable_seed == 0:
+		stable_seed = 1
+	settings_res.set("random_seed", stable_seed)
+
 static func nodes_as_dict( nodes, frames, editor : Control ):
 	var exported_node_names = {}
 	
@@ -280,6 +295,7 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 		
 		# Apply saved settings
 		dict_to_resource(n_data.settings, instance.settings)
+		_stabilize_missing_seed(instance.settings, name, template, n_data.settings)
 		
 		instance.refreshFromSettings()
 		

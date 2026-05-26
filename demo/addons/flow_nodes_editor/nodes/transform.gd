@@ -13,12 +13,27 @@ func _init():
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = get_input(0)
 	if in_data == null:
+		if Engine.is_editor_hint() and ctx.owner == null:
+			set_output(0, FlowData.Data.new())
+			return
 		setError("Input 'In' is not connected")
 		return null
 	var out_data : FlowData.Data = in_data.duplicate()
-	var spos : PackedVector3Array = out_data.cloneStream( FlowData.AttrPosition )
-	var srot : PackedVector3Array = out_data.cloneStream( FlowData.AttrRotation )
-	var ssizes : PackedVector3Array = out_data.cloneStream( FlowData.AttrSize )
+	if not out_data.hasStream(FlowData.AttrPosition) or not out_data.hasStream(FlowData.AttrRotation) or not out_data.hasStream(FlowData.AttrSize):
+		if Engine.is_editor_hint() and ctx.owner == null:
+			set_output(0, FlowData.Data.new())
+			return
+		setError("Input must provide position, rotation, and size streams")
+		return
+	var spos = out_data.cloneStream( FlowData.AttrPosition )
+	var srot = out_data.cloneStream( FlowData.AttrRotation )
+	var ssizes = out_data.cloneStream( FlowData.AttrSize )
+	if spos == null or srot == null or ssizes == null:
+		if Engine.is_editor_hint() and ctx.owner == null:
+			set_output(0, FlowData.Data.new())
+			return
+		setError("Input must provide position, rotation, and size streams")
+		return
 	var offset_min : Vector3 = getSettingValue( ctx, "offset_min" )
 	var offset_max : Vector3 = getSettingValue( ctx, "offset_max" )
 	var rotation_min : Vector3 = getSettingValue( ctx, "rotation_min" )

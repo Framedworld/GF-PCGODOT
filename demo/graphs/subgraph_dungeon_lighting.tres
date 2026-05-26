@@ -274,4 +274,3 @@ view_zoom = 0.82644624
 view_offset = Vector2(-68.36743, -290.3036)
 new_name_counter = 3
 in_params = Array[ExtResource("2_sg46r")]([SubResource("Resource_nfhhd")])
-out_params = Array[ExtResource("2_sg46r")]([])
