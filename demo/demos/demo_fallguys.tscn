@@ -802,8 +802,8 @@ data = {
 "type": "flow_graph_nodes",
 "version": 1
 }
-view_zoom = 0.88317674
-view_offset = Vector2(2606.1814, -61.831757)
+view_zoom = 0.7298981
+view_offset = Vector2(2142.3606, -80.4436)
 new_name_counter = 53
 metadata/_custom_type_script = "uid://j6vjeb5cjjoy"
 
@@ -827,6 +827,50 @@ _data = {
 }
 point_count = 6
 
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_42t3g"]
+sky_top_color = Color(0.3, 0.6, 0.95, 1)
+sky_horizon_color = Color(0.95, 0.5, 0.75, 1)
+ground_bottom_color = Color(0.3, 0.6, 0.95, 1)
+ground_horizon_color = Color(0.95, 0.5, 0.75, 1)
+
+[sub_resource type="Sky" id="Sky_l5ca6"]
+sky_material = SubResource("ProceduralSkyMaterial_42t3g")
+process_mode = 1
+radiance_size = 6
+
+[sub_resource type="Environment" id="Environment_tyqfr"]
+background_mode = 1
+background_color = Color(0.09923177, 0.09923177, 0.09923177, 1)
+sky = SubResource("Sky_l5ca6")
+ambient_light_source = 2
+reflected_light_source = 1
+tonemap_mode = 3
+ssao_enabled = true
+ssao_radius = 1.75
+ssao_intensity = 6.93
+ssil_enabled = true
+ssil_radius = 7.35
+sdfgi_enabled = true
+sdfgi_use_occlusion = true
+sdfgi_bounce_feedback = 0.31
+sdfgi_y_scale = 2
+glow_intensity = 0.6
+glow_bloom = 0.2
+glow_blend_mode = 0
+fog_light_color = Color(0.20942885, 0.20942888, 0.20942888, 1)
+fog_sky_affect = 0.53
+fog_height = 4.42
+fog_height_density = 0.4303
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.0416
+volumetric_fog_albedo = Color(0.37413925, 0.37413928, 0.37413922, 1)
+
+[sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_42t3g"]
+exposure_multiplier = 0.832
+dof_blur_far_enabled = true
+dof_blur_far_distance = 13.29
+dof_blur_far_transition = 9.38
+
 [node name="DemoFallguys" type="Node3D" unique_id=624742109]
 
 [node name="FlowGraphNode3D" type="Node3D" parent="." unique_id=1051502039]
@@ -835,7 +879,7 @@ graph = SubResource("Resource_dk6st")
 refresh_inputs = Callable()
 metadata/_custom_type_script = "uid://d1krtmb1urldl"
 
-[node name="@MultiMeshInstance3D@38867" type="MultiMeshInstance3D" parent="FlowGraphNode3D" unique_id=1274922866]
+[node name="@MultiMeshInstance3D@105987" type="MultiMeshInstance3D" parent="FlowGraphNode3D" unique_id=1121778206]
 material_override = SubResource("StandardMaterial3D_kf2sw")
 multimesh = SubResource("MultiMesh_frxqg")
 metadata/flow_owner = &"id_0020_spawn_meshes"
@@ -843,3 +887,42 @@ metadata/flow_owner = &"id_0020_spawn_meshes"
 [node name="Path3D" type="Path3D" parent="." unique_id=1512878145]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.29069, 0, 0)
 curve = SubResource("Curve3D_mq44t")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=2023276853]
+environment = SubResource("Environment_tyqfr")
+
+[node name="SunLight" type="DirectionalLight3D" parent="." unique_id=1040280415]
+transform = Transform3D(-0.83629835, -0.3096751, 0.45244497, 0.51713634, -0.71967137, 0.463296, 0.18214047, 0.6214294, 0.76200414, 0, 0, 0)
+light_color = Color(1, 0.96, 0.92, 1)
+light_energy = 0.654
+shadow_enabled = true
+shadow_bias = 0.05
+
+[node name="RenderCamera" type="Camera3D" parent="." unique_id=259031216]
+transform = Transform3D(0.9063077, -0.33955893, 0.25160694, 0.14807254, 0.8127482, 0.5634846, -0.39582932, -0.4734343, 0.78687936, 11.992, 11.49, 11.085)
+attributes = SubResource("CameraAttributesPractical_42t3g")
+current = true
+fov = 28.128767
+
+[node name="Node3D" type="Node3D" parent="." unique_id=288828775]
+
+[node name="OmniLight3D" type="OmniLight3D" parent="Node3D" unique_id=280310638]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.123221, 7.0595245, -2.3744962)
+light_energy = 2.12
+light_indirect_energy = 0.413
+light_size = 0.089
+shadow_enabled = true
+
+[node name="OmniLight3D2" type="OmniLight3D" parent="Node3D" unique_id=1140971223]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.123, 4.125, -3.479)
+light_energy = 2.12
+light_indirect_energy = 0.413
+light_size = 0.089
+shadow_enabled = true
+
+[node name="OmniLight3D3" type="OmniLight3D" parent="Node3D" unique_id=246407119]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.463, 2.275, -3.864)
+light_energy = 2.12
+light_indirect_energy = 0.413
+light_size = 0.089
+shadow_enabled = true
