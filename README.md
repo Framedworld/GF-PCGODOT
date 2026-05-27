@@ -5,37 +5,7 @@
 
 **PCGODOT** is a highly powerful, node-based Procedural Content Generation (PCG) framework for Godot 4.6+, heavily inspired by **Unreal Engine 5's PCG**. It enables developers to construct intricate point-set distributions, manipulate spatial attributes, and spawn meshes, lights, or scene hierarchies procedurally using a visual flow graph editor inside Godot.
 
----
-
-## 🎨 Gallery & Showcases
-
-### 1. Sampling Meshes (Discarding Hard Edges)
-Distribute points across the faces of a 3D Mesh while pruning points near hard edges.
-![Sampling Mesh](demo/addons/flow_nodes_editor/doc/demo_sample_mesh.png)
-
-### 2. Random Subscenes Distribution (Forests & Paths)
-Distribute different subscenes randomly along curves and paths using attributes, custom rotation-alignment filters, and scene scanners.
-![Random Subscenes](demo/addons/flow_nodes_editor/doc/demo_random_subscenes.png)
-
-### 3. Unified Filters & Category Popup
-Browse nodes structured into standardized categories matching Unreal PCG. Select filters such as `Filter Data by Attribute`, `Filter Data by Tag`, and `Filter Data by Type`.
-![Filters](demo/addons/flow_nodes_editor/doc/demo_filter.png)
-
-### 4. Proximity Sampling & Distance to Density
-Sample points and scale their density values smoothly based on their distance/proximity to curves or splines.
-![Distance to Density](demo/addons/flow_nodes_editor/doc/demo_distance.png)
-
-### 5. Nested Subgraphs & Selection Collapse
-Create nested graphs and easily collapse selected nodes into a reusable Subgraph.
-![Subgraph Collapse](demo/addons/flow_nodes_editor/doc/demo_subgraph_popup.png)
-
-### 6. Procedural Helical Colonnade & Rubble Scatter
-Generate complex procedural architecture such as helical towers. Combines curve sampling with coordinate transforms, relative lintel placement, and duplicate scatter operations to create debris and rubble.
-![Helical Colonnade](demo/addons/flow_nodes_editor/doc/demo_flashy_colonnade_v2.png)
-
-### 7. Fall Guys Hexagons
-Generate dynamic gameplay platforms such as the multi-colored hexagon grid inspired by Fall Guys. Use the **Random Color** node to assign random color attributes from a palette to a MultiMesh.
-![Fall Guys Hexagons](demo/addons/flow_nodes_editor/doc/demo_spawn_nodes_v2.png)
+![PCGODOT Flow Editor](demo/addons/flow_nodes_editor/doc/demo_flashy_colonnade_ui.png)
 
 ---
 
@@ -83,6 +53,38 @@ PCGODOT organizes nodes according to the official Unreal Engine PCG structure, e
 6. **Assets & Spawning**: Spawn MultiMeshes, scene instances (`spawn_scenes.gd`), lights/GI nodes (`spawn_nodes.gd`), or apply point data properties to actors.
 7. **Spatial & Physics Queries**: Perform spatial difference/intersection/union operations, trace raycasts, or check for physics collisions.
 8. **Generators & Grid Nodes**: Draw coordinate grids, extract edge/corner boundaries, generate simplex noise, and build room-carving layouts.
+
+---
+
+## 🎨 Gallery & Showcases
+
+### 1. Sampling Meshes (Discarding Hard Edges)
+Distribute points across the faces of a 3D Mesh while pruning points near hard edges.
+![Sampling Mesh](demo/addons/flow_nodes_editor/doc/demo_sample_mesh.png)
+
+### 2. Random Subscenes Distribution (Forests & Paths)
+Distribute different subscenes randomly along curves and paths using attributes, custom rotation-alignment filters, and scene scanners.
+![Random Subscenes](demo/addons/flow_nodes_editor/doc/demo_random_subscenes.png)
+
+### 3. Unified Filters & Category Popup
+Browse nodes structured into standardized categories matching Unreal PCG. Select filters such as `Filter Data by Attribute`, `Filter Data by Tag`, and `Filter Data by Type`.
+![Filters](demo/addons/flow_nodes_editor/doc/demo_filter.png)
+
+### 4. Proximity Sampling & Distance to Density
+Sample points and scale their density values smoothly based on their distance/proximity to curves or splines.
+![Distance to Density](demo/addons/flow_nodes_editor/doc/demo_distance.png)
+
+### 5. Nested Subgraphs & Selection Collapse
+Create nested graphs and easily collapse selected nodes into a reusable Subgraph.
+![Subgraph Collapse](demo/addons/flow_nodes_editor/doc/demo_subgraph_popup.png)
+
+### 6. Procedural Helical Colonnade & Rubble Scatter
+Generate complex procedural architecture such as helical towers. Combines curve sampling with coordinate transforms, relative lintel placement, and duplicate scatter operations to create debris and rubble.
+![Helical Colonnade](demo/addons/flow_nodes_editor/doc/demo_flashy_colonnade_v2.png)
+
+### 7. Fall Guys Hexagons
+Generate dynamic gameplay platforms such as the multi-colored hexagon grid inspired by Fall Guys. Use the **Random Color** node to assign random color attributes from a palette to a MultiMesh.
+![Fall Guys Hexagons](demo/addons/flow_nodes_editor/doc/demo_spawn_nodes_v2.png)
 
 ---
 
