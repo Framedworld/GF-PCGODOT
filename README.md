@@ -3,19 +3,19 @@
 [![Godot Engine](https://img.shields.io/badge/Godot-%23FFFFFF.svg?style=flat&logo=godot-engine&logoColor=cyan)](https://godotengine.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-**PCGODOT** is a node-based Procedural Content Generation (PCG) framework for Godot 4, forked and expanded from the original **[flownode](https://github.com/miskatonicstudio/flownode)** project.
+**PCGODOT** is a node-based Procedural Content Generation (PCG) framework for Godot 4, forked and expanded from the original **[Godot Flow](https://github.com/yabadabu/godot_flow)** project.
 
 ---
 
 ## ℹ️ Overview & Project Origin
 
-`flownode` provided a fantastic visual foundation: a node-based workflow inside the Godot editor. PCGODOT takes that core idea and expands it into a fully realized PCG framework for building levels, environments, encounters, and reusable generation systems directly in the editor.
+`Godot Flow` provided a fantastic visual foundation: a node-based workflow inside the Godot editor. PCGODOT takes that core idea and expands it into a fully realized PCG framework for building levels, environments, encounters, and reusable generation systems directly in the editor.
 
 For developers unfamiliar with modern PCG workflows, this kind of tech lets you build complex worlds and gameplay spaces visually through interconnected nodes instead of hand-placing everything or writing tons of custom one-off scripts. Think procedural dungeons, prop scattering, spline-based paths, room layouts, environmental dressing, gameplay logic, or even entire world-generation pipelines.
 
 ![PCGODOT Flow Editor](demo/addons/flow_nodes_editor/doc/demo_flashy_colonnade_ui.png)
 
-The goal is to build on what `flownode` started and bring a more powerful, editor-driven visual PCG workflow to Godot 4. Something that feels approachable for indie developers, but flexible enough to support the kinds of procedural tools usually associated with larger engine pipelines.
+The goal is to build on what `Godot Flow` started and bring a more powerful, editor-driven visual PCG workflow to Godot 4. Something that feels approachable for indie developers, but flexible enough to support the kinds of procedural tools usually associated with larger engine pipelines.
 
 ---
 
@@ -118,8 +118,8 @@ Precompiled binaries for Windows and macOS are included under `demo/bin/` by def
 
 This project is licensed under the Apache License 2.0. 
 
-PCGODOT is a fork and feature-rich expansion of the original **[flownode](https://github.com/miskatonicstudio/flownode)** project created by Miskatonic Studio (originally licensed under the Apache License 2.0). In accordance with the license terms:
-* The original copyright and license attributions from `flownode` have been preserved.
+PCGODOT is a fork and feature-rich expansion of the original **[Godot Flow](https://github.com/yabadabu/godot_flow)** project created by yabadabu (originally licensed under the Apache License 2.0). In accordance with the license terms:
+* The original copyright and license attributions from `Godot Flow` have been preserved.
 * This repository contains substantial modifications and new features built on top of the original source code.
 
 See the [LICENSE](LICENSE) file for the full terms and conditions.
