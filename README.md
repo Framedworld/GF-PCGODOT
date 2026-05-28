@@ -1,4 +1,4 @@
-# PCGODOT (Flow Graph)
+# PCGODOT (godot flow fork)
 
 [![Godot Engine](https://img.shields.io/badge/Godot-%23FFFFFF.svg?style=flat&logo=godot-engine&logoColor=cyan)](https://godotengine.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
