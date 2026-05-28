@@ -3,30 +3,32 @@
 [![Godot Engine](https://img.shields.io/badge/Godot-%23FFFFFF.svg?style=flat&logo=godot-engine&logoColor=cyan)](https://godotengine.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-**PCGODOT** is a highly powerful, node-based Procedural Content Generation (PCG) framework for Godot 4.6+, heavily inspired by advanced node-based procedural workflows. It enables developers to construct intricate point-set distributions, manipulate spatial attributes, and spawn meshes, lights, or scene hierarchies procedurally using a visual flow graph editor inside Godot.
-
-ℹ️ **Project Origin & Fork Information**:  
-This project is a fork and feature-rich expansion of the original **[flownode](https://github.com/miskatonicstudio/flownode)** plugin. It has been significantly upgraded and polished with new features, tools, and QoL enhancements to make it a more comprehensive editor tool:
-* **Interactive 3D Viewport Debugging**: Toggle node visualizations directly inside the 3D editor (using the **`D`** key) to see exactly where points are spawning.
-* **Searchable Data Inspector**: An attribute table spreadsheet panel (using the **`E`** key) with live text-filtering and cross-highlighting (selecting a row highlights the target point in Magenta in the 3D viewport).
-* **Auto-Reload Graph Cache**: Real-time monitoring of `.tres` graph files to invalidate editor caches and hot-reload changes instantly.
-* **Over 110 Nodes**: A substantially expanded node library including math expressions, spline/polygon clipping, physics queries, and layout generators.
-* **Precompiled Binaries**: Bundled GDExtension libraries for Windows and macOS.
-
-![PCGODOT Flow Editor](demo/addons/flow_nodes_editor/doc/demo_flashy_colonnade_ui.png)
+**PCGODOT** is a node-based Procedural Content Generation (PCG) framework for Godot 4, forked and expanded from the original **[flownode](https://github.com/miskatonicstudio/flownode)** project.
 
 ---
 
-## 🚀 Key Features
+## ℹ️ Overview & Project Origin
 
-* **Standardized Node Structure**: Unified categories, clear names, and consistent logical schemas.
-* **+110 Nodes**: A robust library of nodes for spatial, attribute, and asset generation. Check out the full [PCGODOT Node Library Reference](demo/addons/flow_nodes_editor/doc/nodes_reference.md).
+`flownode` provided a fantastic visual foundation: a node-based workflow inside the Godot editor. PCGODOT takes that core idea and expands it into a fully realized PCG framework for building levels, environments, encounters, and reusable generation systems directly in the editor.
+
+For developers unfamiliar with modern PCG workflows, this kind of tech lets you build complex worlds and gameplay spaces visually through interconnected nodes instead of hand-placing everything or writing tons of custom one-off scripts. Think procedural dungeons, prop scattering, spline-based paths, room layouts, environmental dressing, gameplay logic, or even entire world-generation pipelines.
+
+![PCGODOT Flow Editor](demo/addons/flow_nodes_editor/doc/demo_flashy_colonnade_ui.png)
+
+The goal is to build on what `flownode` started and bring a more powerful, editor-driven visual PCG workflow to Godot 4. Something that feels approachable for indie developers, but flexible enough to support the kinds of procedural tools usually associated with larger engine pipelines.
+
+---
+
+## 🚀 Key Features & Additions
+
+* **+110 Custom Nodes**: A robust suite of nodes covering math, spatial logic, expressions, queries, spawning, and generation workflows. Check out the full [PCGODOT Node Library Reference](demo/addons/flow_nodes_editor/doc/nodes_reference.md).
 * **Interactive 3D Viewport Debugging**: Toggle 3D visualizations showing point positions, density gradients, scale, and rotations directly in Godot's editor (select a node and press **`D`**).
 * **Searchable Data Inspector**: Spreadsheet/table inspector showcasing attributes at any node, with active highlighting linked back to the 3D viewport (select a node and press **`E`**).
-* **Subgraphs & Loops**: Nest graphs with local parameters, custom outputs, and feedback loops.
-* **Core Tagging Support**: A dedicated `tags` property (`PackedStringArray`) inside data elements for tag-based filtering.
-* **Copy/Paste**: Import/export graph components instantly as JSON.
-* **Auto-Reload Pipeline**: Automatically monitors filesystem changes, invalidates caches, and hot-reloads graphs in the editor.
+* **Subgraphs & Loops**: Seamlessly nest graphs inside other graphs with local parameters, custom outputs, and array loops.
+* **Redesigned UI**: A completely redesigned UI layout docking directly in the editor with quick-access popup search for node creation.
+* **Auto-Reload Graph Cache**: Real-time monitoring of `.tres` graph files to invalidate editor caches and hot-reload changes instantly.
+* **Core Tagging & Copy/Paste**: Standalone JSON-based copy-pasting of node selections, with dedicated metadata tags for advanced filtering.
+* **Precompiled GDExtension Binaries**: Precompiled GDExtension libraries for Windows and macOS wrapping fast C++ KdTree and RTree spatial queries.
 
 ---
 
