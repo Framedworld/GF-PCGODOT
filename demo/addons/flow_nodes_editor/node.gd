@@ -716,22 +716,10 @@ func initFromScript():
 		
 		# Figma label typography & color overrides
 		lbl_in.add_theme_color_override("font_color", Color("8b90a8"))
-		lbl_in.add_theme_font_size_override("font_size", 11) # Figma: 11px font size
 		lbl_in.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		
 		lbl_out.add_theme_color_override("font_color", Color("8b90a8"))
-		lbl_out.add_theme_font_size_override("font_size", 11) # Figma: 11px font size
 		lbl_out.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		
-		# Try to use monospaced editor source font
-		var mono_font = null
-		if lbl_in.has_theme_font("source", "EditorFonts"):
-			mono_font = lbl_in.get_theme_font("source", "EditorFonts")
-		elif lbl_in.has_theme_font("doc_source", "EditorFonts"):
-			mono_font = lbl_in.get_theme_font("doc_source", "EditorFonts")
-		if mono_font:
-			lbl_in.add_theme_font_override("font", mono_font)
-			lbl_out.add_theme_font_override("font", mono_font)
 		
 		# Is there an input active
 		if idx < num_inputs:

@@ -295,17 +295,9 @@ func _ready():
 	
 	# Style the header elements for a compact, polished look
 	if has_node("%LabelTitle"):
-		%LabelTitle.add_theme_font_size_override("font_size", 12)
 		%LabelTitle.add_theme_color_override("font_color", Color("22d3ee"))
 	if has_node("%LabelStats"):
-		%LabelStats.add_theme_font_size_override("font_size", 10)
 		%LabelStats.add_theme_color_override("font_color", Color("8b95a5"))
-	if has_node("%SlotSelector"):
-		%SlotSelector.add_theme_font_size_override("font_size", 10)
-	if has_node("%BulkSelector"):
-		%BulkSelector.add_theme_font_size_override("font_size", 10)
-	if has_node("%FilterEdit"):
-		%FilterEdit.add_theme_font_size_override("font_size", 11)
 	
 	refresh()
 

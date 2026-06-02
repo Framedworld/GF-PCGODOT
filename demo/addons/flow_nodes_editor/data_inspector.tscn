@@ -1,9 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://dpoyi7gu03i7v"]
+[gd_scene format=3 uid="uid://dpoyi7gu03i7v"]
 
 [ext_resource type="Script" uid="uid://41lbfvspokrt" path="res://addons/flow_nodes_editor/data_inspector.gd" id="1_h15u6"]
 [ext_resource type="PackedScene" uid="uid://b5a4uh306y0de" path="res://addons/flow_nodes_editor/visualization/table_view.tscn" id="2_ehj1v"]
 
-[node name="DataInspector" type="Control"]
+[node name="DataInspector" type="Control" unique_id=34513188]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -15,7 +15,7 @@ size_flags_vertical = 3
 script = ExtResource("1_h15u6")
 data_ex = 1
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=20743891]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,22 +23,23 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=988750223]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="BtnRefresh" type="Button" parent="VBoxContainer/HBoxContainer"]
+[node name="BtnRefresh" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=1419480076]
 layout_mode = 2
-text = "↻"
 tooltip_text = "Refresh data"
+text = "↻"
 
-[node name="LabelTitle" type="Label" parent="VBoxContainer/HBoxContainer"]
+[node name="LabelTitle" type="Label" parent="VBoxContainer/HBoxContainer" unique_id=1934822418]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_colors/font_color = Color(0.13333334, 0.827451, 0.93333334, 1)
 text = "..."
 text_overrun_behavior = 3
 
-[node name="SlotSelector" type="OptionButton" parent="VBoxContainer/HBoxContainer"]
+[node name="SlotSelector" type="OptionButton" parent="VBoxContainer/HBoxContainer" unique_id=2098730101]
 unique_name_in_owner = true
 layout_mode = 2
 selected = 0
@@ -46,7 +47,7 @@ item_count = 1
 popup/item_0/text = "Out"
 popup/item_0/id = 0
 
-[node name="BulkSelector" type="OptionButton" parent="VBoxContainer/HBoxContainer"]
+[node name="BulkSelector" type="OptionButton" parent="VBoxContainer/HBoxContainer" unique_id=1904284069]
 unique_name_in_owner = true
 layout_mode = 2
 selected = 0
@@ -54,33 +55,31 @@ item_count = 1
 popup/item_0/text = "Bulk 0"
 popup/item_0/id = 0
 
-[node name="LabelStats" type="Label" parent="VBoxContainer/HBoxContainer"]
+[node name="LabelStats" type="Label" parent="VBoxContainer/HBoxContainer" unique_id=1655479084]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = ""
+theme_override_colors/font_color = Color(0.54509807, 0.58431375, 0.64705884, 1)
 horizontal_alignment = 2
 text_overrun_behavior = 3
 
-[node name="HBoxFilter" type="HBoxContainer" parent="VBoxContainer"]
+[node name="HBoxFilter" type="HBoxContainer" parent="VBoxContainer" unique_id=1099712082]
 layout_mode = 2
 
-[node name="LabelFilter" type="Label" parent="VBoxContainer/HBoxFilter"]
+[node name="LabelFilter" type="Label" parent="VBoxContainer/HBoxFilter" unique_id=1882007560]
 layout_mode = 2
 text = "Filter:"
 
-[node name="FilterEdit" type="LineEdit" parent="VBoxContainer/HBoxFilter"]
+[node name="FilterEdit" type="LineEdit" parent="VBoxContainer/HBoxFilter" unique_id=944520050]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Filter rows..."
 clear_button_enabled = true
 
-[node name="TableView" parent="VBoxContainer" instance=ExtResource("2_ehj1v")]
+[node name="TableView" parent="VBoxContainer" unique_id=1615779611 instance=ExtResource("2_ehj1v")]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
 
 [connection signal="pressed" from="VBoxContainer/HBoxContainer/BtnRefresh" to="." method="_on_btn_refresh_pressed"]
 [connection signal="item_selected" from="VBoxContainer/HBoxContainer/SlotSelector" to="." method="_on_slot_selector_item_selected"]

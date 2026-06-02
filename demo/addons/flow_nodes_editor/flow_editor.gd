@@ -790,6 +790,7 @@ func _ready():
 	
 	# Custom Sidebar Inspector
 	inspector = FlowInspector.new()
+	inspector.ui_scale = ui_scale
 	inspector.custom_minimum_size = Vector2(268, 200) # persistent 268px width
 	var splitter = $VBoxContainer/VSplitContainer
 	splitter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
