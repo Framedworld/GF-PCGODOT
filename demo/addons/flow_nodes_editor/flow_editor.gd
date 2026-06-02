@@ -18,15 +18,17 @@ var use_native_graph_grid := false
 
 @onready var gedit : GraphEdit = %GraphEdit
 @onready var data_inspector : Control
-@onready var info : Label = %LabelInfo
+@onready var info : Label = %FlowStatusLabel
+@onready var open_graph_button: Button = $VBoxContainer/TabBarPanel/TabBarRow/ButtonOpenGraph
+@onready var tab_bar: TabBar = $VBoxContainer/TabBarPanel/TabBarRow/TabBar
+@onready var expand_graph_button: Button = $VBoxContainer/TabBarPanel/TabBarRow/ButtonExpandGraph
+@onready var toolbar_hbox: HBoxContainer = $VBoxContainer/ScrollContainer/HBoxContainer
 
 # The inspector shows the settings property of the current node
 var inspector: FlowInspector
 var inspected_node : Node
 var make_inspector_visible : Callable
 var search_add_node_popup: SearchAddNodePopup
-var expand_graph_button: Button
-var settings_button: Button
 var custom_graph_grid
 
 # This is the default graph-node instantiated, the script contains the logic
@@ -78,6 +80,7 @@ const IDM_COLLAPSE_TO_SUBGRAPH : int = 200
 const RIGHT_DRAG_PAN_THRESHOLD := 4.0
 const SAVE_DEBOUNCE_SECONDS := 0.35
 const AUTO_REGEN_FRAME_BUDGET_USEC := 5000
+const EDITOR_DYNAMIC_UI_META := &"flow_editor_dynamic_ui"
 var right_drag_pan_active := false
 var right_drag_pan_moved := false
 var right_drag_pan_start_position := Vector2.ZERO
@@ -88,7 +91,6 @@ var status_nodes_count := 0
 var status_wires_count := 0
 var data_inspector_refresh_pending := false
 
-var tab_bar: TabBar
 var open_tabs: Array[Dictionary] = []
 var active_tab_index: int = -1
 var open_file_dialog: EditorFileDialog
@@ -96,7 +98,6 @@ var save_file_dialog: EditorFileDialog
 var unsaved_close_dialog: AcceptDialog
 var analyze_panel: Control
 var current_analyzed_node: FlowNodeBase
-var breadcrumb_bar: HBoxContainer
 var last_graph_open_dir := "res://graphs"
 var graph_loading_overlay: PanelContainer
 var graph_loading_label: Label
@@ -175,7 +176,7 @@ func setResourceToEdit( new_resource : FlowGraphResource, new_resource_owner : F
 			"owner": new_resource_owner,
 			"dirty": false
 		})
-		tab_bar.add_tab(tab_title)
+		_sync_tab_bar_from_open_tabs()
 		_switch_to_tab(open_tabs.size() - 1, new_resource_owner)
 
 func _switch_to_tab(index: int, new_owner = null):
@@ -244,7 +245,7 @@ func _on_tab_close_pressed(index: int):
 			tab_res.in_params_changed.disconnect(_on_in_params_changed)
 			
 		open_tabs.remove_at(index)
-		tab_bar.remove_tab(index)
+		_sync_tab_bar_from_open_tabs()
 		
 		if open_tabs.is_empty():
 			current_resource = null
@@ -283,6 +284,8 @@ func _clear_ui_nodes():
 	_set_analyze_panel_visible(false)
 
 func _update_tab_titles():
+	if tab_bar == null:
+		return
 	for i in range(open_tabs.size()):
 		var tab_res = open_tabs[i].resource
 		var tab_title = FlowI18n.t("Untitled")
@@ -295,68 +298,6 @@ func _update_tab_titles():
 		if _is_tab_dirty(i):
 			tab_title = "* " + tab_title
 		tab_bar.set_tab_title(i, tab_title)
-	_update_breadcrumbs()
-
-func _update_breadcrumbs():
-	if not breadcrumb_bar:
-		return
-	var panel = breadcrumb_bar.get_parent()
-	
-	# Clear old breadcrumbs
-	for child in breadcrumb_bar.get_children():
-		child.queue_free()
-		breadcrumb_bar.remove_child(child)
-	
-	# Only show when we have more than 1 tab (inside a subgraph)
-	if open_tabs.size() <= 1:
-		if panel:
-			panel.visible = false
-		return
-	if panel:
-		panel.visible = true
-	
-	# Build breadcrumb path from tab 0 to current active tab
-	var end_idx = mini(active_tab_index, open_tabs.size() - 1)
-	for i in range(end_idx + 1):
-		if i > 0:
-			# Separator
-			var sep_lbl = Label.new()
-			sep_lbl.text = " › "
-			sep_lbl.add_theme_font_size_override("font_size", 11)
-			sep_lbl.add_theme_color_override("font_color", Color(1, 1, 1, 0.25))
-			breadcrumb_bar.add_child(sep_lbl)
-		
-		var tab_res = open_tabs[i].resource
-		var crumb_text = "Graph"
-		if is_instance_valid(tab_res) and tab_res.resource_path != "":
-			crumb_text = tab_res.resource_path.get_file().get_basename()
-		elif open_tabs[i].owner:
-			crumb_text = open_tabs[i].owner.name
-		
-		var is_current = (i == active_tab_index)
-		
-		if is_current:
-			# Active crumb — just a label
-			var lbl = Label.new()
-			lbl.text = crumb_text
-			lbl.add_theme_font_size_override("font_size", 11)
-			lbl.add_theme_color_override("font_color", Color("22d3ee"))
-			breadcrumb_bar.add_child(lbl)
-		else:
-			# Clickable crumb — a flat button
-			var btn = Button.new()
-			btn.text = crumb_text
-			btn.flat = true
-			btn.add_theme_font_size_override("font_size", 11)
-			btn.add_theme_color_override("font_color", Color(1, 1, 1, 0.5))
-			btn.add_theme_color_override("font_hover_color", Color("22d3ee"))
-			var target_idx = i
-			btn.pressed.connect(func():
-				if current_resource:
-					saveResource()
-				_switch_to_tab(target_idx)
-			)
-			breadcrumb_bar.add_child(btn)
 
 func _on_button_open_pressed():
 	if not open_file_dialog:
@@ -456,7 +397,7 @@ func _set_resource_to_edit_with_loading(new_resource: FlowGraphResource, new_res
 		"owner": new_resource_owner,
 		"dirty": false
 	})
-	tab_bar.add_tab(tab_title)
+	_sync_tab_bar_from_open_tabs()
 	await _switch_to_tab_with_loading(open_tabs.size() - 1, new_resource_owner)
 
 func _switch_to_tab_with_loading(index: int, new_owner = null) -> void:
@@ -512,6 +453,12 @@ func _switch_to_tab_with_loading(index: int, new_owner = null) -> void:
 	update_status_bar()
 
 func _setup_graph_loading_overlay() -> void:
+	if graph_loading_overlay != null and is_instance_valid(graph_loading_overlay):
+		return
+	var existing := get_node_or_null("GraphLoadingOverlay") as PanelContainer
+	if existing:
+		graph_loading_overlay = existing
+		return
 	graph_loading_overlay = PanelContainer.new()
 	graph_loading_overlay.name = "GraphLoadingOverlay"
 	graph_loading_overlay.visible = false
@@ -1134,142 +1081,239 @@ func _ready():
 		ui_scale *= 2.0
 				
 	scanAvailableNodes()
-	
-	# Wrap TabBar in a PanelContainer with background #0e1016
-	var tab_panel = PanelContainer.new()
-	var tab_sb = StyleBoxFlat.new()
-	tab_sb.bg_color = Color("0e1016")
-	tab_sb.content_margin_left = 4
-	tab_sb.content_margin_right = 4
-	tab_sb.content_margin_top = 2
-	tab_sb.content_margin_bottom = 0
-	tab_panel.add_theme_stylebox_override("panel", tab_sb)
-	
-	tab_bar = TabBar.new()
-	tab_bar.tab_close_display_policy = TabBar.CLOSE_BUTTON_SHOW_ALWAYS
-	tab_bar.tab_changed.connect(_on_tab_changed)
-	tab_bar.tab_close_pressed.connect(_on_tab_close_pressed)
-	
-	tab_panel.add_child(tab_bar)
-	$VBoxContainer.add_child(tab_panel)
-	$VBoxContainer.move_child(tab_panel, 1)
-	
-	# Breadcrumb bar for subgraph navigation
-	var breadcrumb_panel = PanelContainer.new()
-	breadcrumb_panel.name = "BreadcrumbPanel"
-	var bc_sb = StyleBoxFlat.new()
-	bc_sb.bg_color = Color("0e1016")
-	bc_sb.content_margin_left = 8
-	bc_sb.content_margin_right = 8
-	bc_sb.content_margin_top = 2
-	bc_sb.content_margin_bottom = 2
-	bc_sb.border_color = Color(1, 1, 1, 0.04)
-	bc_sb.border_width_top = 1
-	breadcrumb_panel.add_theme_stylebox_override("panel", bc_sb)
-	
-	breadcrumb_bar = HBoxContainer.new()
-	breadcrumb_bar.add_theme_constant_override("separation", 2)
-	breadcrumb_panel.add_child(breadcrumb_bar)
-	breadcrumb_panel.visible = false
-	$VBoxContainer.add_child(breadcrumb_panel)
-	$VBoxContainer.move_child(breadcrumb_panel, 2)
-	
-	# Initialize Open Graph Button
-	var btn_open := Button.new()
-	btn_open.name = "ButtonOpenGraph"
-	btn_open.text = FlowI18n.t("Open Graph")
-	btn_open.tooltip_text = FlowI18n.t("Open a FlowGraph resource")
-	btn_open.pressed.connect(_on_button_open_pressed)
-	var toolbar = $VBoxContainer/ScrollContainer/HBoxContainer
-	toolbar.add_child(btn_open)
-	toolbar.move_child(btn_open, 0)
-
-	# Analyze: inspect selected node raw output
-	var btn_analyze := Button.new()
-	btn_analyze.name = "ButtonAnalyze"
-	btn_analyze.text = FlowI18n.t("Analyze")
-	btn_analyze.tooltip_text = FlowI18n.t("Inspect selected node raw data (A)")
-	btn_analyze.pressed.connect(_on_button_analyze_pressed)
-	toolbar.add_child(btn_analyze)
-	toolbar.move_child(btn_analyze, 1)
-	_setup_toolbar_settings_panel(toolbar)
-	_arrange_toolbar_buttons(toolbar)
+	_enforce_vbox_chrome_order()
+	_connect_editor_chrome_signals()
+	_apply_editor_chrome_styles()
 	_apply_toolbar_translations()
-	
-	# Style the toolbar background #171a24
-	var toolbar_container = $VBoxContainer/ScrollContainer
+	if not has_meta(EDITOR_DYNAMIC_UI_META):
+		_create_dynamic_editor_ui()
+		set_meta(EDITOR_DYNAMIC_UI_META, true)
+	else:
+		_refresh_dynamic_editor_ui()
+	%AutoRegen.button_pressed = auto_regen
+	if has_node("%CheckColorNodes"):
+		%CheckColorNodes.button_pressed = color_nodes
+	if not gedit.begin_node_move.is_connected(_on_graph_edit_begin_node_move):
+		gedit.begin_node_move.connect(_on_graph_edit_begin_node_move)
+	if not gedit.end_node_move.is_connected(_on_graph_edit_end_node_move):
+		gedit.end_node_move.connect(_on_graph_edit_end_node_move)
+	call_deferred("_finish_editor_ready")
+
+func _enforce_vbox_chrome_order() -> void:
+	var vbox := $VBoxContainer
+	var legacy_breadcrumb := vbox.get_node_or_null("BreadcrumbPanel")
+	if legacy_breadcrumb:
+		legacy_breadcrumb.free()
+	if toolbar_hbox:
+		var legacy_open := toolbar_hbox.get_node_or_null("ButtonOpenGraph")
+		if legacy_open:
+			legacy_open.free()
+	var order := [
+		"TabBarPanel",
+		"ScrollContainer",
+		"VSplitContainer",
+		"StatusPanel",
+	]
+	for i in order.size():
+		var node := vbox.get_node_or_null(order[i])
+		if node:
+			vbox.move_child(node, i)
+
+func _finish_editor_ready() -> void:
+	if not is_inside_tree():
+		return
+	_enforce_vbox_chrome_order()
+	_sync_tab_bar_from_open_tabs()
+	ensureCurrentResource()
+	_sync_tab_bar_from_open_tabs()
+	_apply_toolbar_translations()
+	update_status_bar()
+
+func _connect_editor_chrome_signals() -> void:
+	if tab_bar:
+		if not tab_bar.tab_changed.is_connected(_on_tab_changed):
+			tab_bar.tab_changed.connect(_on_tab_changed)
+		if not tab_bar.tab_close_pressed.is_connected(_on_tab_close_pressed):
+			tab_bar.tab_close_pressed.connect(_on_tab_close_pressed)
+	if toolbar_hbox == null:
+		return
+	if open_graph_button and not open_graph_button.pressed.is_connected(_on_button_open_pressed):
+		open_graph_button.pressed.connect(_on_button_open_pressed)
+	_connect_toolbar_pressed("ButtonSave", _on_button_save_pressed)
+	_connect_toolbar_pressed("ButtonReload", _on_button_reload_pressed)
+	_connect_toolbar_pressed("ButtonAnalyze", _on_button_analyze_pressed)
+	_connect_toolbar_pressed("ButtonRegenerate", _on_button_regenerate_pressed)
+	_connect_toolbar_pressed("ButtonInputs", _on_button_inputs_pressed)
+	_connect_toolbar_pressed("ButtonSettings", _on_button_settings_pressed)
+	_connect_toolbar_toggled("AutoRegen", _on_auto_regen_toggled)
+	_connect_toolbar_toggled("CheckColorNodes", _on_color_nodes_toggled)
+	var inputs_button := toolbar_hbox.get_node_or_null("ButtonInputs") as Button
+	if inputs_button:
+		inputs_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	if expand_graph_button and not expand_graph_button.pressed.is_connected(_on_button_expand_graph_pressed):
+		expand_graph_button.pressed.connect(_on_button_expand_graph_pressed)
+
+func _connect_toolbar_pressed(node_name: String, callback: Callable) -> void:
+	var button := toolbar_hbox.get_node_or_null(node_name) as Button
+	if button and not button.pressed.is_connected(callback):
+		button.pressed.connect(callback)
+
+func _connect_toolbar_toggled(node_name: String, callback: Callable) -> void:
+	var checkbox := toolbar_hbox.get_node_or_null(node_name) as CheckBox
+	if checkbox and not checkbox.toggled.is_connected(callback):
+		checkbox.toggled.connect(callback)
+
+func _on_button_expand_graph_pressed() -> void:
+	_float_graph_panel()
+
+func _on_button_settings_pressed() -> void:
+	_show_editor_settings_panel()
+
+func _apply_editor_chrome_styles() -> void:
+	var tab_panel := $VBoxContainer.get_node_or_null("TabBarPanel") as PanelContainer
+	if tab_panel:
+		var tab_sb := StyleBoxFlat.new()
+		tab_sb.bg_color = Color("0e1016")
+		tab_sb.content_margin_left = 4
+		tab_sb.content_margin_right = 4
+		tab_sb.content_margin_top = 2
+		tab_sb.content_margin_bottom = 0
+		tab_panel.add_theme_stylebox_override("panel", tab_sb)
+	var toolbar_container := $VBoxContainer.get_node_or_null("ScrollContainer") as ScrollContainer
 	if toolbar_container:
-		var sb_tb = StyleBoxFlat.new()
+		var sb_tb := StyleBoxFlat.new()
 		sb_tb.bg_color = Color("171a24")
 		sb_tb.content_margin_left = 8
 		sb_tb.content_margin_right = 8
 		sb_tb.content_margin_top = 6
 		sb_tb.content_margin_bottom = 6
 		toolbar_container.add_theme_stylebox_override("panel", sb_tb)
-		
-	# Style all buttons in the toolbar to match Figma Style
-	for child in toolbar.get_children():
-		if child is Button:
-			if child.name == "ButtonRegenerate":
-				# Style Regenerate button as a flat button with cyan border and text
-				var sb_normal := StyleBoxFlat.new()
-				sb_normal.bg_color = Color("1b1e28")
-				sb_normal.set_border_width_all(1)
-				sb_normal.border_color = Color("22d3ee") # Cyan
-				sb_normal.set_corner_radius_all(3)
-				sb_normal.content_margin_left = 10
-				sb_normal.content_margin_right = 10
-				sb_normal.content_margin_top = 4
-				sb_normal.content_margin_bottom = 4
-				child.add_theme_stylebox_override("normal", sb_normal)
-				
-				var sb_hover := sb_normal.duplicate()
-				sb_hover.bg_color = Color("252836")
-				child.add_theme_stylebox_override("hover", sb_hover)
-				
-				var sb_pressed := sb_normal.duplicate()
-				sb_pressed.bg_color = Color("111318")
-				child.add_theme_stylebox_override("pressed", sb_pressed)
-				
-				child.add_theme_color_override("font_color", Color("22d3ee"))
-				child.add_theme_color_override("font_hover_color", Color("22d3ee"))
-				child.add_theme_color_override("font_pressed_color", Color("22d3ee"))
-			else:
-				_style_toolbar_button(child)
-				
-	# Custom dot grid background on GraphEdit.
-	custom_graph_grid = preload("res://addons/flow_nodes_editor/custom_grid.gd").new()
-	custom_graph_grid.gedit = gedit
-	gedit.add_child(custom_graph_grid)
-	gedit.move_child(custom_graph_grid, 0)
+	var status_panel := $VBoxContainer.get_node_or_null("StatusPanel") as PanelContainer
+	if status_panel:
+		var status_sb := StyleBoxFlat.new()
+		status_sb.bg_color = Color("0a0c12")
+		status_sb.border_width_top = 1
+		status_sb.border_color = Color(1.0, 1.0, 1.0, 0.04)
+		status_sb.content_margin_left = 12
+		status_sb.content_margin_right = 12
+		status_sb.content_margin_top = 4
+		status_sb.content_margin_bottom = 4
+		status_panel.add_theme_stylebox_override("panel", status_sb)
+	if toolbar_hbox:
+		for child in toolbar_hbox.get_children():
+			if child is Button:
+				if child.name == "ButtonRegenerate":
+					var sb_normal := StyleBoxFlat.new()
+					sb_normal.bg_color = Color("1b1e28")
+					sb_normal.set_border_width_all(1)
+					sb_normal.border_color = Color("22d3ee")
+					sb_normal.set_corner_radius_all(3)
+					sb_normal.content_margin_left = 10
+					sb_normal.content_margin_right = 10
+					sb_normal.content_margin_top = 4
+					sb_normal.content_margin_bottom = 4
+					child.add_theme_stylebox_override("normal", sb_normal)
+					var sb_hover := sb_normal.duplicate()
+					sb_hover.bg_color = Color("252836")
+					child.add_theme_stylebox_override("hover", sb_hover)
+					var sb_pressed := sb_normal.duplicate()
+					sb_pressed.bg_color = Color("111318")
+					child.add_theme_stylebox_override("pressed", sb_pressed)
+					child.add_theme_color_override("font_color", Color("22d3ee"))
+					child.add_theme_color_override("font_hover_color", Color("22d3ee"))
+					child.add_theme_color_override("font_pressed_color", Color("22d3ee"))
+				else:
+					_style_toolbar_button(child)
+	if open_graph_button:
+		_style_toolbar_button(open_graph_button)
+	if expand_graph_button:
+		_style_toolbar_button(expand_graph_button)
+
+func _create_dynamic_editor_ui() -> void:
+	_ensure_custom_graph_grid()
 	_apply_graph_grid_mode()
 	_setup_inline_analyze_panel()
-	
-	# Custom Sidebar Inspector
-	inspector = FlowInspector.new()
-	inspector.custom_minimum_size = Vector2(268, 200) # persistent 268px width
-	var splitter = $VBoxContainer/VSplitContainer
-	splitter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	splitter.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	splitter.add_child(inspector)
-	splitter.split_offset = 600
-	
+	_ensure_inspector()
+	_ensure_search_add_node_popup()
+	_setup_graph_loading_overlay()
+
+func _refresh_dynamic_editor_ui() -> void:
+	_ensure_custom_graph_grid()
+	_apply_graph_grid_mode()
+	if inspector == null or not is_instance_valid(inspector):
+		_ensure_inspector()
+	elif not inspector.property_edited.is_connected(onNodePropertyChanged):
+		inspector.property_edited.connect(onNodePropertyChanged)
+	if search_add_node_popup == null or not is_instance_valid(search_add_node_popup):
+		_ensure_search_add_node_popup()
+
+func _sync_tab_bar_from_open_tabs() -> void:
+	if tab_bar == null:
+		return
+	if tab_bar.get_tab_count() == open_tabs.size():
+		_update_tab_titles()
+		return
+	while tab_bar.get_tab_count() > 0:
+		tab_bar.remove_tab(tab_bar.get_tab_count() - 1)
+	for tab in open_tabs:
+		var tab_title := FlowI18n.t("Untitled")
+		var tab_res: FlowGraphResource = tab.get("resource")
+		if is_instance_valid(tab_res) and tab_res.resource_path != "":
+			tab_title = tab_res.resource_path.get_file()
+		elif tab.get("owner"):
+			tab_title = String(tab.owner.name)
+		tab_bar.add_tab(tab_title)
+	if active_tab_index >= 0 and active_tab_index < tab_bar.get_tab_count():
+		tab_bar.current_tab = active_tab_index
+	_update_tab_titles()
+
+func _ensure_custom_graph_grid() -> void:
+	if custom_graph_grid != null and is_instance_valid(custom_graph_grid):
+		custom_graph_grid.gedit = gedit
+		return
+	custom_graph_grid = gedit.get_node_or_null("CustomGraphGrid")
+	if custom_graph_grid == null:
+		custom_graph_grid = preload("res://addons/flow_nodes_editor/custom_grid.gd").new()
+		custom_graph_grid.name = "CustomGraphGrid"
+		custom_graph_grid.gedit = gedit
+		gedit.add_child(custom_graph_grid)
+		gedit.move_child(custom_graph_grid, 0)
+	else:
+		custom_graph_grid.gedit = gedit
+
+func _ensure_inspector() -> void:
+	var splitter := $VBoxContainer/VSplitContainer
+	for child in splitter.get_children():
+		if child is FlowInspector:
+			inspector = child as FlowInspector
+			break
+	if inspector == null:
+		inspector = FlowInspector.new()
+		inspector.custom_minimum_size = Vector2(268, 200)
+		splitter.add_child(inspector)
+		splitter.split_offset = 600
 	gedit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	gedit.size_flags_vertical = Control.SIZE_EXPAND_FILL	
+	gedit.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	gedit.add_theme_color_override("activity", Color(1, 0.2, 0.2, 1))
-	inspector.size_flags_horizontal = Control.SIZE_FILL # Keep size based on min width
+	inspector.size_flags_horizontal = Control.SIZE_FILL
 	inspector.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	inspector.property_edited.connect(onNodePropertyChanged)
-	
-	# Connect node deselection to clear inspector
-	gedit.node_deselected.connect(func(node):
-		if inspected_node == node:
-			inspected_node = null
+	if not inspector.property_edited.is_connected(onNodePropertyChanged):
+		inspector.property_edited.connect(onNodePropertyChanged)
+	if not gedit.node_deselected.is_connected(_on_graph_edit_node_deselected):
+		gedit.node_deselected.connect(_on_graph_edit_node_deselected)
+
+func _on_graph_edit_node_deselected(node: Node) -> void:
+	if inspected_node == node:
+		inspected_node = null
+		if inspector:
 			inspector.edit(null)
-	)
-	
-	# Instantiate custom SearchAddNodePopup
+
+func _ensure_search_add_node_popup() -> void:
+	search_add_node_popup = get_node_or_null("SearchAddNodePopup") as SearchAddNodePopup
+	if search_add_node_popup:
+		return
 	search_add_node_popup = SearchAddNodePopup.new()
+	search_add_node_popup.name = "SearchAddNodePopup"
 	add_child(search_add_node_popup)
 	search_add_node_popup.node_selected.connect(func(template_name):
 		addNode(template_name)
@@ -1288,92 +1332,6 @@ func _ready():
 		auto_connect_from_node = ""
 		auto_connect_to_node = ""
 	)
-	
-	# Setup premium status bar at bottom of the editor
-	if info:
-		info.visible = false # hide old toolbar info label
-		
-	var status_panel = PanelContainer.new()
-	var status_sb = StyleBoxFlat.new()
-	status_sb.bg_color = Color("0a0c12")
-	status_sb.border_width_top = 1
-	status_sb.border_color = Color(1.0, 1.0, 1.0, 0.04)
-	status_sb.content_margin_left = 12
-	status_sb.content_margin_right = 12
-	status_sb.content_margin_top = 4
-	status_sb.content_margin_bottom = 4
-	status_panel.add_theme_stylebox_override("panel", status_sb)
-	
-	var status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 11)
-	status_label.add_theme_color_override("font_color", Color("2e2c48"))
-	status_panel.add_child(status_label)
-	
-	$VBoxContainer.add_child(status_panel)
-	info = status_label
-	_setup_graph_loading_overlay()
-	
-	%AutoRegen.button_pressed = auto_regen
-	if has_node("%CheckColorNodes"):
-		%CheckColorNodes.button_pressed = color_nodes
-		
-	if not gedit.begin_node_move.is_connected(_on_graph_edit_begin_node_move):
-		gedit.begin_node_move.connect(_on_graph_edit_begin_node_move)
-	if not gedit.end_node_move.is_connected(_on_graph_edit_end_node_move):
-		gedit.end_node_move.connect(_on_graph_edit_end_node_move)
-	
-	ensureCurrentResource()
-	update_status_bar()
-
-func _setup_toolbar_settings_panel(toolbar: HBoxContainer):
-	for node_name in ["AutoRegen", "CheckColorNodes"]:
-		var control = toolbar.get_node_or_null(node_name) as Control
-		if not control:
-			continue
-		control.visible = false
-
-	var spacer := Control.new()
-	spacer.name = "ToolbarSpacer"
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	toolbar.add_child(spacer)
-
-	var inputs_button = toolbar.get_node_or_null("ButtonInputs") as Button
-	if inputs_button:
-		inputs_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		if not inputs_button.pressed.is_connected(_on_button_inputs_pressed):
-			inputs_button.pressed.connect(_on_button_inputs_pressed)
-
-	expand_graph_button = Button.new()
-	expand_graph_button.name = "ButtonExpandGraph"
-	expand_graph_button.text = FlowI18n.t("Expand")
-	expand_graph_button.tooltip_text = FlowI18n.t("Float and Maximize Graph Panel")
-	expand_graph_button.pressed.connect(_float_graph_panel)
-	toolbar.add_child(expand_graph_button)
-
-	settings_button = Button.new()
-	settings_button.name = "ButtonSettings"
-	settings_button.text = FlowI18n.t("Settings")
-	settings_button.pressed.connect(_show_editor_settings_panel)
-	toolbar.add_child(settings_button)
-
-func _arrange_toolbar_buttons(toolbar: HBoxContainer):
-	var order = [
-		"ButtonOpenGraph",
-		"ButtonSave",
-		"ButtonReload",
-		"ButtonAnalyze",
-		"ButtonRegenerate",
-		"ToolbarSpacer",
-		"ButtonExpandGraph",
-		"ButtonInputs",
-		"ButtonSettings",
-	]
-	var index := 0
-	for node_name in order:
-		var control = toolbar.get_node_or_null(node_name)
-		if control:
-			toolbar.move_child(control, index)
-			index += 1
 
 func _show_editor_settings_panel():
 	inspector.edit_editor_settings(self)
@@ -1494,11 +1452,14 @@ func _maximize_graph_panel_window():
 	update_status_bar(FlowI18n.t("Graph panel floated"))
 
 func _get_toolbar_control(node_name: String) -> Control:
-	var toolbar = get_node_or_null("VBoxContainer/ScrollContainer/HBoxContainer")
-	if toolbar:
-		var toolbar_control = toolbar.get_node_or_null(node_name) as Control
-		if toolbar_control:
-			return toolbar_control
+	if toolbar_hbox:
+		var control := toolbar_hbox.get_node_or_null(node_name) as Control
+		if control:
+			return control
+	if node_name == "ButtonOpenGraph" and open_graph_button:
+		return open_graph_button
+	if node_name == "ButtonExpandGraph" and expand_graph_button:
+		return expand_graph_button
 	return null
 
 func _notification(what: int):
@@ -1514,7 +1475,6 @@ func _notification(what: int):
 
 func _apply_toolbar_translations():
 	var text_by_name = {
-		"ButtonOpenGraph": "Open Graph",
 		"ButtonAnalyze": "Analyze",
 		"ButtonReload": "Reload",
 		"ButtonInputs": "Inputs",
@@ -1524,7 +1484,6 @@ func _apply_toolbar_translations():
 		"ButtonRegenerate": "Regenerate",
 		"ButtonExpandGraph": "Expand",
 		"ButtonSettings": "Settings",
-		"LabelInfo": "Info",
 	}
 	for node_name in text_by_name:
 		var control = _get_toolbar_control(node_name)
@@ -1534,7 +1493,6 @@ func _apply_toolbar_translations():
 			(control as Label).text = FlowI18n.t(String(text_by_name[node_name]))
 
 	var tooltip_by_name = {
-		"ButtonOpenGraph": "Open a FlowGraph resource",
 		"ButtonAnalyze": "Inspect selected node raw data (A)",
 		"ButtonExpandGraph": "Float and Maximize Graph Panel",
 	}
@@ -1542,6 +1500,9 @@ func _apply_toolbar_translations():
 		var control = _get_toolbar_control(node_name)
 		if control:
 			control.tooltip_text = FlowI18n.t(String(tooltip_by_name[node_name]))
+	if open_graph_button:
+		open_graph_button.text = "+"
+		open_graph_button.tooltip_text = FlowI18n.t("Open a FlowGraph resource")
 
 func _on_node_translation_toggled(toggled_on: bool):
 	FlowI18n.set_node_translation_enabled(toggled_on)

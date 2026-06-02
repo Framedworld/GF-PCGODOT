@@ -24,46 +24,80 @@ grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
+[node name="TabBarPanel" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="TabBarRow" type="HBoxContainer" parent="VBoxContainer/TabBarPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ButtonOpenGraph" type="Button" parent="VBoxContainer/TabBarPanel/TabBarRow"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+tooltip_text = "Open a FlowGraph resource"
+text = "+"
+
+[node name="TabBar" type="TabBar" parent="VBoxContainer/TabBarPanel/TabBarRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+tab_close_display_policy = 1
+
+[node name="ButtonExpandGraph" type="Button" parent="VBoxContainer/TabBarPanel/TabBarRow"]
+layout_mode = 2
+text = "Expand"
+
 [node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer"]
 layout_mode = 2
+size_flags_vertical = 0
 vertical_scroll_mode = 0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-
-[node name="ButtonReload" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
-layout_mode = 2
-text = "Reload"
-
-[node name="ButtonInputs" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
-layout_mode = 2
-text = "Inputs"
+theme_override_constants/separation = 6
 
 [node name="ButtonSave" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
 layout_mode = 2
 text = "Save Resource"
 
+[node name="ButtonReload" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
+layout_mode = 2
+text = "Reload"
+
+[node name="ButtonAnalyze" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
+layout_mode = 2
+text = "Analyze"
+
+[node name="ButtonRegenerate" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
+layout_mode = 2
+text = "Regenerate"
+
+[node name="ToolbarSpacer" type="Control" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ButtonInputs" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
+layout_mode = 2
+text = "Inputs"
+
+[node name="ButtonSettings" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
+layout_mode = 2
+text = "Settings"
+
 [node name="AutoRegen" type="CheckBox" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 button_pressed = true
 text = "Auto Generate"
 
 [node name="CheckColorNodes" type="CheckBox" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 button_pressed = true
 text = "Color Nodes"
-
-[node name="ButtonRegenerate" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
-layout_mode = 2
-text = "Regenerate"
-
-[node name="LabelInfo" type="Label" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Info"
 
 [node name="VSplitContainer" type="HSplitContainer" parent="VBoxContainer"]
 custom_minimum_size = Vector2(200, 0)
@@ -86,12 +120,16 @@ show_grid_buttons = false
 minimap_enabled = false
 script = ExtResource("2_l4kri")
 
-[connection signal="pressed" from="VBoxContainer/ScrollContainer/HBoxContainer/ButtonReload" to="." method="_on_button_reload_pressed"]
-[connection signal="pressed" from="VBoxContainer/ScrollContainer/HBoxContainer/ButtonInputs" to="." method="_on_button_inputs_pressed"]
-[connection signal="pressed" from="VBoxContainer/ScrollContainer/HBoxContainer/ButtonSave" to="." method="_on_button_save_pressed"]
-[connection signal="toggled" from="VBoxContainer/ScrollContainer/HBoxContainer/AutoRegen" to="." method="_on_auto_regen_toggled"]
-[connection signal="toggled" from="VBoxContainer/ScrollContainer/HBoxContainer/CheckColorNodes" to="." method="_on_color_nodes_toggled"]
-[connection signal="pressed" from="VBoxContainer/ScrollContainer/HBoxContainer/ButtonRegenerate" to="." method="_on_button_regenerate_pressed"]
+[node name="StatusPanel" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="FlowStatusLabel" type="Label" parent="VBoxContainer/StatusPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.172549, 0.282353, 1)
+theme_override_font_sizes/font_size = 11
+
 [connection signal="connection_from_empty" from="VBoxContainer/VSplitContainer/GraphEdit" to="." method="_on_graph_edit_connection_from_empty"]
 [connection signal="connection_request" from="VBoxContainer/VSplitContainer/GraphEdit" to="." method="_on_graph_edit_connection_request"]
 [connection signal="connection_to_empty" from="VBoxContainer/VSplitContainer/GraphEdit" to="." method="_on_graph_edit_connection_to_empty"]
