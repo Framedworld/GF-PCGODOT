@@ -3587,12 +3587,13 @@ func _evaluate_graph_node(node: FlowNodeBase, performance: Array) -> void:
 	#print( "Evaluating %s" % node.name )
 	if node.settings.disabled:
 		node.executedDisabled( ctx )
-	else:
+	elif not FlowVariableEval.try_fast_execute( node, ctx, ctx.gedit_nodes_by_name ):
 		node.run( ctx )
 
 	if node.settings.inspect_enabled:
 		_queue_data_inspector_refresh(node)
-	node.setupDrawDebug()
+	if FlowVariableEval.should_refresh_debug_draw( node ):
+		node.setupDrawDebug()
 	node.dirty = false
 	var time_node_ends = Time.get_ticks_usec()
 	var exec_usec = time_node_ends - time_node_start

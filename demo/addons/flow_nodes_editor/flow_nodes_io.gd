@@ -480,9 +480,7 @@ static func _call_load_progress(progress_callback: Callable, message: String, va
 		await progress_callback.call(message, value)
 
 static func _node_variable_name(node) -> String:
-	if node == null or node.settings == null or not ("variable_name" in node.settings):
-		return ""
-	return String(node.settings.variable_name).strip_edges()
+	return FlowVariableEval.variable_name_from_node(node)
 
 static func _add_virtual_variable_dependencies(node_list: Array) -> void:
 	var set_nodes_by_name := {}
@@ -675,7 +673,7 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 		node.preExecute(ctx)
 		if node.settings.disabled:
 			node.executedDisabled(ctx)
-		else:
+		elif not FlowVariableEval.try_fast_execute(node, ctx, instances):
 			node.run(ctx)
 		
 	# Collect output data
