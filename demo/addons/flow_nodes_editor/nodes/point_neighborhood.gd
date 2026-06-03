@@ -151,7 +151,7 @@ func execute(ctx : FlowData.EvaluationContext):
 	if write_avg_color:
 		out_avg_color.resize(num_points)
 
-	var use_tree = has_distance_limit and num_points > 8
+	var use_tree = has_distance_limit and num_points > 1000
 	var tA = GDRTree.new() if use_tree else null
 	var candidate_pos : PackedVector3Array
 	var candidate_size : PackedVector3Array

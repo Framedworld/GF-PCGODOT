@@ -15,7 +15,6 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var out_data : FlowData.Data = in_data.duplicate()
 	var spos : PackedVector3Array = out_data.cloneStream( FlowData.AttrPosition )
 	var strength : float = getSettingValue( ctx, "strength" )
-	var delta : Vector3 = Vector3( 0,strength,0)
 	var num_iterations : int = getSettingValue( ctx, "num_iterations" )
 	var padding : float = getSettingValue( ctx, "padding" )
 	#print( "Iterating %d" % [num_iterations])

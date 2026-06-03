@@ -232,6 +232,8 @@ func blueNoiseSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tran
 		var base_j : int = (settings.random_seed + i * 256) & 0xffff
 		var max_x = min( size.x, max_size ) * 0.5
 		var max_z = min( size.z, max_size ) * 0.5
+		if blue_noise_samples.is_empty():
+			return
 		for j in range( num_samples ):
 			var bn_idx : int = ( j + base_j ) & 0xffff
 			var bns : BNSample = blue_noise_samples[bn_idx]
