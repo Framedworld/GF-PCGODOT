@@ -31,31 +31,35 @@ func spawnDock( res_template : String, title : String, bottom : bool ) -> Contro
 func _enter_tree():
 	print("Data Flow plugin enabled")
 	graph_dock = spawnDock("res://addons/flow_nodes_editor/flow_editor.tscn", "Data Flow", false ) as Control
-	
+
 	graph_input_inspector_plugin = load("res://addons/flow_nodes_editor/graph_input_parameter_inspector.gd").new()
 	add_inspector_plugin(graph_input_inspector_plugin)
 	node_settings_inspector_plugin = load("res://addons/flow_nodes_editor/node_settings_inspector_plugin.gd").new()
 	add_inspector_plugin(node_settings_inspector_plugin)
-	
+
 	# Will refresh everytime the undo/redo subsystem saves a point
 	undo_redo = get_undo_redo()
 	undo_redo.history_changed.connect(_on_history_changed)
 	graph_dock.undo_redo = undo_redo
-	
+
 	# Auto-detect file changes on disk (from git, agents, external editors)
 	var efs = EditorInterface.get_resource_filesystem()
 	if efs:
 		efs.filesystem_changed.connect(_on_filesystem_changed)
 		efs.resources_reimported.connect(_on_resources_reimported)
-	
+
+	selection.selection_changed.connect(_selection_changed)
+
 	set_process(true)
 	
 func _save_external_data():
 	graph_dock.saveResource()
 	
 func _exit_tree():
+	setWatchedNode(null)
 	if undo_redo:
-		undo_redo.history_changed.disconnect(_on_history_changed)
+		if undo_redo.history_changed.is_connected(_on_history_changed):
+			undo_redo.history_changed.disconnect(_on_history_changed)
 	var efs = EditorInterface.get_resource_filesystem()
 	if efs:
 		if efs.filesystem_changed.is_connected(_on_filesystem_changed):
@@ -70,10 +74,10 @@ func _exit_tree():
 	if data_inspector_dock and is_instance_valid(data_inspector_dock):
 		remove_control_from_bottom_panel(data_inspector_dock)
 		data_inspector_dock.free()
-	selection.selection_changed.disconnect(_selection_changed)
+	if selection.selection_changed.is_connected(_selection_changed):
+		selection.selection_changed.disconnect(_selection_changed)
 
 func _ready():
-	selection.selection_changed.connect(_selection_changed)
 	_selection_changed()
 
 # This is called after the a new scene is loaded, but the 'selection' event of the new

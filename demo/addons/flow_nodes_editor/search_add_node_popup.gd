@@ -191,8 +191,9 @@ func _ready():
 	sub_vbox.move_child(sub_scroll_up_btn, sub_vbox.get_child_count() - 1)
 	_update_sub_scroll_arrows()
 
-	# Hide submenu when main hides
+	# Hide submenu when main hides, and clear any pending hide timer
 	popup_hide.connect(func():
+		sub_panel_hide_timer = null
 		submenu_popup.hide()
 	)
 	
@@ -898,6 +899,8 @@ func _start_sub_panel_hide_timer():
 	_cancel_sub_panel_hide_timer()
 	sub_panel_hide_timer = get_tree().create_timer(SUBMENU_HIDE_DELAY)
 	sub_panel_hide_timer.timeout.connect(func():
+		if not is_instance_valid(self):
+			return
 		if sub_panel_hide_timer and not _is_mouse_near_submenu_stack():
 			_hide_sub_panel_immediately()
 		elif sub_panel_hide_timer:
