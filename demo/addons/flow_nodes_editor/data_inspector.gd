@@ -236,13 +236,31 @@ func onCellClicked( row : int, col : int ):
 			node.debug_row = row
 		node.setupDrawDebug()
 
+func _data_row_count() -> int:
+	if data == null:
+		return 0
+	var max_rows := 0
+	for stream in data.streams.values():
+		var container = stream.get("container", [])
+		if container != null:
+			max_rows = maxi(max_rows, container.size())
+	return max_rows
+
 func _get_row_world_position(real_row: int) -> Variant:
-	if data == null or real_row < 0 or real_row >= data.size():
+	if data == null or real_row < 0:
+		return null
+	if real_row >= _data_row_count():
 		return null
 	if data.hasStream(FlowData.AttrPosition):
 		var positions := data.getVector3Container(FlowData.AttrPosition)
 		if real_row < positions.size():
 			return positions[real_row]
+	for stream_name in data.streams.keys():
+		var stream = data.streams[stream_name]
+		if stream.data_type == FlowData.DataType.Vector:
+			var vectors := data.getVector3Container(stream_name)
+			if real_row < vectors.size():
+				return vectors[real_row]
 	var transforms := data.getTransformsStream()
 	if transforms != null and real_row < transforms.positions.size():
 		return transforms.positions[real_row]

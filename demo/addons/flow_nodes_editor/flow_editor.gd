@@ -174,6 +174,9 @@ func _deferred_begin_viewport_focus() -> void:
 		call_deferred("_deferred_apply_viewport_focus_without_selection")
 		return
 	var selection := EditorInterface.get_selection()
+	if selection == null:
+		call_deferred("_deferred_apply_viewport_focus_without_selection")
+		return
 	_focus_restore_selection = selection.get_selected_nodes()
 	selection.clear()
 	selection.add_node(marker)
@@ -199,6 +202,9 @@ func _deferred_verify_viewport_focus_alignment() -> void:
 
 func _deferred_finish_viewport_focus() -> void:
 	var selection := EditorInterface.get_selection()
+	if selection == null:
+		_focus_restore_selection.clear()
+		return
 	selection.clear()
 	for node in _focus_restore_selection:
 		if is_instance_valid(node):
@@ -310,6 +316,29 @@ func mcp_measure_focus_alignment(target: Vector3) -> Dictionary:
 		"alignment_error": alignment_error,
 		"orbit_depth": depth,
 		"camera_origin": camera.global_position,
+	}
+
+
+## MCP: populate Analyze panel from existing eval results without running evalGraph() again.
+func mcp_show_analyze_for_node(node: FlowNodeBase) -> Dictionary:
+	if node == null:
+		return {"ok": false, "error": "missing node"}
+	if not data_inspector:
+		return {"ok": false, "error": "data_inspector missing"}
+	var prev_auto_regen := auto_regen
+	auto_regen = false
+	data_inspector.setNode(null)
+	data_inspector.setNode(node)
+	node.refreshFromSettings()
+	_set_analyze_panel_visible(true)
+	current_analyzed_node = node
+	auto_regen = prev_auto_regen
+	regen_pending = false
+	data_inspector.refresh()
+	return {
+		"ok": true,
+		"node_name": node.name,
+		"visible_rows": data_inspector.visible_rows.size(),
 	}
 
 func _get_active_spatial_editor_camera() -> Camera3D:
@@ -3763,9 +3792,10 @@ func refreshVariableNodes() -> void:
 	
 func getEvalOrder():
 	# Find targets, like spawn meshes
-	var finals := getAllNodes().filter( func ( node : FlowNodeBase ) -> bool:
-		var is_output = node.node_template == "output" or node.node_template.begins_with("output_")
-		return ( not node.settings.disabled ) and ( is_output or node.settings.inspect_enabled or node.settings.debug_enabled or node.getMeta().get( "is_final", false ) )
+	var finals := getAllNodes().filter(func(node: FlowNodeBase) -> bool:
+		if node.settings.disabled:
+			return false
+		return FlowNodeIO._is_topo_final_root(node)
 	)
 	
 	# for each node, find requirements

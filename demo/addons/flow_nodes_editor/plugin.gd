@@ -16,7 +16,7 @@ var node_settings_inspector_plugin : EditorInspectorPlugin
 var current_scene_root = null
 var current_watched_node = null
 
-@onready var selection = EditorInterface.get_selection()
+var selection: EditorSelection
 
 func spawnDock( res_template : String, title : String, bottom : bool ) -> Control:
 	var packed : PackedScene = load( res_template )
@@ -63,7 +63,11 @@ func _enter_tree():
 		efs.filesystem_changed.connect(_on_filesystem_changed)
 		efs.resources_reimported.connect(_on_resources_reimported)
 
-	selection.selection_changed.connect(_selection_changed)
+	selection = EditorInterface.get_selection()
+	if selection:
+		selection.selection_changed.connect(_selection_changed)
+	else:
+		push_warning("Data Flow: EditorSelection unavailable in _enter_tree; selection sync disabled until editor is ready.")
 
 	set_process(true)
 	
@@ -98,7 +102,12 @@ func _exit_tree():
 		selection.selection_changed.disconnect(_selection_changed)
 
 func _ready():
-	_selection_changed()
+	if selection == null:
+		selection = EditorInterface.get_selection()
+		if selection and not selection.selection_changed.is_connected(_selection_changed):
+			selection.selection_changed.connect(_selection_changed)
+	if selection:
+		_selection_changed()
 
 # This is called after the a new scene is loaded, but the 'selection' event of the new
 # scene is called first.
@@ -122,7 +131,11 @@ func on_scene_changed(scene_root: Node) -> void:
 func _selection_changed():
 	if not _has_valid_graph_dock():
 		return
-	
+	if selection == null:
+		selection = EditorInterface.get_selection()
+	if selection == null:
+		return
+
 	var scene_nodes = selection.get_selected_nodes()
 	if not scene_nodes.is_empty():
 		var scene_node = scene_nodes[0]

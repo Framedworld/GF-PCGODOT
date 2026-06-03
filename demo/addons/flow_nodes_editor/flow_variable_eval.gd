@@ -51,6 +51,7 @@ static func _fast_execute_set(
 		node.set_output(0, in_data)
 		return true
 	ctx.variables[variable_name] = in_data
+	_mirror_variables_to_runtime(ctx)
 	node.set_output(0, in_data)
 	return true
 
@@ -67,7 +68,16 @@ static func _fast_execute_get(node: FlowNodeBase, ctx: FlowData.EvaluationContex
 		node.set_output(0, FlowData.Data.new())
 		return true
 	node.set_output(0, data)
+	_mirror_variables_to_runtime(ctx)
 	return true
+
+
+static func _mirror_variables_to_runtime(ctx: FlowData.EvaluationContext) -> void:
+	if ctx == null:
+		return
+	if ctx.runtime_params == null:
+		ctx.runtime_params = {}
+	ctx.runtime_params["mapgen_variables"] = ctx.variables.duplicate(true)
 
 
 static func _wire_inputs_from_deps(

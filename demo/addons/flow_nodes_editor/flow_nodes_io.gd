@@ -482,6 +482,105 @@ static func _call_load_progress(progress_callback: Callable, message: String, va
 static func _node_variable_name(node) -> String:
 	return FlowVariableEval.variable_name_from_node(node)
 
+static func _inherit_flow_variables(target_ctx: FlowData.EvaluationContext, parent_ctx: FlowData.EvaluationContext) -> void:
+	target_ctx.variables.clear()
+	if parent_ctx == null:
+		return
+	for var_name in parent_ctx.variables.keys():
+		target_ctx.variables[var_name] = parent_ctx.variables[var_name]
+
+
+static func _publish_flow_variables(child_ctx: FlowData.EvaluationContext, parent_ctx: FlowData.EvaluationContext) -> void:
+	if parent_ctx == null:
+		return
+	for var_name in child_ctx.variables.keys():
+		parent_ctx.variables[var_name] = child_ctx.variables[var_name]
+	FlowVariableEval._mirror_variables_to_runtime(parent_ctx)
+
+
+static func _is_topo_final_root(node: FlowNodeBase) -> bool:
+	if node.node_template == "output" or node.node_template.begins_with("output_"):
+		return true
+	if node.settings.inspect_enabled or node.settings.debug_enabled:
+		return true
+	if not node.getMeta().get("is_final", false):
+		return false
+	# Subgraph nodes fed by in-graph wires are already reached via upstream finals.
+	if node.node_template == "subgraph":
+		for conn in node.deps:
+			if not conn.get("virtual_variable", false):
+				return false
+	return true
+
+
+static func _needs_input_order_stabilization(node: FlowNodeBase) -> bool:
+	if node.node_template == "subgraph":
+		return true
+	# MapGen finals (scene_3d_plan, layer subgraph feeds, etc.) can be scheduled too early
+	# when multiple finals are merged; only adjust nodes that still have in-graph wires.
+	if node.getMeta().get("is_final", false):
+		for conn in node.deps:
+			if not conn.get("virtual_variable", false):
+				return true
+	return false
+
+
+static func _stabilize_consumer_input_order(ordered_nodes: Array) -> void:
+	var index_by_name: Dictionary = {}
+	for index in range(ordered_nodes.size()):
+		index_by_name[ordered_nodes[index].name] = index
+	var changed := true
+	while changed:
+		changed = false
+		for node in ordered_nodes:
+			if not _needs_input_order_stabilization(node):
+				continue
+			var node_index: int = int(index_by_name.get(node.name, -1))
+			if node_index < 0:
+				continue
+			for conn in node.deps:
+				if conn.get("virtual_variable", false):
+					continue
+				var src_index: int = int(index_by_name.get(conn.from_node, -1))
+				if src_index < 0 or src_index < node_index:
+					continue
+				ordered_nodes.remove_at(node_index)
+				ordered_nodes.insert(src_index + 1, node)
+				for reorder_index in range(ordered_nodes.size()):
+					index_by_name[ordered_nodes[reorder_index].name] = reorder_index
+				changed = true
+				break
+			if changed:
+				break
+
+
+static func _stabilize_variable_execution_order(ordered_nodes: Array) -> void:
+	var index_by_name: Dictionary = {}
+	for index in range(ordered_nodes.size()):
+		index_by_name[ordered_nodes[index].name] = index
+	var changed := true
+	while changed:
+		changed = false
+		for node in ordered_nodes:
+			if node.node_template != "get_variable":
+				continue
+			for conn in node.deps:
+				if not conn.get("virtual_variable", false):
+					continue
+				var set_index: int = int(index_by_name.get(conn.from_node, -1))
+				var get_index: int = int(index_by_name.get(node.name, -1))
+				if set_index < 0 or get_index < 0 or set_index < get_index:
+					continue
+				ordered_nodes.remove_at(get_index)
+				ordered_nodes.insert(set_index, node)
+				for reorder_index in range(ordered_nodes.size()):
+					index_by_name[ordered_nodes[reorder_index].name] = reorder_index
+				changed = true
+				break
+			if changed:
+				break
+
+
 static func _add_virtual_variable_dependencies(node_list: Array) -> void:
 	var set_nodes_by_name := {}
 	for node in node_list:
@@ -557,27 +656,28 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 			dst_node.deps.append(conn)
 	_add_virtual_variable_dependencies(node_list)
 
-	# Topological sort
-	var get_deps_recursive = func(node, visited: Dictionary, this_func) -> Array:
-		if visited.has(node.name):
+	# Topological sort (on_stack = DFS path for cycles; closed = finished nodes in DAG joins)
+	var get_deps_recursive = func(node, on_stack: Dictionary, closed: Dictionary, this_func) -> Array:
+		if on_stack.has(node.name):
 			push_warning("Circular dependency detected involving node: " + node.name)
 			return []
-		visited[node.name] = true
+		if closed.has(node.name):
+			return []
+		on_stack[node.name] = true
 		var deps = [node]
 		for conn in node.deps:
 			var dep_node = instances.get(conn.from_node)
 			if dep_node:
-				deps.append_array(this_func.call(dep_node, visited, this_func))
+				deps.append_array(this_func.call(dep_node, on_stack, closed, this_func))
+		on_stack.erase(node.name)
+		closed[node.name] = true
 		return deps
 
-	var finals = node_list.filter(func(node):
-		var is_output = node.node_template == "output" or node.node_template.begins_with("output_")
-		return is_output or node.getMeta().get("is_final", false) or node.settings.debug_enabled or node.settings.inspect_enabled
-	)
+	var finals = node_list.filter(func(node): return _is_topo_final_root(node))
 
 	var all_deps = []
 	for node in finals:
-		all_deps.append_array(get_deps_recursive.call(node, {}, get_deps_recursive))
+		all_deps.append_array(get_deps_recursive.call(node, {}, {}, get_deps_recursive))
 	all_deps.reverse()
 	
 	var ordered_nodes = []
@@ -586,6 +686,17 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 		if not visited.has(node.name):
 			visited[node.name] = true
 			ordered_nodes.append(node)
+	_stabilize_variable_execution_order(ordered_nodes)
+	_stabilize_consumer_input_order(ordered_nodes)
+	if OS.get_environment("MAPGEN_DEBUG_ORDER") == "1":
+		for ordered_node in ordered_nodes:
+			if (
+				"assemble_map_plan" in ordered_node.node_template
+				or ordered_node.node_template == "set_variable"
+				or ordered_node.node_template == "get_variable"
+				or "pcg_map_plan" in ordered_node.name
+			):
+				print("eval_order: %s (%s)" % [ordered_node.name, ordered_node.node_template])
 			
 	# Construct EvaluationContext for subgraph
 	var ctx = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()
@@ -597,7 +708,8 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 	for key in runtime_params.keys():
 		ctx.runtime_params[key] = runtime_params[key]
 	ctx.runtime_params["__eval_depth"] = depth
-	ctx.variables.clear()
+	_inherit_flow_variables(ctx, parent_ctx)
+	FlowVariableEval._mirror_variables_to_runtime(ctx)
 	
 	# Feed subgraph inputs from input_data_map
 	for node in ordered_nodes:
@@ -727,4 +839,5 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 						outputs[out_name] = bulk[0]
 				elif node.inputs.size() > 0 and node.inputs[0] != null:
 					outputs[out_name] = node.inputs[0]
+	_publish_flow_variables(ctx, parent_ctx)
 	return outputs
