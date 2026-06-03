@@ -675,6 +675,8 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 			node.executedDisabled(ctx)
 		elif not FlowVariableEval.try_fast_execute(node, ctx, instances):
 			node.run(ctx)
+		if FlowVariableEval.should_refresh_debug_draw(node):
+			node.setupDrawDebug()
 		
 	# Collect output data
 	var outputs = {}

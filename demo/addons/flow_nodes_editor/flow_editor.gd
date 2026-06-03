@@ -149,6 +149,23 @@ func ensureCurrentResource() -> FlowGraphResource:
 	setResourceToEdit(new_resource, null)
 	return current_resource
 
+func find_debug_world_node() -> Node3D:
+	if resource_owner != null and resource_owner is Node3D:
+		return resource_owner
+	if not Engine.is_editor_hint():
+		return null
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root is Node3D:
+		return scene_root
+	if scene_root == null:
+		return null
+	for candidate in scene_root.find_children("*", "Node3D", true, false):
+		var node3d := candidate as Node3D
+		if node3d != null:
+			return node3d
+	return null
+
+
 func setResourceToEdit( new_resource : FlowGraphResource, new_resource_owner : FlowGraphNode3D ):
 	if new_resource == null:
 		# Selection cleared or scene changed. We save the current active resource,
@@ -3322,6 +3339,22 @@ func getSetVariableNodes(variable_name: String = "", exclude_node: FlowNodeBase 
 		nodes.append(node)
 	return nodes
 
+func getGetVariableNodes(variable_name: String = "") -> Array[FlowNodeBase]:
+	var nodes : Array[FlowNodeBase] = []
+	var requested_name := variable_name.strip_edges()
+	if requested_name.is_empty():
+		return nodes
+	for node in getAllNodes():
+		if node.node_template != "get_variable" or not node.settings or not ("variable_name" in node.settings):
+			continue
+		var get_name := String(node.settings.variable_name).strip_edges()
+		if get_name == requested_name:
+			nodes.append(node)
+	nodes.sort_custom(func(a: FlowNodeBase, b: FlowNodeBase) -> bool:
+		return String(a.name) < String(b.name)
+	)
+	return nodes
+
 func flash_linked_get_variable_nodes(set_node: FlowNodeBase) -> void:
 	if set_node == null or not is_instance_valid(set_node):
 		return
@@ -3371,22 +3404,6 @@ func _flash_graph_node_white_twice(node: CanvasItem) -> void:
 			node.modulate = base_modulate
 		_variable_link_flash_tweens.erase(node)
 	, CONNECT_ONE_SHOT)
-
-func getGetVariableNodes(variable_name: String = "") -> Array[FlowNodeBase]:
-	var nodes : Array[FlowNodeBase] = []
-	var requested_name := variable_name.strip_edges()
-	if requested_name.is_empty():
-		return nodes
-	for node in getAllNodes():
-		if node.node_template != "get_variable" or not node.settings or not ("variable_name" in node.settings):
-			continue
-		var get_name := String(node.settings.variable_name).strip_edges()
-		if get_name == requested_name:
-			nodes.append(node)
-	nodes.sort_custom(func(a: FlowNodeBase, b: FlowNodeBase) -> bool:
-		return String(a.name) < String(b.name)
-	)
-	return nodes
 
 func _set_variable_name_exists(variable_name: String, exclude_node: FlowNodeBase = null) -> bool:
 	return not getSetVariableNodes(variable_name, exclude_node).is_empty()

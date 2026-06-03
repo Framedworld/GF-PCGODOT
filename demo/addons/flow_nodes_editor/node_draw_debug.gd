@@ -68,14 +68,25 @@ func _sync_instance_scenario() -> void:
 
 func _resolve_debug_scenario() -> RID:
 	var editor = node.getEditor() if node else null
-	if editor and editor.resource_owner and editor.resource_owner is Node3D:
-		var owner := editor.resource_owner as Node3D
-		if owner.is_inside_tree() and owner.get_world_3d():
-			return owner.get_world_3d().scenario
+	if editor:
+		if editor.resource_owner and editor.resource_owner is Node3D:
+			var owner := editor.resource_owner as Node3D
+			if owner.is_inside_tree() and owner.get_world_3d():
+				return owner.get_world_3d().scenario
+		if editor.has_method("find_debug_world_node"):
+			var world_node: Node3D = editor.call("find_debug_world_node")
+			if world_node != null and world_node.is_inside_tree() and world_node.get_world_3d():
+				return world_node.get_world_3d().scenario
 	if Engine.is_editor_hint():
 		var scene_root := EditorInterface.get_edited_scene_root()
 		if scene_root is Node3D and scene_root.is_inside_tree() and scene_root.get_world_3d():
 			return scene_root.get_world_3d().scenario
+		if scene_root != null:
+			var nested := scene_root.find_children("*", "Node3D", true, false)
+			for candidate in nested:
+				var node3d := candidate as Node3D
+				if node3d != null and node3d.is_inside_tree() and node3d.get_world_3d():
+					return node3d.get_world_3d().scenario
 	var viewport = get_viewport()
 	if viewport and viewport.get_world_3d():
 		return viewport.get_world_3d().scenario
