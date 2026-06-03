@@ -116,6 +116,11 @@ var graph_loading_target_value := 0.0
 var graph_loading_display_value := 0.0
 var graph_loading_sweep_offset := 0.0
 var graph_reload_in_progress := false
+var _variable_link_flash_tweens: Dictionary = {}
+
+const VARIABLE_LINK_FLASH_UP_SEC := 0.1
+const VARIABLE_LINK_FLASH_DOWN_SEC := 0.1
+const VARIABLE_LINK_FLASH_COUNT := 2
 
 func _active_tab_is_valid() -> bool:
 	return active_tab_index >= 0 and active_tab_index < open_tabs.size()
@@ -2619,6 +2624,8 @@ func _on_graph_edit_node_selected(node):
 	inspected_node = node
 	if inspected_node:
 		inspector.edit(inspected_node)
+		if inspected_node is FlowNodeBase:
+			_flash_get_variable_nodes_for_set(inspected_node as FlowNodeBase)
 		
 	update_status_bar()
 
@@ -3316,6 +3323,45 @@ func getSetVariableNodes(variable_name: String = "", exclude_node: FlowNodeBase 
 			continue
 		nodes.append(node)
 	return nodes
+
+func _flash_get_variable_nodes_for_set(set_node: FlowNodeBase) -> void:
+	if set_node == null or not is_instance_valid(set_node):
+		return
+	if set_node.node_template != "set_variable":
+		return
+	var variable_name := FlowVariableEval.variable_name_from_node(set_node)
+	if variable_name.is_empty():
+		return
+	for get_node in getGetVariableNodes(variable_name):
+		_flash_graph_node_white_twice(get_node)
+
+func _flash_graph_node_white_twice(node: CanvasItem) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	if _variable_link_flash_tweens.has(node):
+		var old_tween: Tween = _variable_link_flash_tweens[node]
+		if old_tween and old_tween.is_valid():
+			old_tween.kill()
+		_variable_link_flash_tweens.erase(node)
+	var base_modulate := node.modulate
+	var flash_modulate := Color(
+		minf(base_modulate.r + 0.55, 2.0),
+		minf(base_modulate.g + 0.55, 2.0),
+		minf(base_modulate.b + 0.55, 2.0),
+		base_modulate.a,
+	)
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_SINE)
+	tween.set_ease(Tween.EASE_IN_OUT)
+	_variable_link_flash_tweens[node] = tween
+	for _i in VARIABLE_LINK_FLASH_COUNT:
+		tween.tween_property(node, "modulate", flash_modulate, VARIABLE_LINK_FLASH_UP_SEC)
+		tween.tween_property(node, "modulate", base_modulate, VARIABLE_LINK_FLASH_DOWN_SEC)
+	tween.finished.connect(func() -> void:
+		if is_instance_valid(node):
+			node.modulate = base_modulate
+		_variable_link_flash_tweens.erase(node)
+	, CONNECT_ONE_SHOT)
 
 func getGetVariableNodes(variable_name: String = "") -> Array[FlowNodeBase]:
 	var nodes : Array[FlowNodeBase] = []
