@@ -7,14 +7,16 @@ class_name FlowGraphNode3D
 # It technically should not need to be a Node3D, as the transform is not really used
 # but I'm currently generating the spawned nodes as child of this nodes
 
+const FlowNodeIOClass = preload("res://addons/flow_nodes_editor/flow_nodes_io.gd")
+
 @export var graph : FlowGraphResource :
 	set(new_value):
 		_graph = new_value
 		graph_node_changed.emit( self, "graph_resource" )
-		
+
 	get:
 		return _graph
-		
+
 var _graph : FlowGraphResource = FlowGraphResource.new()
 signal graph_node_changed( graph_node : FlowGraphNode3D, prop_name : String )
 
@@ -83,3 +85,18 @@ func refreshInputs():
 		
 	if changed:
 		notify_property_list_changed()
+
+func _ready():
+	if not Engine.is_editor_hint():
+		execute()
+
+func execute() -> void:
+	if not graph:
+		push_warning("FlowGraphNode3D: no graph resource assigned")
+		return
+	var ctx = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()
+	ctx.owner = self
+	ctx.eval_id = 0
+	ctx.gedit_nodes_by_name = {}
+	ctx.runtime_params = {}
+	FlowNodeIOClass.evaluate_graph(graph, args if args != null else {}, ctx, {})
