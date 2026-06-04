@@ -45,6 +45,7 @@ func _graph_dock_is_on_bottom_panel() -> bool:
 	var bottom_tabs := _find_editor_bottom_tab_container()
 	return (
 		bottom_tabs != null
+		and graph_dock_wrapper.get_parent() == bottom_tabs
 		and bottom_tabs.get_tab_idx_from_control(graph_dock_wrapper) >= 0
 	)
 
@@ -161,6 +162,8 @@ func _place_graph_dock_after_shader_editor() -> bool:
 		return false
 	var shader_idx := _find_shader_editor_bottom_tab_index(tab_container)
 	if shader_idx < 0:
+		return false
+	if graph_dock_wrapper.get_parent() != tab_container:
 		return false
 	var flow_idx := tab_container.get_tab_idx_from_control(graph_dock_wrapper)
 	if flow_idx < 0:

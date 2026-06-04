@@ -27,9 +27,12 @@ var use_native_graph_grid := false
 
 var _chrome_refs: FlowEditorChrome.Refs
 
-# The inspector shows the settings property of the current node
 var inspector: FlowInspector
 var inspected_node : Node
+var native_inspector_target: Object
+var editor_settings_proxy: FlowEditorSettingsProxy
+var retired_graph_frame_counter := 0
+var internal_inspector_floating_mode := false
 var make_inspector_visible : Callable
 var search_add_node_popup: SearchAddNodePopup
 var custom_graph_grid
@@ -41,7 +44,9 @@ const FAST_GRAPH_LOAD_NODE_THRESHOLD := 24
 const EDITOR_SETTING_AUTO_REGEN := "addons/flow_nodes_editor/auto_generate"
 const EDITOR_SETTING_NATIVE_GRAPH_GRID := "addons/flow_nodes_editor/use_native_graph_grid"
 const EDITOR_SETTING_HIDE_INSPECTOR_TITLE := "addons/flow_nodes_editor/hide_inspector_title"
+const EDITOR_SETTING_HIDE_RESOURCE_BUILTIN_ROWS := "addons/flow_nodes_editor/hide_resource_builtin_rows"
 const EDITOR_SETTING_TRACK_EXTERNAL_EDITS := "addons/flow_nodes_editor/track_external_edits"
+const MCP_FORCE_FLOATING_META := &"flow_mcp_force_graph_panel_floating"
 
 # New nodes generation using the editor
 var local_drop_position : Vector2 = Vector2(0,0)
@@ -71,6 +76,7 @@ var drag_start_snapshot : Dictionary = {}
 var suppress_next_editor_scene_changed := false
 var color_nodes : bool = true
 var hide_inspector_title : bool = false
+var hide_resource_builtin_rows : bool = true
 var track_external_edits : bool = true
 
 var ui_scale = 1.0
@@ -548,6 +554,7 @@ func _switch_to_tab(index: int, new_owner = null):
 	
 	scanAvailableNodesIfNeeded()
 	FlowNodeIO.loadFromResource( self )
+	repair_graph_integrity()
 	
 	ctx.graph = current_resource
 	ctx.owner = resource_owner
@@ -558,9 +565,6 @@ func _switch_to_tab(index: int, new_owner = null):
 	
 	tab_bar.current_tab = index
 	_update_tab_titles()
-	
-	if inspector:
-		inspector.edit(null)
 		
 	update_status_bar()
 
@@ -581,8 +585,6 @@ func _on_tab_close_pressed(index: int):
 func _clear_ui_nodes() -> void:
 	clear_graph()
 	_ensure_inspector()
-	if inspector:
-		inspector.edit(null)
 
 func _refresh_active_tab_resource_from_disk() -> void:
 	if not _active_tab_is_valid() or current_resource == null:
@@ -854,6 +856,7 @@ func _switch_to_tab_with_loading(index: int, new_owner = null) -> void:
 		await FlowNodeIO.loadFromResourceWithProgress(self, Callable(self, "_set_graph_loading_progress"))
 
 	_set_graph_loading_progress("Finalizing Graph...", 96.0)
+	repair_graph_integrity()
 	ctx.graph = current_resource
 	ctx.owner = resource_owner
 	ctx.gedit_nodes_by_name = gedit_nodes_by_name
@@ -864,9 +867,6 @@ func _switch_to_tab_with_loading(index: int, new_owner = null) -> void:
 
 	tab_bar.current_tab = index
 	_update_tab_titles()
-
-	if inspector:
-		inspector.edit(null)
 
 	update_status_bar()
 
@@ -1133,6 +1133,7 @@ func _process(delta: float) -> void:
 	if node_registry_version != FlowNodeRegistry.get_version():
 		_on_node_registry_changed()
 	_update_graph_loading_animation(delta)
+	_sync_internal_inspector_mode_if_needed()
 	if not current_resource:
 		return
 		
@@ -1527,10 +1528,12 @@ func _ready():
 		gedit.begin_node_move.connect(_on_graph_edit_begin_node_move)
 	if not gedit.end_node_move.is_connected(_on_graph_edit_end_node_move):
 		gedit.end_node_move.connect(_on_graph_edit_end_node_move)
+	_connect_native_inspector()
 	call_deferred("_finish_editor_ready")
 
 func _exit_tree() -> void:
 	if Engine.is_editor_hint():
+		_disconnect_native_inspector()
 		FlowEditorChrome.clear_initialized(self)
 		if has_meta(EDITOR_DYNAMIC_UI_META):
 			remove_meta(EDITOR_DYNAMIC_UI_META)
@@ -1564,6 +1567,7 @@ func _apply_bottom_dock_layout() -> void:
 		main_split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		main_split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		main_split.split_offset = int(200 * editor_scale)
+	_apply_internal_inspector_mode(true)
 
 
 func _on_button_expand_graph_pressed() -> void:
@@ -1594,6 +1598,9 @@ func _sync_tab_bar_from_open_tabs() -> void:
 	if tab_bar.get_tab_count() == open_tabs.size():
 		_update_tab_titles()
 		return
+	var tab_changed_was_connected := tab_bar.tab_changed.is_connected(_on_tab_changed)
+	if tab_changed_was_connected:
+		tab_bar.tab_changed.disconnect(_on_tab_changed)
 	while tab_bar.get_tab_count() > 0:
 		tab_bar.remove_tab(tab_bar.get_tab_count() - 1)
 	for tab in open_tabs:
@@ -1606,6 +1613,8 @@ func _sync_tab_bar_from_open_tabs() -> void:
 		tab_bar.add_tab(tab_title)
 	if active_tab_index >= 0 and active_tab_index < tab_bar.get_tab_count():
 		tab_bar.current_tab = active_tab_index
+	if tab_changed_was_connected:
+		tab_bar.tab_changed.connect(_on_tab_changed)
 	_update_tab_titles()
 
 func _ensure_custom_graph_grid() -> void:
@@ -1623,41 +1632,170 @@ func _ensure_custom_graph_grid() -> void:
 		custom_graph_grid.gedit = gedit
 
 func _ensure_inspector() -> void:
-	if inspector != null and not is_instance_valid(inspector):
-		inspector = null
 	var splitter := $VBoxContainer/VSplitContainer
 	if splitter == null:
 		return
+	var layout_changed := false
 	for child in splitter.get_children():
 		if child is FlowInspector:
-			inspector = child as FlowInspector
-			break
-	if inspector == null:
+			if inspector == null or not is_instance_valid(inspector):
+				inspector = child as FlowInspector
+			elif child != inspector:
+				splitter.remove_child(child)
+				child.queue_free()
+				layout_changed = true
+	if inspector == null or not is_instance_valid(inspector):
 		inspector = FlowInspector.new()
+		inspector.name = "FlowInspector"
 		splitter.add_child(inspector)
-	if inspector == null:
-		return
-	var editor_scale := EditorInterface.get_editor_scale()
-	inspector.custom_minimum_size = Vector2(200, 120) * editor_scale
+		layout_changed = true
+	elif inspector.get_parent() != splitter:
+		if inspector.get_parent() != null:
+			inspector.get_parent().remove_child(inspector)
+		splitter.add_child(inspector)
+		layout_changed = true
+	inspector.editor = self
 	inspector.ui_scale = ui_scale
-	splitter.move_child(inspector, 0)
-	splitter.move_child(gedit, 1)
+	var editor_scale := EditorInterface.get_editor_scale() if Engine.is_editor_hint() else 1.0
+	inspector.custom_minimum_size = Vector2(300, 120) * editor_scale
+	inspector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inspector.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	gedit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	gedit.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	inspector.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	inspector.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	splitter.split_offset = int(200 * editor_scale)
+	gedit.size_flags_stretch_ratio = 3.0
+	inspector.size_flags_stretch_ratio = 1.0
+	if gedit.get_index() != 0 or inspector.get_index() != 1:
+		layout_changed = true
+	splitter.move_child(gedit, 0)
+	splitter.move_child(inspector, 1)
+	if layout_changed:
+		splitter.set_split_offset(0)
+	_apply_internal_inspector_mode(true)
 	gedit.add_theme_color_override("activity", Color(1, 0.2, 0.2, 1))
-	if not inspector.property_edited.is_connected(onNodePropertyChanged):
-		inspector.property_edited.connect(onNodePropertyChanged)
+	if not inspector.property_edited.is_connected(_on_flow_inspector_property_edited):
+		inspector.property_edited.connect(_on_flow_inspector_property_edited)
 	if not gedit.node_deselected.is_connected(_on_graph_edit_node_deselected):
 		gedit.node_deselected.connect(_on_graph_edit_node_deselected)
+
+func _sync_internal_inspector_mode_if_needed() -> void:
+	var floating_mode := _is_graph_panel_floating()
+	if floating_mode == internal_inspector_floating_mode:
+		return
+	internal_inspector_floating_mode = floating_mode
+	_apply_internal_inspector_mode(true)
+
+func _apply_internal_inspector_mode(force_layout: bool = false) -> void:
+	if inspector == null or not is_instance_valid(inspector):
+		return
+	var should_show := internal_inspector_floating_mode and inspector.current_target != null
+	if inspector.visible != should_show:
+		inspector.visible = should_show
+		force_layout = true
+	if force_layout:
+		_sync_internal_inspector_layout()
+
+func _sync_internal_inspector_layout() -> void:
+	var splitter := $VBoxContainer/VSplitContainer as Container
+	if splitter == null or inspector == null or not is_instance_valid(inspector):
+		return
+	if gedit.get_parent() == splitter:
+		splitter.move_child(gedit, 0)
+	if inspector.get_parent() == splitter:
+		splitter.move_child(inspector, 1)
+	splitter.queue_sort()
+	if splitter.is_inside_tree() and splitter.is_visible_in_tree():
+		splitter.notification(Container.NOTIFICATION_SORT_CHILDREN)
+
+func _on_flow_inspector_property_edited(prop_name: String) -> void:
+	if prop_name == FlowInspector.GRAPH_PARAMETER_VALUE_EDITED:
+		queueSave()
+		queueRegen()
+		return
+	if _refresh_graph_resource_parameter_edit(prop_name):
+		return
+	if inspected_node is FlowNodeBase:
+		onNodePropertyChanged(prop_name)
+		return
+	if inspected_node is GraphFrame or inspected_node is GraphNode:
+		queueSave()
+
+func _connect_native_inspector() -> void:
+	var native_inspector := EditorInterface.get_inspector()
+	if native_inspector == null:
+		return
+	if not native_inspector.property_edited.is_connected(_on_native_inspector_property_edited):
+		native_inspector.property_edited.connect(_on_native_inspector_property_edited)
+
+func _disconnect_native_inspector() -> void:
+	var native_inspector := EditorInterface.get_inspector()
+	if native_inspector == null:
+		return
+	if native_inspector.property_edited.is_connected(_on_native_inspector_property_edited):
+		native_inspector.property_edited.disconnect(_on_native_inspector_property_edited)
+
+func _inspect_in_native(target: Object) -> void:
+	native_inspector_target = target
+	if target == null or not is_instance_valid(target):
+		return
+	var native_inspector := EditorInterface.get_inspector()
+	if native_inspector != null and native_inspector.get_edited_object() == target:
+		native_inspector.edit(null)
+	EditorInterface.inspect_object(target, "", true)
+
+func _inspect_graph_element(node: Node) -> void:
+	inspected_node = node
+	var target: Object = node
+	var flow_node := node as FlowNodeBase
+	if flow_node != null:
+		if current_resource != null and (flow_node.node_template == "input" or flow_node.node_template == "output"):
+			target = current_resource
+		elif flow_node.settings != null:
+			target = flow_node.settings
+	_ensure_inspector()
+	if inspector != null:
+		inspector.edit(node)
+		_apply_internal_inspector_mode(true)
+	_inspect_in_native(target)
+
+func _get_native_inspector_edited_object() -> Object:
+	var native_inspector := EditorInterface.get_inspector()
+	if native_inspector == null:
+		return native_inspector_target
+	return native_inspector.get_edited_object()
+
+func _graph_resource_contains_parameter(param: Object, parameters: Array) -> bool:
+	for candidate in parameters:
+		if candidate == param:
+			return true
+	return false
+
+func _on_native_inspector_property_edited(prop_name: String) -> void:
+	var edited_object := _get_native_inspector_edited_object()
+	if edited_object == null:
+		return
+	if edited_object == editor_settings_proxy:
+		return
+	if current_resource != null:
+		if edited_object == current_resource:
+			_refresh_graph_resource_parameter_edit(prop_name)
+			return
+		if _graph_resource_contains_parameter(edited_object, current_resource.in_params):
+			_refresh_graph_resource_parameter_edit("in_params")
+			return
+		if "out_params" in current_resource and _graph_resource_contains_parameter(edited_object, current_resource.out_params):
+			_refresh_graph_resource_parameter_edit("out_params")
+			return
+	if inspected_node is FlowNodeBase:
+		var flow_node := inspected_node as FlowNodeBase
+		if edited_object == flow_node.settings or edited_object == flow_node:
+			onNodePropertyChanged(prop_name)
+			return
+	if edited_object is GraphFrame or edited_object is GraphNode:
+		queueSave()
 
 func _on_graph_edit_node_deselected(node: Node) -> void:
 	if inspected_node == node:
 		inspected_node = null
-		if inspector:
-			inspector.edit(null)
 
 func _ensure_search_add_node_popup() -> void:
 	search_add_node_popup = get_node_or_null("SearchAddNodePopup") as SearchAddNodePopup
@@ -1685,10 +1823,15 @@ func _ensure_search_add_node_popup() -> void:
 	)
 
 func _show_editor_settings_panel():
-	_ensure_inspector()
-	if inspector:
-		inspector.edit_editor_settings(self)
+	if editor_settings_proxy == null:
+		editor_settings_proxy = FlowEditorSettingsProxy.new()
+	editor_settings_proxy.sync_from_editor(self)
 	inspected_node = null
+	_ensure_inspector()
+	if inspector != null:
+		inspector.edit_editor_settings(self)
+		_apply_internal_inspector_mode(true)
+	_inspect_in_native(editor_settings_proxy)
 
 func _load_editor_settings():
 	var editor_settings := EditorInterface.get_editor_settings()
@@ -1712,6 +1855,12 @@ func _load_editor_settings():
 		"name": EDITOR_SETTING_HIDE_INSPECTOR_TITLE,
 		"type": TYPE_BOOL,
 	})
+	if not editor_settings.has_setting(EDITOR_SETTING_HIDE_RESOURCE_BUILTIN_ROWS):
+		editor_settings.set_setting(EDITOR_SETTING_HIDE_RESOURCE_BUILTIN_ROWS, hide_resource_builtin_rows)
+	editor_settings.add_property_info({
+		"name": EDITOR_SETTING_HIDE_RESOURCE_BUILTIN_ROWS,
+		"type": TYPE_BOOL,
+	})
 	if not editor_settings.has_setting(EDITOR_SETTING_TRACK_EXTERNAL_EDITS):
 		editor_settings.set_setting(EDITOR_SETTING_TRACK_EXTERNAL_EDITS, track_external_edits)
 	editor_settings.add_property_info({
@@ -1721,6 +1870,7 @@ func _load_editor_settings():
 	auto_regen = bool(editor_settings.get_setting(EDITOR_SETTING_AUTO_REGEN))
 	use_native_graph_grid = bool(editor_settings.get_setting(EDITOR_SETTING_NATIVE_GRAPH_GRID))
 	hide_inspector_title = bool(editor_settings.get_setting(EDITOR_SETTING_HIDE_INSPECTOR_TITLE))
+	hide_resource_builtin_rows = bool(editor_settings.get_setting(EDITOR_SETTING_HIDE_RESOURCE_BUILTIN_ROWS))
 	track_external_edits = bool(editor_settings.get_setting(EDITOR_SETTING_TRACK_EXTERNAL_EDITS))
 
 func _save_editor_settings():
@@ -1730,6 +1880,7 @@ func _save_editor_settings():
 	editor_settings.set_setting(EDITOR_SETTING_AUTO_REGEN, auto_regen)
 	editor_settings.set_setting(EDITOR_SETTING_NATIVE_GRAPH_GRID, use_native_graph_grid)
 	editor_settings.set_setting(EDITOR_SETTING_HIDE_INSPECTOR_TITLE, hide_inspector_title)
+	editor_settings.set_setting(EDITOR_SETTING_HIDE_RESOURCE_BUILTIN_ROWS, hide_resource_builtin_rows)
 	editor_settings.set_setting(EDITOR_SETTING_TRACK_EXTERNAL_EDITS, track_external_edits)
 
 func _apply_graph_grid_mode():
@@ -1745,6 +1896,8 @@ func _on_native_graph_grid_toggled(toggled_on: bool):
 	_apply_graph_grid_mode()
 
 func _is_graph_panel_floating() -> bool:
+	if has_meta(MCP_FORCE_FLOATING_META):
+		return bool(get_meta(MCP_FORCE_FLOATING_META))
 	var current_window := get_window()
 	var main_window := EditorInterface.get_base_control().get_window()
 	return current_window != null and main_window != null and current_window != main_window
@@ -1757,6 +1910,7 @@ func _embed_floating_graph_panel_if_needed() -> bool:
 	var floated_window := get_window() as Window
 	if floated_window != null:
 		floated_window.emit_signal("close_requested")
+		call_deferred("_sync_internal_inspector_mode_if_needed")
 		return true
 	push_warning("Data Flow: could not embed floating graph dock.")
 	return false
@@ -1767,6 +1921,7 @@ func _float_graph_panel():
 	var main_window := EditorInterface.get_base_control().get_window()
 	if current_window and current_window != main_window:
 		_maximize_graph_panel_window()
+		_sync_internal_inspector_mode_if_needed()
 		return
 
 	var float_button := _get_dock_float_button()
@@ -1779,6 +1934,7 @@ func _float_graph_panel():
 
 	float_button.pressed.emit()
 	await get_tree().process_frame
+	_sync_internal_inspector_mode_if_needed()
 	_maximize_graph_panel_window()
 
 func _get_dock_float_button() -> Button:
@@ -1859,6 +2015,7 @@ func _refresh_node_translations() -> void:
 				node.refreshLocalizedText()
 	if inspector:
 		inspector.refresh_localized_text()
+		_apply_internal_inspector_mode(true)
 
 ## Handles debug hotkeys: D (toggle debug), A (toggle inspect), Alt+D (clear all), T (toggle trace).
 ## Uses _input so it fires before GraphEdit consumes the key events.
@@ -1923,19 +2080,11 @@ func _get_hotkey_target_nodes() -> Array:
 	return getSelectedNodes()
 
 func _refresh_inspector_if_showing_nodes(nodes: Array):
-	if not inspector:
-		return
 	for node in nodes:
 		if not is_instance_valid(node) or not (node is FlowNodeBase):
 			continue
-		if inspector.current_target == node:
-			inspector.edit(node)
-			return
-		if node.settings and inspector.current_target == node.settings:
-			inspector.edit(node.settings)
-			return
-		if inspected_node == node or (node.settings and inspector.current_settings == node.settings):
-			inspector.edit(node)
+		if inspected_node == node or native_inspector_target == node or native_inspector_target == node.settings:
+			_inspect_graph_element(node)
 			return
 
 func _hotkey_toggle_debug():
@@ -2256,11 +2405,19 @@ func _on_in_params_changed():
 				registerOutputNodeType(output)
 		populatePopupInputsMenu()
 		populatePopupOutputsMenu()
-		if inspector and inspector.current_settings == current_resource:
+		if inspector != null and inspector.current_settings == current_resource:
 			inspector.edit(current_resource)
+			_apply_internal_inspector_mode(true)
+		if native_inspector_target == current_resource:
+			_inspect_in_native(current_resource)
 
 func _refresh_graph_resource_parameter_edit(prop_name: String) -> bool:
-	if prop_name != "in_params" and prop_name != "out_params":
+	if (
+		prop_name != "in_params"
+		and prop_name != "out_params"
+		and not prop_name.begins_with("in_params")
+		and not prop_name.begins_with("out_params")
+	):
 		return false
 	if not current_resource:
 		return false
@@ -2304,9 +2461,7 @@ func onNodePropertyChanged( prop_name : String):
 			if inspected_node.node_template == "set_variable" and prop_name == "variable_name":
 				var variable_name := String(inspected_node.settings.variable_name).strip_edges()
 				ensureSetVariableNameUnique(inspected_node)
-				_ensure_inspector()
-				if inspector:
-					inspector.edit(inspected_node)
+				_inspect_graph_element(inspected_node)
 			if prop_name == "variable_name" or prop_name == "node_color":
 				refreshVariableNodes()
 		queueSave()
@@ -2317,14 +2472,13 @@ func getSelectedFrames() -> Array[GraphFrame]:
 	var nodes : Array[GraphFrame] = []
 	for child in gedit.get_children():
 		var node = child as GraphFrame
-		if node and node.selected:
+		if node and node.selected and not _is_retired_graph_frame(node):
 			nodes.push_back(node)
 	return nodes
 
 func deleteFrames( frames : Array[GraphFrame] ):
 	for node in frames:
-		gedit.remove_child( node )
-		node.queue_free()
+		_retire_graph_frame(node)
 	if not frames.is_empty():
 		_mark_status_counts_dirty()
 	
@@ -2340,14 +2494,14 @@ func getSelectedNodes() -> Array[GraphNode]:
 func _get_selected_graph_element_names() -> Array:
 	var selected_names := []
 	for child in gedit.get_children():
-		if child is GraphNode or child is GraphFrame:
+		if child is GraphNode or (child is GraphFrame and not _is_retired_graph_frame(child)):
 			if child.selected:
 				selected_names.append(child.name)
 	return selected_names
 
 func _clear_graph_selection():
 	for child in gedit.get_children():
-		if child is GraphNode or child is GraphFrame:
+		if child is GraphNode or (child is GraphFrame and not _is_retired_graph_frame(child)):
 			child.selected = false
 
 func _restore_graph_selection(selected_names: Array):
@@ -2355,7 +2509,7 @@ func _restore_graph_selection(selected_names: Array):
 	for node_name in selected_names:
 		selected_lookup[node_name] = true
 	for child in gedit.get_children():
-		if child is GraphNode or child is GraphFrame:
+		if child is GraphNode or (child is GraphFrame and not _is_retired_graph_frame(child)):
 			child.selected = selected_lookup.has(child.name)
 
 func deleteNodes( nodes : Array[GraphNode] ):
@@ -2374,6 +2528,7 @@ func deleteNodes( nodes : Array[GraphNode] ):
 			remove_all_inputs_to_target_connection( node.name, n )
 		for n in range( node.getMeta().outs.size() ):
 			remove_all_inputs_to_source_connection( node.name, n )
+		_detach_node_from_comment_frames(node.name)
 		gedit_nodes_by_name.erase( node.name )
 		gedit.remove_child( node )
 		node.queue_free()
@@ -2385,6 +2540,10 @@ func deleteNodes( nodes : Array[GraphNode] ):
 		syncGraphOutputs()
 	if has_variable_nodes:
 		refreshVariableNodes()
+	if not _collect_stale_frame_attachments().is_empty() or _count_orphan_graph_connections() > 0:
+		resync_comment_frames_from_resource()
+		prune_invalid_graph_connections()
+		_rebuild_gedit_nodes_by_name()
 
 func deleteGraphElementsAndRefresh( nodes : Array[GraphNode], frames : Array[GraphFrame] ):
 	deleteFrames( frames )
@@ -2392,8 +2551,6 @@ func deleteGraphElementsAndRefresh( nodes : Array[GraphNode], frames : Array[Gra
 	queueSave()
 	inspected_node = null
 	_ensure_inspector()
-	if inspector:
-		inspector.edit(null)
 	queueRegen()
 	
 func deleteSelectedNodes():
@@ -2657,8 +2814,6 @@ func _remove_added_node(node_name: StringName, selected_names: Array, restored_n
 	if node:
 		if inspected_node == node:
 			inspected_node = null
-			if inspector:
-				inspector.edit(null)
 		if data_inspector and data_inspector.node == node:
 			data_inspector.setNode(null)
 			_set_analyze_panel_visible(false)
@@ -2823,6 +2978,8 @@ func _on_graph_edit_gui_input(event):
 		return
 
 	var evt_mouse = event as InputEventMouseButton
+	if evt_mouse and evt_mouse.pressed and evt_mouse.button_index == MOUSE_BUTTON_LEFT and not evt_mouse.double_click:
+		prepare_graph_for_interaction()
 	if evt_mouse and evt_mouse.pressed and evt_mouse.button_index == MOUSE_BUTTON_LEFT and evt_mouse.double_click:
 		var conn_to_reroute = _find_nearest_connection(evt_mouse.position)
 		if conn_to_reroute:
@@ -3013,13 +3170,13 @@ func addComment():
 	_mark_status_counts_dirty()
 	
 	for node in nodes:
-		gedit.attach_graph_element_to_frame( node.name, frame.name )
+		_move_graph_node_to_frame(node.name, frame.name)
 	_fit_comment_frame_to_attached_nodes(frame)
 
 func get_comment_frame_at_graph_position(graph_position: Vector2) -> GraphFrame:
 	for child in gedit.get_children():
 		var frame := child as GraphFrame
-		if frame == null:
+		if frame == null or _is_retired_graph_frame(frame):
 			continue
 		var frame_rect := Rect2(frame.position_offset, frame.size)
 		if frame_rect.has_point(graph_position):
@@ -3044,8 +3201,8 @@ func add_selected_nodes_to_comment_frame(frame: GraphFrame) -> int:
 		var current_frame := gedit.get_element_frame(node.name)
 		if current_frame == frame:
 			continue
-		gedit.attach_graph_element_to_frame(node.name, frame.name)
-		added += 1
+		if _move_graph_node_to_frame(node.name, frame.name):
+			added += 1
 	if added > 0:
 		_fit_comment_frame_to_attached_nodes(frame)
 		queueSave()
@@ -3103,13 +3260,10 @@ func _on_frame_context_menu_pressed(menu_id: int, frame: GraphFrame) -> void:
 				update_status_bar(FlowI18n.t("No nodes removed from comment"))
 
 func _on_graph_edit_node_selected(node):
-	if not inspector:
-		push_error("inspector is null")
-		return
-	
+	prepare_graph_for_interaction()
 	inspected_node = node
 	if inspected_node:
-		inspector.edit(inspected_node)
+		_inspect_graph_element(inspected_node)
 		
 	update_status_bar()
 
@@ -3232,7 +3386,7 @@ func _on_graph_edit_delete_nodes_request(node_names : Array):
 	var frames : Array[ GraphFrame ]
 	var nodes : Array[ GraphNode ]
 	for node_name in node_names:
-		var node = gedit.get_node( node_name )
+		var node = gedit.get_node_or_null(NodePath(node_name))
 		if not node:
 			push_error( "Failed to find node %s to be deleted" % node_name)
 			continue
@@ -3624,6 +3778,360 @@ func collapse_selected_to_subgraph():
 	load_graph_state(after_state)
 	record_undo_action("Collapse to Subgraph", before_state)
 
+func _has_graph_node(node_name: StringName) -> bool:
+	if String(node_name).is_empty():
+		return false
+	var node: GraphNode = gedit.get_node_or_null(NodePath(node_name)) as GraphNode
+	if node == null or not is_instance_valid(node):
+		return false
+	return node.get_parent() == gedit
+
+
+func _rebuild_gedit_nodes_by_name() -> void:
+	gedit_nodes_by_name.clear()
+	for child in gedit.get_children():
+		if child is GraphNode:
+			gedit_nodes_by_name[child.name] = child
+
+
+func _resource_paste_offset() -> Vector2:
+	if current_resource == null or current_resource.data.is_empty():
+		return Vector2.ZERO
+	return FlowNodeIO._parse_vector2(current_resource.data.get("min_pos", Vector2.ZERO))
+
+
+func _has_graph_frame(frame_name: StringName) -> bool:
+	if String(frame_name).is_empty():
+		return false
+	var frame: GraphFrame = gedit.get_node_or_null(NodePath(frame_name)) as GraphFrame
+	if frame == null or not is_instance_valid(frame):
+		return false
+	return frame.get_parent() == gedit and not _is_retired_graph_frame(frame)
+
+
+func _is_retired_graph_frame(node: Node) -> bool:
+	return node is GraphFrame and node.has_meta("flow_retired")
+
+
+func _graph_node_is_attached_to_frame(node_name: StringName, frame: GraphFrame) -> bool:
+	if not _has_graph_node(node_name) or frame == null:
+		return false
+	return gedit.get_element_frame(node_name) == frame
+
+
+func _attach_graph_node_to_frame_if_available(
+	node_name: StringName,
+	frame_name: StringName,
+	attached_names: Dictionary
+) -> bool:
+	if not _has_graph_node(node_name) or not _has_graph_frame(frame_name):
+		return false
+	if attached_names.has(node_name):
+		return false
+	if gedit.get_element_frame(node_name) != null:
+		return false
+	gedit.attach_graph_element_to_frame(node_name, frame_name)
+	attached_names[node_name] = true
+	return true
+
+
+func _move_graph_node_to_frame(node_name: StringName, frame_name: StringName) -> bool:
+	if not _has_graph_node(node_name) or not _has_graph_frame(frame_name):
+		return false
+	var target_frame := gedit.get_node_or_null(NodePath(frame_name)) as GraphFrame
+	var current_frame := gedit.get_element_frame(node_name)
+	if current_frame == target_frame:
+		return false
+	if current_frame != null:
+		gedit.detach_graph_element_from_frame(node_name)
+	var attached_names := {}
+	return _attach_graph_node_to_frame_if_available(node_name, frame_name, attached_names)
+
+
+func _collect_stale_frame_attachments() -> Array:
+	var stale: Array = []
+	for child in gedit.get_children():
+		if child is not GraphFrame or _is_retired_graph_frame(child):
+			continue
+		var frame := child as GraphFrame
+		for node_name in gedit.get_attached_nodes_of_frame(frame.name):
+			if not _graph_node_is_attached_to_frame(node_name, frame):
+				stale.append({"frame": String(frame.name), "node": String(node_name)})
+	return stale
+
+
+func _purge_invalid_frame_attachments() -> int:
+	return _collect_stale_frame_attachments().size()
+
+
+func audit_graph_health() -> Dictionary:
+	var connection_orphans: Array[String] = []
+	for conn in gedit.connections:
+		if not _has_graph_node(conn.from_node):
+			connection_orphans.append(String(conn.from_node))
+		if not _has_graph_node(conn.to_node):
+			connection_orphans.append(String(conn.to_node))
+	var frame_stale := _collect_stale_frame_attachments()
+	var missing_nodes := _count_missing_resource_graph_nodes()
+	return {
+		"ok": connection_orphans.is_empty() and frame_stale.is_empty() and missing_nodes == 0,
+		"connection_orphan_count": connection_orphans.size(),
+		"connection_orphans_sample": connection_orphans.slice(0, 16),
+		"frame_stale_attachment_count": frame_stale.size(),
+		"frame_stale_attachments_sample": frame_stale.slice(0, 16),
+		"missing_resource_nodes": missing_nodes,
+		"graph_node_count": getAllNodes().size(),
+	}
+
+
+func resync_comment_frames_from_resource() -> int:
+	if current_resource == null or current_resource.data.is_empty():
+		return 0
+	var frames_data: Array = current_resource.data.get("frames", [])
+	var existing_frames: Array[GraphFrame] = []
+	for child in gedit.get_children():
+		if child is GraphFrame and not _is_retired_graph_frame(child):
+			existing_frames.append(child as GraphFrame)
+	if frames_data.is_empty() and existing_frames.is_empty():
+		return 0
+	var paste_offset := _resource_paste_offset()
+	for frame in existing_frames:
+		_retire_graph_frame(frame)
+	var attached_names := {}
+	for frame_data in frames_data:
+		var frame := GraphFrame.new()
+		frame.name = frame_data.get("name", "CommentFrame")
+		frame.title = frame_data.get("title", "")
+		var in_pos := FlowNodeIO._parse_vector2(frame_data.get("position", Vector2.ZERO))
+		frame.position_offset = (in_pos + paste_offset) * ui_scale
+		frame.size = FlowNodeIO._parse_vector2(frame_data.get("size", Vector2(320, 200)))
+		frame.tint_color = FlowNodeIO._parse_color(frame_data.get("tint_color", Color(1, 1, 1, 0.12)))
+		frame.tint_color_enabled = true
+		gedit.add_child(frame)
+		for old_name in frame_data.get("attached", []):
+			var attach_name := StringName(old_name)
+			_attach_graph_node_to_frame_if_available(attach_name, frame.name, attached_names)
+	return frames_data.size()
+
+
+func _detach_node_from_comment_frames(node_name: StringName) -> void:
+	if String(node_name).is_empty():
+		return
+	for child in gedit.get_children():
+		if child is not GraphFrame or _is_retired_graph_frame(child):
+			continue
+		var frame := child as GraphFrame
+		for attached_name in gedit.get_attached_nodes_of_frame(frame.name):
+			if attached_name != node_name:
+				continue
+			gedit.detach_graph_element_from_frame(attached_name)
+
+
+func _detach_graph_frame_attached_nodes(frame: GraphFrame) -> void:
+	if frame == null or not is_instance_valid(frame) or frame.get_parent() != gedit:
+		return
+	var attached_names := gedit.get_attached_nodes_of_frame(frame.name)
+	for attached_name in attached_names:
+		if not _has_graph_node(attached_name):
+			continue
+		if gedit.get_element_frame(attached_name) != frame:
+			continue
+		gedit.detach_graph_element_from_frame(attached_name)
+
+
+func _retire_graph_frame(frame: GraphFrame) -> void:
+	if frame == null or not is_instance_valid(frame):
+		return
+	if frame.get_parent() != gedit:
+		frame.queue_free()
+		return
+	_detach_graph_frame_attached_nodes(frame)
+	retired_graph_frame_counter += 1
+	frame.selected = false
+	frame.visible = false
+	frame.set_meta("flow_retired", true)
+	frame.name = StringName("__retired_flow_frame_%d" % retired_graph_frame_counter)
+	call_deferred("_free_retired_graph_frame_after_deferred_sort", frame)
+
+
+func _free_retired_graph_frame_after_deferred_sort(frame: GraphFrame) -> void:
+	if get_tree() != null:
+		await get_tree().create_timer(1.0).timeout
+	if not is_instance_valid(frame):
+		return
+	if frame.get_parent() == gedit:
+		gedit.remove_child(frame)
+	frame.queue_free()
+
+
+func mcp_simulate_graph_node_click(node_name: String, skip_preflight_repair: bool = false) -> Dictionary:
+	var audit_before := audit_graph_health()
+	if not skip_preflight_repair:
+		repair_graph_integrity()
+	var node: GraphNode = gedit.get_node_or_null(NodePath(node_name)) as GraphNode
+	if node == null:
+		return {
+			"ok": false,
+			"error": "Graph node not found: %s" % node_name,
+			"audit_before": audit_before,
+		}
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = node.size * 0.5
+	if node.has_method("_gui_input"):
+		node.call("_gui_input", press)
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = node.size * 0.5
+	if node.has_method("_gui_input"):
+		node.call("_gui_input", release)
+	for child in gedit.get_children():
+		if child is GraphNode:
+			child.selected = child == node
+	node.selected = true
+	if gedit.has_signal("node_selected"):
+		gedit.emit_signal("node_selected", node)
+	_on_graph_edit_node_selected(node)
+	if node is CanvasItem:
+		(node as CanvasItem).move_to_front()
+	var audit_after := audit_graph_health()
+	return {
+		"ok": bool(audit_after.get("ok", false)),
+		"node_name": node_name,
+		"audit_before": audit_before,
+		"audit_after": audit_after,
+	}
+
+
+func _count_orphan_graph_connections() -> int:
+	var count := 0
+	for conn in gedit.connections:
+		if not _has_graph_node(conn.from_node) or not _has_graph_node(conn.to_node):
+			count += 1
+	return count
+
+
+func _count_missing_resource_graph_nodes() -> int:
+	if current_resource == null or current_resource.data.is_empty():
+		return 0
+	var missing := 0
+	for in_node in current_resource.data.get("nodes", []):
+		if not _has_graph_node(StringName(in_node.get("name", ""))):
+			missing += 1
+	return missing
+
+
+func prune_invalid_graph_connections() -> int:
+	var to_disconnect: Array = []
+	for conn in gedit.connections:
+		if not _has_graph_node(conn.from_node) or not _has_graph_node(conn.to_node):
+			to_disconnect.append(conn)
+	for conn in to_disconnect:
+		disconnect_nodes(conn.from_node, conn.from_port, conn.to_node, conn.to_port)
+	return to_disconnect.size()
+
+
+func ensure_missing_resource_nodes_loaded() -> int:
+	if current_resource == null or current_resource.data.is_empty():
+		return 0
+	var paste_offset := _resource_paste_offset()
+	var added := 0
+	for in_node in current_resource.data.get("nodes", []):
+		var in_name := StringName(in_node.get("name", ""))
+		if in_name.is_empty() or _has_graph_node(in_name):
+			continue
+		var node_template := FlowNodeIO._template_for_load(in_node, self)
+		var node: GraphNode = addNodeFromTemplate(node_template, in_name, null, false)
+		if node == null:
+			push_warning("Flow: failed to restore missing graph node '%s'" % in_name)
+			continue
+		var in_pos := FlowNodeIO._parse_vector2(in_node.get("position", Vector2.ZERO))
+		node.position_offset = (in_pos + paste_offset) * ui_scale
+		node.show_disconnected_inputs = in_node.get("show_disconnected_inputs", false)
+		node.args_ports_by_name = in_node.get("args_port", {})
+		FlowNodeIO.dict_to_resource(in_node.get("settings", {}), node.settings)
+		FlowNodeIO._normalize_loaded_node_template(node, self)
+		FlowNodeIO._ensure_unique_set_variable_name(node, self, {})
+		node.settings.inspect_enabled = false
+		node.initFromScript()
+		node.refreshFromSettings()
+		refreshSignalsInputArgs(node)
+		added += 1
+	if added > 0:
+		refreshVariableNodes()
+		_rebuild_gedit_nodes_by_name()
+		_mark_status_counts_dirty()
+	return added
+
+
+func ensure_resource_links_connected() -> int:
+	if current_resource == null or current_resource.data.is_empty():
+		return 0
+	var added := 0
+	for link in current_resource.data.get("links", []):
+		var from_node := StringName(link.get("from_node", ""))
+		var to_node := StringName(link.get("to_node", ""))
+		if not _has_graph_node(from_node) or not _has_graph_node(to_node):
+			continue
+		var connection := {
+			"from_node": from_node,
+			"from_port": int(link.get("from_port", 0)),
+			"to_node": to_node,
+			"to_port": int(link.get("to_port", 0)),
+		}
+		if _has_graph_connection(connection):
+			continue
+		connect_nodes(from_node, connection.from_port, to_node, connection.to_port)
+		added += 1
+	return added
+
+
+func prepare_graph_for_interaction() -> void:
+	_purge_invalid_frame_attachments()
+	repair_graph_integrity()
+
+
+func repair_graph_integrity() -> Dictionary:
+	var orphans_before := _count_orphan_graph_connections()
+	var missing_before := _count_missing_resource_graph_nodes()
+	var frame_stale_before := _collect_stale_frame_attachments()
+	var nodes_added := 0
+	var links_added := 0
+	var frames_resynced := 0
+	var purged_attachments := _purge_invalid_frame_attachments()
+	if missing_before > 0:
+		nodes_added = ensure_missing_resource_nodes_loaded()
+	var missing_after := _count_missing_resource_graph_nodes()
+	var needs_frame_resync := (
+		nodes_added > 0
+		or not frame_stale_before.is_empty()
+		or purged_attachments > 0
+	)
+	if missing_after == 0 and needs_frame_resync:
+		frames_resynced = resync_comment_frames_from_resource()
+	if orphans_before > 0 or missing_before > 0:
+		links_added = ensure_resource_links_connected()
+	var orphans_removed := prune_invalid_graph_connections()
+	if nodes_added > 0 or links_added > 0 or orphans_removed > 0 or frames_resynced > 0:
+		_rebuild_gedit_nodes_by_name()
+	var frame_stale_after := _collect_stale_frame_attachments()
+	return {
+		"ok": _count_orphan_graph_connections() == 0 and frame_stale_after.is_empty(),
+		"orphans_before": orphans_before,
+		"orphans_removed": orphans_removed,
+		"missing_before": missing_before,
+		"missing_after": missing_after,
+		"nodes_added": nodes_added,
+		"links_added": links_added,
+		"frame_stale_before": frame_stale_before.size(),
+		"frames_resynced": frames_resynced,
+		"frame_stale_after": frame_stale_after.size(),
+		"purged_attachments": purged_attachments,
+	}
+
+
 func disconnect_nodes(from_node: StringName, from_port: int, to_node: StringName, to_port: int) -> void:
 	#print( "disconnect_nodes From:%s:%d To:%s:%d" % [ from_node, from_port, to_node, to_port ])
 	var connection = {
@@ -3649,6 +4157,8 @@ func connect_nodes(from_node: StringName, from_port: int, to_node: StringName, t
 		"to_node": to_node,
 		"to_port": to_port
 	}
+	if not _has_graph_node(from_node) or not _has_graph_node(to_node):
+		return
 	if not _has_graph_connection(connection):
 		gedit.connect_node(from_node, from_port, to_node, to_port)
 	_mark_status_counts_dirty()
@@ -3923,10 +4433,7 @@ func panToGraphNode(node: GraphNode, select_node: bool = false) -> bool:
 		for selected_frame in getSelectedFrames():
 			selected_frame.selected = false
 		node.selected = true
-		inspected_node = node
-		_ensure_inspector()
-		if inspector:
-			inspector.edit(node)
+		_inspect_graph_element(node)
 	node.visible = true
 	var target_center := node.position_offset + node.size * 0.5
 	gedit.scroll_offset = target_center * gedit.zoom - gedit.size * 0.5
@@ -3986,7 +4493,12 @@ func getEvalOrder() -> Array[FlowNodeBase]:
 	var instances_by_name: Dictionary = {}
 	for node in node_list:
 		instances_by_name[node.name] = node
-	return FlowNodeIO.build_execution_order(node_list, instances_by_name)
+	var ordered: Array[FlowNodeBase] = []
+	for node in FlowNodeIO.build_execution_order(node_list, instances_by_name):
+		var flow_node := node as FlowNodeBase
+		if flow_node != null:
+			ordered.append(flow_node)
+	return ordered
 
 func removeGeneratedNodes():
 	if not resource_owner:
@@ -4220,6 +4732,7 @@ func _reload_current_graph_with_loading() -> void:
 	else:
 		await FlowNodeIO.loadFromResourceWithProgress(self, Callable(self, "_set_graph_loading_progress"))
 	_set_graph_loading_progress("Finalizing Graph...", 96.0)
+	repair_graph_integrity()
 	ctx.graph = current_resource
 	ctx.owner = resource_owner
 	ctx.gedit_nodes_by_name = gedit_nodes_by_name
@@ -4333,8 +4846,10 @@ func _show_graph_inputs_panel():
 	_clear_graph_selection()
 	if current_resource:
 		_ensure_inspector()
-		if inspector:
+		if inspector != null:
 			inspector.edit(current_resource)
+			_apply_internal_inspector_mode(true)
+		_inspect_in_native(current_resource)
 
 # Cut/Copy/Paste/Dupe
 func _on_graph_edit_copy_nodes_request():
@@ -4412,7 +4927,7 @@ func create_node_network(net_description: Dictionary) -> Dictionary:
 
 func get_graph_snapshot() -> Dictionary:
 	var all_nodes = gedit.get_children().filter(func(n): return n is GraphNode)
-	var all_frames = gedit.get_children().filter(func(n): return n is GraphFrame)
+	var all_frames = gedit.get_children().filter(func(n): return n is GraphFrame and not _is_retired_graph_frame(n))
 	var state = FlowNodeIO.nodes_as_dict(all_nodes, all_frames, self)
 	state["zoom"] = gedit.zoom
 	state["scroll_offset"] = [gedit.scroll_offset.x, gedit.scroll_offset.y]
@@ -4443,7 +4958,7 @@ func get_graph_snapshot() -> Dictionary:
 func get_graph_element_positions() -> Dictionary:
 	var positions := {}
 	for child in gedit.get_children():
-		if child is GraphNode or child is GraphFrame:
+		if child is GraphNode or (child is GraphFrame and not _is_retired_graph_frame(child)):
 			positions[child.name] = [child.position_offset.x, child.position_offset.y]
 	return positions
 
@@ -4453,12 +4968,23 @@ func clear_graph():
 	_mark_status_counts_dirty()
 	gedit.clear_connections()
 	input_sources.clear()
+	var nodes_to_remove: Array[GraphNode] = []
+	var frames_to_retire: Array[GraphFrame] = []
 	for child in gedit.get_children():
-		if child is GraphNode or child is GraphFrame:
-			gedit.remove_child(child)
-			child.queue_free()
+		if child is GraphNode:
+			nodes_to_remove.append(child as GraphNode)
+		elif child is GraphFrame and not _is_retired_graph_frame(child):
+			frames_to_retire.append(child as GraphFrame)
+	for frame in frames_to_retire:
+		_retire_graph_frame(frame)
+	for node in nodes_to_remove:
+		gedit_nodes_by_name.erase(node.name)
+		gedit.remove_child(node)
+		node.queue_free()
 	gedit_nodes_by_name.clear()
 	inspected_node = null
+	if inspector:
+		inspector.edit(null)
 	if data_inspector:
 		data_inspector.setNode(null)
 	_set_analyze_panel_visible(false)
@@ -4499,13 +5025,13 @@ func load_graph_state(state: Dictionary):
 		if node:
 			inspected_node = node
 			if node is GraphNode:
-				inspector.edit(node.settings)
+				_inspect_graph_element(node)
 				if data_inspector:
 					data_inspector.setNode(node)
 					_set_analyze_panel_visible(true)
 					current_analyzed_node = node
 			elif node is GraphFrame:
-				inspector.edit(node)
+				_inspect_graph_element(node)
 				
 	queueSave()
 	queueRegen()
@@ -4580,8 +5106,17 @@ func _on_color_nodes_toggled(toggled_on: bool) -> void:
 func _on_hide_inspector_title_toggled(toggled_on: bool) -> void:
 	hide_inspector_title = toggled_on
 	_save_editor_settings()
-	if inspector and inspected_node:
-		inspector.edit(inspected_node)
+	if inspected_node:
+		_inspect_graph_element(inspected_node)
+
+func _on_hide_resource_builtin_rows_toggled(toggled_on: bool) -> void:
+	hide_resource_builtin_rows = toggled_on
+	_save_editor_settings()
+	if inspector != null and inspector.current_target != null and is_instance_valid(inspector.current_target):
+		inspector.refresh_localized_text()
+		_apply_internal_inspector_mode(true)
+	if native_inspector_target != null and is_instance_valid(native_inspector_target):
+		_inspect_in_native(native_inspector_target)
 
 func _on_track_external_edits_toggled(toggled_on: bool) -> void:
 	track_external_edits = toggled_on

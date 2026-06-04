@@ -301,6 +301,11 @@ func update_node_style():
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
+			var editor = getEditor()
+			if editor and editor.has_method("prepare_graph_for_interaction"):
+				editor.prepare_graph_for_interaction()
+			elif editor and editor.has_method("repair_graph_integrity"):
+				editor.repair_graph_integrity()
 			var gedit = get_parent() as GraphEdit
 			if gedit:
 				var additive := Input.is_key_pressed(KEY_SHIFT) or Input.is_key_pressed(KEY_CTRL)
@@ -313,7 +318,6 @@ func _gui_input(event: InputEvent) -> void:
 					selected = true
 				# Already selected without modifier: keep multi-selection for group drag.
 			if node_template == "set_variable" or node_template == "get_variable":
-				var editor = getEditor()
 				if editor:
 					if node_template == "set_variable" and editor.has_method("flash_linked_get_variable_nodes"):
 						editor.flash_linked_get_variable_nodes(self)
@@ -321,7 +325,6 @@ func _gui_input(event: InputEvent) -> void:
 						editor.flash_linked_set_variable_nodes(self)
 			if event.double_click:
 				if node_template == "subgraph" and settings and "graph" in settings and settings.graph:
-					var editor = getEditor()
 					if editor:
 						editor.setResourceToEdit(settings.graph, null)
 

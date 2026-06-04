@@ -272,6 +272,7 @@ static func create_nodes_from_dict( dict, editor : Control, paste_offset = null)
 			continue
 		editor.connect_nodes(new_from, link.from_port, new_to, link.to_port )
 
+	var attached_names := {}
 	for frame_data in dict.get( "frames", [] ):
 		var frame := GraphFrame.new()
 		frame.name = frame_data.name
@@ -284,11 +285,13 @@ static func create_nodes_from_dict( dict, editor : Control, paste_offset = null)
 		editor.gedit.add_child(frame)
 		for old_name in frame_data.attached:
 			var new_name = old_to_new_names.get( old_name, null )
-			if new_name:
-				editor.gedit.attach_graph_element_to_frame( new_name, frame.name )
+			if _attach_graph_node_to_frame_if_available(editor, new_name, frame.name, attached_names):
+				continue
 
 	if editor.has_method("refreshVariableNodes"):
 		editor.refreshVariableNodes()
+	if editor.has_method("repair_graph_integrity"):
+		editor.repair_graph_integrity()
 	return new_nodes
 
 static func create_nodes_from_dict_with_progress(dict, editor: Control, paste_offset = null, progress_callback: Callable = Callable(), start_progress := 45.0, end_progress := 92.0) -> Array:
@@ -361,6 +364,7 @@ static func create_nodes_from_dict_with_progress(dict, editor: Control, paste_of
 		if _should_report_load_progress(completed_steps, total_steps):
 			await _report_load_progress(progress_callback, "Connecting Nodes...", completed_steps, total_steps, start_progress, end_progress)
 
+	var attached_names := {}
 	for frame_data in source_frames:
 		var frame := GraphFrame.new()
 		frame.name = frame_data.name
@@ -373,15 +377,52 @@ static func create_nodes_from_dict_with_progress(dict, editor: Control, paste_of
 		editor.gedit.add_child(frame)
 		for old_name in frame_data.attached:
 			var new_name = old_to_new_names.get(old_name, null)
-			if new_name:
-				editor.gedit.attach_graph_element_to_frame(new_name, frame.name)
+			if _attach_graph_node_to_frame_if_available(editor, new_name, frame.name, attached_names):
+				continue
 		completed_steps += 1
 		if _should_report_load_progress(completed_steps, total_steps):
 			await _report_load_progress(progress_callback, "Restoring Frames...", completed_steps, total_steps, start_progress, end_progress)
 
 	if editor.has_method("refreshVariableNodes"):
 		editor.refreshVariableNodes()
+	if editor.has_method("repair_graph_integrity"):
+		editor.repair_graph_integrity()
 	return new_nodes
+
+static func _can_attach_graph_node(editor: Control, node_name: StringName) -> bool:
+	if String(node_name).is_empty():
+		return false
+	if editor.has_method("_has_graph_node"):
+		return editor._has_graph_node(node_name)
+	var gedit: GraphEdit = editor.gedit
+	if gedit == null:
+		return false
+	var node: GraphNode = gedit.get_node_or_null(NodePath(node_name)) as GraphNode
+	return node != null and is_instance_valid(node) and node.get_parent() == gedit
+
+static func _attach_graph_node_to_frame_if_available(
+	editor: Control,
+	node_name,
+	frame_name: StringName,
+	attached_names: Dictionary
+) -> bool:
+	if node_name == null:
+		return false
+	var attach_name := StringName(node_name)
+	if attached_names.has(attach_name):
+		return false
+	if editor.has_method("_attach_graph_node_to_frame_if_available"):
+		return editor._attach_graph_node_to_frame_if_available(attach_name, frame_name, attached_names)
+	if not _can_attach_graph_node(editor, attach_name):
+		return false
+	var frame: GraphFrame = editor.gedit.get_node_or_null(NodePath(frame_name)) as GraphFrame
+	if frame == null or frame.get_parent() != editor.gedit:
+		return false
+	if editor.gedit.get_element_frame(attach_name) != null:
+		return false
+	editor.gedit.attach_graph_element_to_frame(attach_name, frame_name)
+	attached_names[attach_name] = true
+	return true
 
 static func copySelectionToClipboard( editor : Control ):
 	var nodes = editor.getSelectedNodes()
@@ -409,7 +450,7 @@ static func saveToResource( editor : Control ):
 		return n is GraphNode
 	)
 	var all_frames = gedit.get_children().filter( func( n ):
-		return n is GraphFrame
+		return n is GraphFrame and not n.has_meta("flow_retired")
 	)
 	current_resource.data = nodes_as_dict( all_nodes, all_frames, editor )
 	current_resource.view_zoom = gedit.zoom
@@ -436,6 +477,8 @@ static func loadFromResource( editor : Control ):
 	editor.gedit.scroll_offset = current_resource.view_offset
 	editor.new_name_counter = current_resource.new_name_counter
 	editor.data_inspector.setNode( null )
+	if editor.has_method("repair_graph_integrity"):
+		editor.repair_graph_integrity()
 
 static func loadFromResourceWithProgress(editor: Control, progress_callback: Callable = Callable()) -> void:
 	var current_resource = editor.current_resource
@@ -462,6 +505,8 @@ static func loadFromResourceWithProgress(editor: Control, progress_callback: Cal
 	editor.gedit.scroll_offset = current_resource.view_offset
 	editor.new_name_counter = current_resource.new_name_counter
 	editor.data_inspector.setNode(null)
+	if editor.has_method("repair_graph_integrity"):
+		editor.repair_graph_integrity()
 
 static func _should_report_load_progress(completed_steps: int, total_steps: int) -> bool:
 	if completed_steps == total_steps:

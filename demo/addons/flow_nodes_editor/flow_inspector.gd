@@ -9,6 +9,7 @@ const BASE_SETTINGS_PROPS = [
 	"debug_bulk", "debug_output", "debug_color", "debug_modulate_by", "title",
 	"disabled", "trace", "resource_local_to_scene", "resource_path", "resource_name", "script"
 ]
+const GRAPH_PARAMETER_VALUE_EDITED := "_graph_parameter_value_edited"
 
 var current_node: Node = null
 var current_settings: Object = null
@@ -89,6 +90,7 @@ func edit(target_node: Object):
 			if editor_instance and editor_instance.current_resource:
 				current_settings = editor_instance.current_resource
 				_populate_graph_resource_properties(editor_instance.current_resource)
+				_populate_graph_resource_outputs(editor_instance.current_resource)
 				_sync_panel_visibility()
 				return
 		elif target_node.node_template == "output":
@@ -106,6 +108,7 @@ func edit(target_node: Object):
 	elif target_node is FlowGraphResource:
 		current_settings = target_node
 		_populate_graph_resource_properties(target_node)
+		_populate_graph_resource_outputs(target_node)
 	elif target_node is Resource:
 		current_settings = target_node
 		_populate_generic_resource_properties(target_node)
@@ -174,6 +177,9 @@ func _populate_flow_editor_settings(flow_editor):
 	)))
 	settings_box.add_child(_create_row(FlowI18n.t("Hide Title"), _create_editor_setting_checkbox(flow_editor.hide_inspector_title, func(pressed):
 		flow_editor._on_hide_inspector_title_toggled(pressed)
+	)))
+	settings_box.add_child(_create_row(FlowI18n.t("Hide Resource Built-in Rows"), _create_editor_setting_checkbox(flow_editor.hide_resource_builtin_rows, func(pressed):
+		flow_editor._on_hide_resource_builtin_rows_toggled(pressed)
 	)))
 	settings_box.add_child(_create_row(FlowI18n.t("Track External Edits"), _create_editor_setting_checkbox(flow_editor.track_external_edits, func(pressed):
 		flow_editor._on_track_external_edits_toggled(pressed)
@@ -1480,7 +1486,7 @@ func _create_graph_parameter_value_control(res: FlowGraphResource, param: GraphI
 func _emit_graph_parameter_changed(res: FlowGraphResource, param: GraphInputParameter, prop_name: String):
 	param.emit_changed()
 	res.emit_changed()
-	property_edited.emit(prop_name)
+	property_edited.emit(GRAPH_PARAMETER_VALUE_EDITED)
 
 func _populate_graph_resource_properties(res: FlowGraphResource):
 	_add_header(FlowI18n.t("Graph Inputs"), res.resource_path.get_file() if res.resource_path != "" else FlowI18n.t("Unsaved Resource"))
@@ -1522,7 +1528,7 @@ func _show_file_dialog_for_param_resource(param: GraphInputParameter, label: Lab
 			param.cte_resource = loaded_res
 			param.emit_changed()
 			parent_res.emit_changed()
-			property_edited.emit(prop_name)
+			property_edited.emit(GRAPH_PARAMETER_VALUE_EDITED)
 			label.text = path.get_file()
 		fd.queue_free()
 	)

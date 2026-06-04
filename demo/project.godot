@@ -27,6 +27,10 @@ window/size/window_width_override=1920.0
 window/size/window_height_override=1080.0
 window/stretch/mode="viewport"
 
+[dotnet]
+
+project/assembly_name="Godot Flow App"
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/flow_nodes_editor/plugin.cfg", "res://addons/godot_mcp/plugin.cfg")

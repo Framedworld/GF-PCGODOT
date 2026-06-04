@@ -4,13 +4,15 @@ class_name FlowGraphResource
 
 # This the resource to store a full flow graph
 
+var _in_params_changed_queued := false
+
 @export_category("Flow Graph Resource")
 
 # Where we store the graph_nodes + custom settings as a dict
 @export var data: Dictionary = {}:
 	set(value):
 		data = value
-		emit_signal("in_params_changed")
+		_queue_in_params_changed()
 	get:
 		return data
 
@@ -25,15 +27,25 @@ class_name FlowGraphResource
 	set(value):
 		in_params = value
 		_watch_input_changes()
-		emit_signal("in_params_changed")
+		_queue_in_params_changed()
 
 @export var out_params : Array[GraphInputParameter] = []:
 	set(value):
 		out_params = value
 		_watch_output_changes()
-		emit_signal("in_params_changed")
+		_queue_in_params_changed()
 
 signal in_params_changed
+
+func _queue_in_params_changed() -> void:
+	if _in_params_changed_queued:
+		return
+	_in_params_changed_queued = true
+	call_deferred("_emit_in_params_changed")
+
+func _emit_in_params_changed() -> void:
+	_in_params_changed_queued = false
+	in_params_changed.emit()
 
 func _watch_input_changes():
 	for param in in_params:
@@ -44,8 +56,7 @@ func _watch_input_changes():
 			param.changed.connect(_on_input_changed, CONNECT_DEFERRED)
 
 func _on_input_changed():
-	print("One of the in_params was modified.")
-	emit_signal("in_params_changed")
+	emit_changed()
 
 func _watch_output_changes():
 	for param in out_params:
@@ -56,8 +67,7 @@ func _watch_output_changes():
 			param.changed.connect(_on_output_changed, CONNECT_DEFERRED)
 
 func _on_output_changed():
-	print("One of the out_params was modified.")
-	emit_signal("in_params_changed")
+	emit_changed()
 
 func findInParamByName( requested_name : String ):
 	for candidate in in_params:
