@@ -29,6 +29,7 @@ The goal is to build on what `Godot Flow` started and bring a more powerful, edi
 * **Auto-Reload Graph Cache**: Real-time monitoring of `.tres` graph files to invalidate editor caches and hot-reload changes instantly.
 * **Core Tagging & Copy/Paste**: Standalone JSON-based copy-pasting of node selections, with dedicated metadata tags for advanced filtering.
 * **Precompiled GDExtension Binaries**: Precompiled GDExtension libraries for Windows and macOS wrapping fast C++ KdTree and RTree spatial queries.
+* **Runtime Execution**: `FlowGraphNode3D` runs its graph automatically at game startup via `_ready()`, and exposes a public `execute()` method for manual re-triggering at runtime — not just in the editor.
 
 ---
 
@@ -98,6 +99,33 @@ In a 3D Scene:
 4. Add a generator like **Grid**, then connect it to **Spawn Scenes** or **Spawn Meshes**.
 5. Press **D** on a selected node to toggle its 3D debug visualizer.
 6. Press **E** to toggle the bottom **Data Inspector** spreadsheet.
+7. Press **F** to zoom the graph view to fit all nodes on screen.
+
+At runtime (in a running game), the graph executes automatically when the scene loads. To re-trigger it manually from a script:
+
+```gdscript
+$FlowGraphNode3D.execute()
+```
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Shift+A` | Open Add Node search popup |
+| `F` | Zoom to fit all nodes in view |
+| `D` | Toggle 3D debug visualizer on selected node |
+| `E` | Toggle Data Inspector (analyze panel) |
+| `R` | Regenerate selected nodes |
+| `C` | Add a comment frame around selection |
+| `X` / `Delete` | Delete selected nodes |
+| `E` | Toggle disabled state on selected node |
+| `T` | Toggle trace on selected node |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` / `Ctrl+Shift+Z` | Redo |
+| `Ctrl+C` / `Ctrl+V` | Copy / Paste selected nodes |
+| `Ctrl+Click` wire | Disconnect a connection |
 
 ---
 
