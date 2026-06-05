@@ -1124,6 +1124,7 @@ func _save_current_resource_to_path(path: String) -> bool:
 		current_resource.take_over_path(save_path)
 		last_graph_open_dir = save_path.get_base_dir()
 		_set_current_graph_dirty(false)
+		_update_tab_titles()
 		update_status_bar(FlowI18n.t("Saved Resource"))
 		return true
 	update_status_bar("Save failed: %s" % error_string(err))

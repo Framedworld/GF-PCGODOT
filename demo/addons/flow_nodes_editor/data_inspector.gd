@@ -130,46 +130,68 @@ func onColumnBegins( cell : DataTableContainer.CellContents ):
 	elif stream.data_type == FlowData.DataType.NodePath or stream.data_type == FlowData.DataType.NodeMesh:
 		tv.setCellCallback( getCellContentsNode )
 		cell.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		
+
+func _container_index_for_cell(cell_row: int) -> int:
+	if container == null:
+		return -1
+	var container_size: int = container.size()
+	if container_size <= 0:
+		return -1
+	var real_row: int = visible_rows[cell_row] if cell_row < visible_rows.size() else cell_row
+	if real_row >= 0 and real_row < container_size:
+		return real_row
+	if container_size == 1:
+		return 0
+	return -1
+
 func getCellContentsVectorX(cell : DataTableContainer.CellContents ):
-	var real_row = visible_rows[cell.row] if cell.row < visible_rows.size() else 0
-	cell.text = fmt( container[ real_row ].x )
+	var real_row := _container_index_for_cell(cell.row)
+	cell.text = fmt( container[ real_row ].x ) if real_row >= 0 else ""
 	
 func getCellContentsVectorY(cell : DataTableContainer.CellContents ):
-	var real_row = visible_rows[cell.row] if cell.row < visible_rows.size() else 0
-	cell.text = fmt( container[ real_row ].y )
+	var real_row := _container_index_for_cell(cell.row)
+	cell.text = fmt( container[ real_row ].y ) if real_row >= 0 else ""
 	
 func getCellContentsVectorZ(cell : DataTableContainer.CellContents ):
-	var real_row = visible_rows[cell.row] if cell.row < visible_rows.size() else 0
-	cell.text = fmt( container[ real_row ].z )
+	var real_row := _container_index_for_cell(cell.row)
+	cell.text = fmt( container[ real_row ].z ) if real_row >= 0 else ""
 	
 func getCellContentsFloat(cell : DataTableContainer.CellContents ):
-	var real_row = visible_rows[cell.row] if cell.row < visible_rows.size() else 0
-	cell.text = fmt( container[ real_row ] )
+	var real_row := _container_index_for_cell(cell.row)
+	cell.text = fmt( container[ real_row ] ) if real_row >= 0 else ""
 	
 func getCellContentsBool(cell : DataTableContainer.CellContents ):
-	var real_row = visible_rows[cell.row] if cell.row < visible_rows.size() else 0
+	var real_row := _container_index_for_cell(cell.row)
+	if real_row < 0:
+		cell.text = ""
+		return
 	cell.text = FlowI18n.t("True") if container[ real_row ] else FlowI18n.t("False")
 	
 func getCellContentsInt(cell : DataTableContainer.CellContents ):
-	var real_row = visible_rows[cell.row] if cell.row < visible_rows.size() else 0
-	cell.text = "%d" % container[ real_row ]
+	var real_row := _container_index_for_cell(cell.row)
+	cell.text = "%d" % container[ real_row ] if real_row >= 0 else ""
 	
 func getCellContentsIndex(cell : DataTableContainer.CellContents ):
 	var real_row = visible_rows[cell.row] if cell.row < visible_rows.size() else cell.row
 	cell.text = "%d" % real_row
 	
 func getCellContentsString(cell : DataTableContainer.CellContents ):
-	var real_row = visible_rows[cell.row] if cell.row < visible_rows.size() else 0
-	cell.text = container[ real_row ]
+	var real_row := _container_index_for_cell(cell.row)
+	cell.text = container[ real_row ] if real_row >= 0 else ""
 	
 func getCellContentsResource(cell : DataTableContainer.CellContents ):
-	var real_row = visible_rows[cell.row] if cell.row < visible_rows.size() else 0
+	var real_row := _container_index_for_cell(cell.row)
+	if real_row < 0:
+		cell.text = ""
+		return
 	var res = container[ real_row ] as Resource
 	cell.text = res.resource_path if res else ""
 			
 func getCellContentsNode(cell : DataTableContainer.CellContents ):
-	var real_row = visible_rows[cell.row] if cell.row < visible_rows.size() else 0
+	var real_row := _container_index_for_cell(cell.row)
+	if real_row < 0:
+		cell.text = ""
+		return
 	var node = container[ real_row ] as Node3D
 	cell.text = ( "$" + node.name ) if node else ""
 		
