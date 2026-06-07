@@ -1,0 +1,88 @@
+# For syntax, see https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+# This workflow is automatically triggered for every push and pull request, to verify that everything still builds.
+
+name: Continuous Integration
+on:
+  workflow_call:
+  push:
+  pull_request:
+  merge_group:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Test a few selected combinations of parameters ("test case matrix").
+        # While it would be nice to test all needed combinations, in practice this would a waste of CI usage time.
+        # By building just with a few combinations, we only need a few runners,
+        # while still achieving adequate coverage.
+        # To make a full build with all combinations, use the make_build.yml workflow instead.
+        include:
+          - target: { platform: linux, arch: x86_64, os: ubuntu-22.04 }
+            target-type: template_debug
+            float-precision: double
+          - target: { platform: windows, arch: x86_64, os: windows-latest }
+            target-type: template_release
+            float-precision: single
+          - target: { platform: macos, arch: universal, os: macos-latest }
+            target-type: template_debug
+            float-precision: single
+          - target: { platform: android, arch: arm64, os: ubuntu-22.04 }
+            target-type: template_debug
+            float-precision: single
+          - target: { platform: web, arch: wasm32, os: ubuntu-22.04 }
+            target-type: template_release
+            float-precision: double
+
+    runs-on: ${{ matrix.target.os }}
+    steps:
+      # Clone this repository
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      # Lint
+      #- name: Setup clang-format
+      #  shell: bash
+      #  run: |
+      #    python -m pip install clang-format
+      #- name: Run clang-format
+      #  shell: bash
+      #  run: |
+      #    clang-format src/** --dry-run --Werror
+
+      # Add linux x86_32 toolchain
+      - name: Install multilib support
+        if: ${{ matrix.target.platform == 'linux' && matrix.target.arch == 'x86_32' }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
+
+      # Setup dependencies
+      - name: Setup godot-cpp
+        uses: ./godot-cpp/.github/actions/setup-godot-cpp
+        with:
+          platform: ${{ matrix.target.platform }}
+          em-version: 3.1.62
+
+      # Build GDExtension (with caches)
+
+      - name: Restore .scons_cache
+        uses: ./godot-cpp/.github/actions/godot-cache-restore
+        with:
+          scons-cache: ${{ github.workspace }}/.scons-cache/
+          cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
+
+      - name: Build GDExtension Debug Build
+        shell: sh
+        env:
+          SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
+        run: |
+          scons target=${{ matrix.target-type }} platform=${{ matrix.target.platform }} arch=${{ matrix.target.arch }} precision=${{ matrix.float-precision }}
+
+      - name: Save .scons_cache
+        uses: ./godot-cpp/.github/actions/godot-cache-save
+        with:
+          scons-cache: ${{ github.workspace }}/.scons-cache/
+          cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
