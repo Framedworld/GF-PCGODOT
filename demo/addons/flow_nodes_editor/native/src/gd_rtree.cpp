@@ -36,12 +36,13 @@ bool GDRTree::add( const PackedVector3Array& in_centers, const PackedVector3Arra
   int id = size;
   const size_t i_max = in_centers.size();
   for( size_t i=0; i<i_max; ++i, ++id ) {
-    const float* center = &in_centers[i].x;
-    const float* size = &sizes_data[i].x;
+    const real_t* center = &in_centers[i].x;
+    const real_t* size = &sizes_data[i].x;
     dbg( "Inserting ", id, " : ", center[0], ", ", center[1], ", ", center[2], ", ", size[0], ", ", size[1], ", ", size[2] );
 
-    float pmin[3] = { center[0] - size[0] * 0.5f, center[1] - size[1] * 0.5f, center[2] - size[2] * 0.5f };
-    float pmax[3] = { center[0] + size[0] * 0.5f, center[1] + size[1] * 0.5f, center[2] + size[2] * 0.5f };
+    const real_t half = static_cast<real_t>(0.5);
+    real_t pmin[3] = { center[0] - size[0] * half, center[1] - size[1] * half, center[2] - size[2] * half };
+    real_t pmax[3] = { center[0] + size[0] * half, center[1] + size[1] * half, center[2] + size[2] * half };
     tree.Insert(pmin, pmax, id);
   }
 
@@ -74,10 +75,11 @@ Dictionary GDRTree::selfPrune( const PackedVector3Array& in_centers, const Packe
 
     int insert_id = size;
     for( int i=0; i<i_max; ++i ) {
-      const float* center = &in_centers[i].x;
-      const float* size = &sizes_data[i].x;
-      float pmin[3] = { center[0] - size[0] * 0.5f, center[1] - size[1] * 0.5f, center[2] - size[2] * 0.5f };
-      float pmax[3] = { center[0] + size[0] * 0.5f, center[1] + size[1] * 0.5f, center[2] + size[2] * 0.5f };
+      const real_t* center = &in_centers[i].x;
+      const real_t* size = &sizes_data[i].x;
+      const real_t half = static_cast<real_t>(0.5);
+      real_t pmin[3] = { center[0] - size[0] * half, center[1] - size[1] * half, center[2] - size[2] * half };
+      real_t pmax[3] = { center[0] + size[0] * half, center[1] + size[1] * half, center[2] + size[2] * half };
       dbg( "selfPrune.Testing ", i ); //, " : ", center[0], ", ", center[1], ", ", center[2], ", ", size[0], ", ", size[1], ", ", size[2] );
 
       // Check if center + Size is empty
@@ -110,12 +112,13 @@ Dictionary GDRTree::overlaps( const PackedVector3Array& others_centers, const Pa
     const size_t i_max = others_centers.size();
     for( size_t i=0; i<i_max; ++i ) {
       
-      const float* center = &others_centers[i].x;
-      const float* size = &others_sizes[i].x;
+      const real_t* center = &others_centers[i].x;
+      const real_t* size = &others_sizes[i].x;
       dbg( "Overlap ", (int)i ); //, " : ", center[0], ", ", center[1], ", ", center[2], ", ", size[0], ", ", size[1], ", ", size[2] );
 
-      float pmin[3] = { center[0] - size[0] * 0.5f, center[1] - size[1] * 0.5f, center[2] - size[2] * 0.5f };
-      float pmax[3] = { center[0] + size[0] * 0.5f, center[1] + size[1] * 0.5f, center[2] + size[2] * 0.5f };
+      const real_t half = static_cast<real_t>(0.5);
+      real_t pmin[3] = { center[0] - size[0] * half, center[1] - size[1] * half, center[2] - size[2] * half };
+      real_t pmax[3] = { center[0] + size[0] * half, center[1] + size[1] * half, center[2] + size[2] * half };
 
       if( tree.Search(pmin, pmax, [&](const int& id) -> bool {
         dbg( "  Overlaps of ", (int)i, " with!! ", (int)id );

@@ -7,7 +7,7 @@
 #include <godot_cpp/variant/packed_int32_array.hpp>
 #include "rtree.h"
 
-using RTree3Df = RTree<int, float, 3>;
+using RTree3Df = RTree<int, real_t, 3>;
 
 namespace godot {
 

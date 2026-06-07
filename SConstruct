@@ -40,7 +40,8 @@ if env["platform"] == "macos":
     )
 
 else:
-    env.Append(CFLAGS=["/std:c11"])
+    if env["platform"] == "windows":
+        env.Append(CFLAGS=["/std:c11"])
     env.Append(CXXFLAGS=["-O2"])
     # nanoflann (gd_kdtree) requires exception support; godot-cpp disables it by
     # default on non-macOS targets (equivalent to passing disable_exceptions=no).

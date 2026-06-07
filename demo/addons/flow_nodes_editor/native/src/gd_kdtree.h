@@ -24,7 +24,7 @@ protected:
     size_t kdtree_get_point_count() const {
       return points.size();
     }
-    float kdtree_get_pt(const size_t idx, const size_t dim) const {
+    real_t kdtree_get_pt(const size_t idx, const size_t dim) const {
       return *(&points[idx].x + dim);
     }
     template <class BBOX>
@@ -32,7 +32,7 @@ protected:
   };
 
   typedef nanoflann::KDTreeSingleIndexDynamicAdaptor<
-    nanoflann::L2_Simple_Adaptor<float, PointCloud >,
+    nanoflann::L2_Simple_Adaptor<real_t, PointCloud >,
     PointCloud,
     3
   > jTree;
