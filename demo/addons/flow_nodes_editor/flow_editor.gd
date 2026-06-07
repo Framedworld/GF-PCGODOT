@@ -1623,6 +1623,12 @@ func _on_button_settings_pressed() -> void:
 	_show_editor_settings_panel()
 
 
+func _on_button_arrange_pressed() -> void:
+	if gedit == null:
+		return
+	gedit.arrange_nodes()
+
+
 func _on_button_minimap_toggled(toggled_on: bool) -> void:
 	if gedit == null:
 		return

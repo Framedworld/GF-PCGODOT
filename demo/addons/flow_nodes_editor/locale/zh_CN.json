@@ -109,6 +109,7 @@
 	"Save the current FlowGraph resource": "保存当前 FlowGraph 资源",
 	"Reload the current FlowGraph resource": "重新加载当前 FlowGraph 资源",
 	"Regenerate the graph output": "重新生成图输出",
+	"Automatically arrange selected nodes.": "自动排版选中的节点。",
 	"Toggle the graph minimap.": "切换图小地图。",
 	"Edit graph inputs": "编辑图输入",
 	"Open Flow editor settings": "打开 Flow 编辑器设置",
