@@ -149,6 +149,36 @@ func _set_current_graph_dirty(dirty: bool) -> void:
 		_set_tab_dirty(active_tab_index, dirty)
 
 
+func _is_direct_resource_save_path(path: String) -> bool:
+	if path.is_empty():
+		return false
+	# Scene-embedded resources use paths like res://scene.tscn::Resource_xxx and
+	# cannot be saved directly via ResourceSaver.save(resource, embedded_path).
+	if path.contains("::"):
+		return false
+	return true
+
+
+func _get_direct_save_path_for_resource(resource: FlowGraphResource) -> String:
+	if not is_instance_valid(resource):
+		return ""
+	var path := String(resource.resource_path)
+	if not _is_direct_resource_save_path(path):
+		return ""
+	return path
+
+
+func _mark_resource_tab_saved(saved_resource: FlowGraphResource) -> void:
+	if not is_instance_valid(saved_resource):
+		return
+	for i in range(open_tabs.size()):
+		if open_tabs[i].resource == saved_resource:
+			_set_tab_dirty(i, false)
+			return
+	# Fallback for safety when no tab matched by resource reference.
+	_set_current_graph_dirty(false)
+
+
 func _editor_translate(message: String) -> String:
 	return TranslationServer.get_or_add_domain(EDITOR_TRANSLATION_DOMAIN).translate(message)
 
@@ -706,12 +736,16 @@ func _begin_save_and_close_tab(index: int) -> void:
 	if not is_instance_valid(tab_res):
 		_close_tab_at_index(index)
 		return
-	if tab_res.resource_path.is_empty():
-		save_dialog_closes_tab_index = index
-		_show_save_graph_dialog()
+	var direct_path := _get_direct_save_path_for_resource(tab_res)
+	if not direct_path.is_empty():
+		if _save_current_resource_to_path(direct_path):
+			_close_tab_at_index(index)
 		return
-	if _save_current_resource_to_path(tab_res.resource_path):
+	if _save_current_resource_via_scene():
 		_close_tab_at_index(index)
+		return
+	save_dialog_closes_tab_index = index
+	_show_save_graph_dialog()
 
 
 func _on_graph_file_selected(path: String):
@@ -1079,7 +1113,9 @@ func saveResource():
 
 func _save_current_resource_to_path(path: String) -> bool:
 	if not current_resource:
+		push_error("No active resource to save.")
 		return false
+	var saved_resource := current_resource
 	saveResource()
 	var save_path := path
 	if save_path.get_extension().is_empty():
@@ -1088,11 +1124,50 @@ func _save_current_resource_to_path(path: String) -> bool:
 	if err == OK:
 		current_resource.take_over_path(save_path)
 		last_graph_open_dir = save_path.get_base_dir()
-		_set_current_graph_dirty(false)
+		save_pending = false
+		save_pending_delay = 0.0
+		_mark_resource_tab_saved(saved_resource)
 		_update_tab_titles()
-		update_status_bar(FlowI18n.t("Saved Resource"))
+		update_status_bar(FlowI18n.t("Saved Resource: %s") % save_path.get_file())
+		print("[DataFlow] Saved graph: %s" % save_path)
 		return true
-	update_status_bar("Save failed: %s" % error_string(err))
+	var save_error := "Save failed (%s): %s" % [save_path, error_string(err)]
+	update_status_bar(save_error)
+	push_error(save_error)
+	return false
+
+
+func _save_current_resource_via_scene() -> bool:
+	if not current_resource:
+		push_error("No active resource to save.")
+		return false
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		return false
+	var saved_resource := current_resource
+	saveResource()
+	var save_err := ERR_UNAVAILABLE
+	if EditorInterface.has_method("save_scene"):
+		save_err = int(EditorInterface.call("save_scene"))
+	elif EditorInterface.has_method("save_current_scene"):
+		save_err = int(EditorInterface.call("save_current_scene"))
+	else:
+		push_error("EditorInterface has no scene-save API.")
+		return false
+	if save_err == OK:
+		save_pending = false
+		save_pending_delay = 0.0
+		_mark_resource_tab_saved(saved_resource)
+		_update_tab_titles()
+		var scene_name := scene_root.name
+		if scene_root.scene_file_path != "":
+			scene_name = scene_root.scene_file_path.get_file()
+		update_status_bar(FlowI18n.t("Saved Scene: %s") % scene_name)
+		print("[DataFlow] Saved graph via scene: %s" % scene_name)
+		return true
+	var save_error := "Save scene failed: %s" % error_string(save_err)
+	update_status_bar(save_error)
+	push_error(save_error)
 	return false
 
 func _process(delta: float) -> void:
@@ -4763,11 +4838,15 @@ func _on_button_analyze_pressed() -> void:
 func _on_button_save_pressed() -> void:
 	ensureCurrentResource()
 	if not current_resource:
+		push_error("No resource to save.")
 		return
-	if current_resource.resource_path == "":
-		_show_save_graph_dialog()
+	var direct_path := _get_direct_save_path_for_resource(current_resource)
+	if not direct_path.is_empty():
+		_save_current_resource_to_path(direct_path)
 		return
-	_save_current_resource_to_path(current_resource.resource_path)
+	if _save_current_resource_via_scene():
+		return
+	_show_save_graph_dialog()
 
 
 func _on_button_browse_pressed() -> void:
