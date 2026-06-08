@@ -2,15 +2,16 @@
 
 [ext_resource type="Script" uid="uid://rhc2whb7j6tt" path="res://addons/flow_nodes_editor/flow_editor.gd" id="1_0ji4f"]
 [ext_resource type="Script" uid="uid://cr8w0asb2kvr8" path="res://addons/flow_nodes_editor/flow_graph_edit.gd" id="2_l4kri"]
+[ext_resource type="PackedScene" uid="uid://dpoyi7gu03i7v" path="res://addons/flow_nodes_editor/data_inspector.tscn" id="3_2a35a"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_o1cqv"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2a35a"]
 content_margin_left = 4.0
 content_margin_top = 2.0
 content_margin_right = 4.0
 content_margin_bottom = 0.0
 bg_color = Color(0.05490196, 0.0627451, 0.08627451, 1)
 
-[sub_resource type="DPITexture" id="DPITexture_2a35a"]
+[sub_resource type="DPITexture" id="DPITexture_t13bu"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#e0e0e0\" d=\"M3 2a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9c1.105 0 1.818-.91 2-2l1-6a1 1 0 0 0-1-1H6c-.552 0-.909.455-1 1l-1 6c-.091.545-.448 1-1 1a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1 1 1 0 0 0 1 1h5a1 1 0 0 0-1-1H7a2 2 0 0 0-2-2H3z\"/></svg>
 "
 base_scale = 2.0
@@ -21,7 +22,7 @@ Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
 Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
 }
 
-[sub_resource type="DPITexture" id="DPITexture_t13bu"]
+[sub_resource type="DPITexture" id="DPITexture_kkyc3"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><rect width=\"11\" height=\"10\" x=\"1\" y=\"5\" fill=\"#919191\" rx=\"1.5\"/><path fill=\"#e0e0e0\" d=\"M5.5 1A1.5 1.5 0 0 0 4 2.5V3h11v-.5A1.5 1.5 0 0 0 13.5 1zM4 4v5.5A1.5 1.5 0 0 0 5.5 11h8A1.5 1.5 0 0 0 15 9.5V4z\"/></svg>
 "
 base_scale = 2.0
@@ -32,7 +33,7 @@ Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
 Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
 }
 
-[sub_resource type="DPITexture" id="DPITexture_kkyc3"]
+[sub_resource type="DPITexture" id="DPITexture_l8ubo"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#e0e0e0\" d=\"M3 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4l-3-3h-1v6H3zm1 0v5h3V1zm4 8a1 1 0 0 1 0 4 1 1 0 0 1 0-4z\"/></svg>
 "
 base_scale = 2.0
@@ -43,7 +44,7 @@ Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
 Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
 }
 
-[sub_resource type="DPITexture" id="DPITexture_l8ubo"]
+[sub_resource type="DPITexture" id="DPITexture_vns0m"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#e0e0e0\" d=\"M1 1v2.25h6v4.5h3v4.5h5V10h-2.75V7.75H15V5.5H9.25V3.25H15V1z\"/><path fill=\"#5fb2ff\" d=\"M5.04 8.04c-1.534 0-3.475 1.169-4.173 3.423a.6.6 0 0 0 0 .33c.67 2.374 2.673 3.447 4.173 3.447s3.502-1.073 4.177-3.435a.6.6 0 0 0 0-.33C8.557 9.201 6.572 8.04 5.04 8.04zm0 1.2a2.4 2.4 0 0 1 0 4.8 2.4 2.4 0 0 1 0-4.8zm0 1.2a1.2 1.2 0 0 0 0 2.4 1.2 1.2 0 0 0 0-2.4z\"/></svg>
 "
 base_scale = 2.0
@@ -54,7 +55,7 @@ Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
 Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
 }
 
-[sub_resource type="DPITexture" id="DPITexture_vns0m"]
+[sub_resource type="DPITexture" id="DPITexture_idusq"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#e0e0e0\" d=\"M5 8a4 4 0 1 1 4 4v2a6 6 0 1 0-6-6H1l3 4 3-4z\"/></svg>
 "
 base_scale = 2.0
@@ -65,7 +66,7 @@ Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
 Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
 }
 
-[sub_resource type="DPITexture" id="DPITexture_idusq"]
+[sub_resource type="DPITexture" id="DPITexture_du732"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#e0e0e0\" d=\"M10.168 8.754a5 5 0 1 0-1.414 1.414l4.316 4.316 1.414-1.414zM6 3a3 3 0 0 1 0 6 3 3 0 0 1 0-6z\"/></svg>
 "
 base_scale = 2.0
@@ -76,7 +77,7 @@ Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
 Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
 }
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_du732"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ytf7i"]
 content_margin_left = 10.0
 content_margin_top = 4.0
 content_margin_right = 10.0
@@ -92,7 +93,7 @@ corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ytf7i"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g31kd"]
 content_margin_left = 10.0
 content_margin_top = 4.0
 content_margin_right = 10.0
@@ -108,7 +109,7 @@ corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g31kd"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6oc38"]
 content_margin_left = 10.0
 content_margin_top = 4.0
 content_margin_right = 10.0
@@ -124,7 +125,7 @@ corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
-[sub_resource type="DPITexture" id="DPITexture_6oc38"]
+[sub_resource type="DPITexture" id="DPITexture_nrbh4"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#fff\" d=\"M8 1C1 1 1 1 1 8s0 7 7 7 7 0 7-7 0-7-7-7zM4.25 2.25a1 1 0 0 1 0 4 1 1 0 0 1 0-4zM8 6a1 1 0 0 1 0 4 1 1 0 0 1 0-4zm3.75 3.75a1 1 0 0 1 0 4 1 1 0 0 1 0-4z\"/></svg>
 "
 base_scale = 2.0
@@ -135,7 +136,7 @@ Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
 Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
 }
 
-[sub_resource type="DPITexture" id="DPITexture_nrbh4"]
+[sub_resource type="DPITexture" id="DPITexture_6gp4o"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#e0e0e0\" d=\"M14 2.199v2.615l-2.625 1.313V3.512zM2 6.264l2.625 1.312v2.551L2 8.814zm12 0v2.55l-2.625 1.313V7.576zM6 7.719h4v2.64H6zm-4 2.56 2.625 1.313v2.521L2 12.801zm12 0v2.522l-2.625 1.312v-2.521zm-8 1.455h4v2.641H6zm4-8.109v2.734H5.844s-.749.647-.875.641c-.131-.007-1.51-1.456-1.51-1.456L2 4.814V2.199l.117.06s-.064-.775.424-1.216L1.279.441A.626.626 0 0 0 .375 1v12c0 .237.134.453.346.559l4 2a.626.626 0 0 0 .279.066h6a.626.626 0 0 0 .279-.066l4-2a.625.625 0 0 0 .346-.559V1a.625.625 0 0 0-.904-.559l-3.869 1.934H7.888s.084.624-.218 1.25z\"/><path fill=\"#fff\" fill-opacity=\".686\" d=\"M5 6.25c-4-3.5-2-6 0-6s4 2.5 0 6z\"/></svg>
 "
 base_scale = 2.0
@@ -146,7 +147,7 @@ Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
 Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
 }
 
-[sub_resource type="DPITexture" id="DPITexture_6gp4o"]
+[sub_resource type="DPITexture" id="DPITexture_bkv1s"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#8eef97\" d=\"M11 1a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM6.732 5A2 2 0 0 1 7 6v1.117L9.268 6A2 2 0 0 1 9 5V3.883zM2 5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1zm5 3.883V10a2 2 0 0 1-.268 1L9 12.117V11a2 2 0 0 1 .268-1zM11 10a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z\"/></svg>
 "
 base_scale = 2.0
@@ -157,7 +158,7 @@ Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
 Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
 }
 
-[sub_resource type="DPITexture" id="DPITexture_bkv1s"]
+[sub_resource type="DPITexture" id="DPITexture_7uv7n"]
 _source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><path fill=\"#e0e0e0\" d=\"M4 1 3 3l1 2v4H2v3.5a2.5 2.5 0 0 0 5 0V9H5V5l1-2-1-2zm6 .174a3 3 0 0 0 0 5.652V14a1 1 0 0 0 2 0V6.824a3 3 0 0 0 0-5.648V4a1 1 0 0 1-2 0z\"/></svg>
 "
 base_scale = 2.0
@@ -168,28 +169,12 @@ Color(0.37254903, 1, 0.5921569, 1): Color(0.45, 0.95, 0.5, 1),
 Color(1, 0.8666667, 0.39607844, 1): Color(0.83, 0.78, 0.62, 1)
 }
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7uv7n"]
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 4.0
-bg_color = Color(1, 1, 1, 0.05)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(1, 1, 1, 0.1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_on1fd"]
 content_margin_left = 10.0
 content_margin_top = 4.0
 content_margin_right = 10.0
 content_margin_bottom = 4.0
-bg_color = Color(1, 1, 1, 0.02)
+bg_color = Color(1, 1, 1, 0.05)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -205,7 +190,7 @@ content_margin_left = 10.0
 content_margin_top = 4.0
 content_margin_right = 10.0
 content_margin_bottom = 4.0
-bg_color = Color(1, 1, 1, 0.09)
+bg_color = Color(1, 1, 1, 0.02)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -221,7 +206,7 @@ content_margin_left = 10.0
 content_margin_top = 4.0
 content_margin_right = 10.0
 content_margin_bottom = 4.0
-bg_color = Color(1, 1, 1, 0.05)
+bg_color = Color(1, 1, 1, 0.09)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -237,7 +222,7 @@ content_margin_left = 10.0
 content_margin_top = 4.0
 content_margin_right = 10.0
 content_margin_bottom = 4.0
-bg_color = Color(1, 1, 1, 0.02)
+bg_color = Color(1, 1, 1, 0.05)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -253,7 +238,7 @@ content_margin_left = 10.0
 content_margin_top = 4.0
 content_margin_right = 10.0
 content_margin_bottom = 4.0
-bg_color = Color(1, 1, 1, 0.09)
+bg_color = Color(1, 1, 1, 0.02)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -265,6 +250,30 @@ corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_w4gf3"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+bg_color = Color(1, 1, 1, 0.09)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6gp4o"]
+bg_color = Color(0.0627451, 0.078431375, 0.12156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.078431375)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_t3l8f"]
 content_margin_left = 12.0
 content_margin_top = 4.0
 content_margin_right = 12.0
@@ -294,7 +303,7 @@ size_flags_vertical = 3
 [node name="TabBarPanel" type="PanelContainer" parent="VBoxContainer" unique_id=1679323930]
 layout_mode = 2
 size_flags_vertical = 0
-theme_override_styles/panel = SubResource("StyleBoxFlat_o1cqv")
+theme_override_styles/panel = SubResource("StyleBoxFlat_2a35a")
 
 [node name="TabBarRow" type="HBoxContainer" parent="VBoxContainer/TabBarPanel" unique_id=1001830847]
 layout_mode = 2
@@ -306,7 +315,7 @@ layout_mode = 2
 tooltip_text = "Open a FlowGraph resource"
 focus_mode = 3
 theme_type_variation = &"FlatMenuButton"
-icon = SubResource("DPITexture_2a35a")
+icon = SubResource("DPITexture_t13bu")
 icon_alignment = 1
 
 [node name="TabBar" type="TabBar" parent="VBoxContainer/TabBarPanel/TabBarRow" unique_id=1129924425]
@@ -323,7 +332,7 @@ layout_mode = 2
 tooltip_text = "Float and Maximize Graph Panel"
 focus_mode = 0
 theme_type_variation = &"BottomPanelButton"
-icon = SubResource("DPITexture_t13bu")
+icon = SubResource("DPITexture_kkyc3")
 icon_alignment = 1
 
 [node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer" unique_id=1283181732]
@@ -342,7 +351,7 @@ layout_mode = 2
 tooltip_text = "Save the current FlowGraph resource"
 focus_mode = 3
 theme_type_variation = &"FlatButton"
-icon = SubResource("DPITexture_kkyc3")
+icon = SubResource("DPITexture_l8ubo")
 icon_alignment = 1
 
 [node name="ButtonBrowse" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer" unique_id=293425323]
@@ -351,7 +360,7 @@ layout_mode = 2
 tooltip_text = "Reveal the saved graph resource in the FileSystem dock"
 focus_mode = 3
 theme_type_variation = &"FlatButton"
-icon = SubResource("DPITexture_l8ubo")
+icon = SubResource("DPITexture_vns0m")
 icon_alignment = 1
 
 [node name="ButtonReload" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer" unique_id=802637541]
@@ -360,7 +369,7 @@ layout_mode = 2
 tooltip_text = "Reload the current FlowGraph resource"
 focus_mode = 3
 theme_type_variation = &"FlatButton"
-icon = SubResource("DPITexture_vns0m")
+icon = SubResource("DPITexture_idusq")
 icon_alignment = 1
 
 [node name="ButtonAnalyze" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer" unique_id=2032539737]
@@ -369,7 +378,7 @@ layout_mode = 2
 tooltip_text = "Inspect selected node raw data (A)"
 focus_mode = 3
 theme_type_variation = &"FlatButton"
-icon = SubResource("DPITexture_idusq")
+icon = SubResource("DPITexture_du732")
 icon_alignment = 1
 
 [node name="ButtonRegenerate" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer" unique_id=407801751]
@@ -381,10 +390,10 @@ theme_type_variation = &"FlatButton"
 theme_override_colors/font_color = Color(0.13333334, 0.827451, 0.93333334, 1)
 theme_override_colors/font_pressed_color = Color(0.13333334, 0.827451, 0.93333334, 1)
 theme_override_colors/font_hover_color = Color(0.13333334, 0.827451, 0.93333334, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_du732")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_ytf7i")
-theme_override_styles/hover = SubResource("StyleBoxFlat_g31kd")
-icon = SubResource("DPITexture_6oc38")
+theme_override_styles/normal = SubResource("StyleBoxFlat_ytf7i")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_g31kd")
+theme_override_styles/hover = SubResource("StyleBoxFlat_6oc38")
+icon = SubResource("DPITexture_nrbh4")
 icon_alignment = 1
 
 [node name="ToolbarSpacer" type="Control" parent="VBoxContainer/ScrollContainer/HBoxContainer" unique_id=1066025454]
@@ -398,7 +407,7 @@ tooltip_text = "Toggle the graph minimap."
 focus_mode = 3
 theme_type_variation = &"FlatButton"
 toggle_mode = true
-icon = SubResource("DPITexture_nrbh4")
+icon = SubResource("DPITexture_6gp4o")
 icon_alignment = 1
 
 [node name="ButtonInputs" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer" unique_id=870448300]
@@ -407,7 +416,7 @@ layout_mode = 2
 tooltip_text = "Edit graph inputs"
 focus_mode = 3
 theme_type_variation = &"FlatButton"
-icon = SubResource("DPITexture_6gp4o")
+icon = SubResource("DPITexture_bkv1s")
 alignment = 0
 icon_alignment = 1
 
@@ -417,7 +426,7 @@ layout_mode = 2
 tooltip_text = "Open Flow editor settings"
 focus_mode = 3
 theme_type_variation = &"FlatButton"
-icon = SubResource("DPITexture_bkv1s")
+icon = SubResource("DPITexture_7uv7n")
 icon_alignment = 1
 
 [node name="AutoRegen" type="CheckBox" parent="VBoxContainer/ScrollContainer/HBoxContainer" unique_id=2112512147]
@@ -427,9 +436,9 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.8039216, 0.8156863, 0.8627451, 1)
 theme_override_colors/font_pressed_color = Color(0.6313726, 0.6313726, 0.6666667, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_7uv7n")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_on1fd")
-theme_override_styles/hover = SubResource("StyleBoxFlat_a0xq6")
+theme_override_styles/normal = SubResource("StyleBoxFlat_on1fd")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_a0xq6")
+theme_override_styles/hover = SubResource("StyleBoxFlat_vhgmy")
 button_pressed = true
 text = "Auto Generate"
 
@@ -440,18 +449,16 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.8039216, 0.8156863, 0.8627451, 1)
 theme_override_colors/font_pressed_color = Color(0.6313726, 0.6313726, 0.6666667, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_vhgmy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_enkne")
-theme_override_styles/hover = SubResource("StyleBoxFlat_p33ug")
+theme_override_styles/normal = SubResource("StyleBoxFlat_enkne")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_p33ug")
+theme_override_styles/hover = SubResource("StyleBoxFlat_w4gf3")
 button_pressed = true
 text = "Color Nodes"
 
-[node name="VSplitContainer" type="HSplitContainer" parent="VBoxContainer" unique_id=1777333836]
+[node name="VSplitContainer" type="VSplitContainer" parent="VBoxContainer" unique_id=540784810]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-split_offsets = PackedInt32Array(400)
-split_offset = 400
 
 [node name="GraphEdit" type="GraphEdit" parent="VBoxContainer/VSplitContainer" unique_id=1885062764]
 unique_name_in_owner = true
@@ -466,10 +473,38 @@ show_zoom_buttons = false
 show_grid_buttons = false
 script = ExtResource("2_l4kri")
 
+[node name="InlineAnalyzePanel" type="Control" parent="VBoxContainer/VSplitContainer" unique_id=969296422]
+unique_name_in_owner = true
+visible = false
+z_index = 100
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="AnalyzePanelBackground" type="PanelContainer" parent="VBoxContainer/VSplitContainer/InlineAnalyzePanel" unique_id=627865193]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_6gp4o")
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/VSplitContainer/InlineAnalyzePanel/AnalyzePanelBackground" unique_id=667933558]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="InlineDataInspector" parent="VBoxContainer/VSplitContainer/InlineAnalyzePanel/AnalyzePanelBackground/MarginContainer" unique_id=34513188 instance=ExtResource("3_2a35a")]
+unique_name_in_owner = true
+layout_mode = 2
+
 [node name="StatusPanel" type="PanelContainer" parent="VBoxContainer" unique_id=1161383305]
 layout_mode = 2
 size_flags_vertical = 0
-theme_override_styles/panel = SubResource("StyleBoxFlat_w4gf3")
+theme_override_styles/panel = SubResource("StyleBoxFlat_t3l8f")
 
 [node name="FlowStatusLabel" type="Label" parent="VBoxContainer/StatusPanel" unique_id=1689010186]
 unique_name_in_owner = true

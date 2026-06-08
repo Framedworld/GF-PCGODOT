@@ -35,9 +35,6 @@ var is_output : bool = true
 var container
 var _flow_editor: FlowEditor
 
-func set_flow_editor(editor: FlowEditor) -> void:
-	_flow_editor = editor
-
 func setNode( new_node : FlowNodeBase ):
 	# If there was already one active... disabled it
 	if node:
@@ -462,6 +459,9 @@ func _on_filter_edit_text_changed(new_text : String):
 	if tv:
 		tv.num_rows = visible_rows.size()
 		tv.commitColumns()
+		
+func set_flow_editor(editor: FlowEditor) -> void:
+	_flow_editor = editor
 
 func _ready():
 	tv.cell_clicked.connect( onCellClicked )

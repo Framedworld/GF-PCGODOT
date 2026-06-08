@@ -18,16 +18,16 @@ var dump_performance := false
 var use_native_graph_grid := false
 
 @onready var gedit : GraphEdit = %GraphEdit
-@onready var data_inspector : Control
+@onready var data_inspector : Control = %InlineDataInspector
 @onready var info : Label = %FlowStatusLabel
 @onready var open_graph_button: Button = $VBoxContainer/TabBarPanel/TabBarRow/ButtonOpenGraph
 @onready var tab_bar: TabBar = $VBoxContainer/TabBarPanel/TabBarRow/TabBar
 @onready var expand_graph_button: Button = $VBoxContainer/TabBarPanel/TabBarRow/ButtonExpandGraph
 @onready var toolbar_hbox: HBoxContainer = $VBoxContainer/ScrollContainer/HBoxContainer
+@onready var analyze_panel: Control = %InlineAnalyzePanel
 
 var _chrome_refs: FlowEditorChrome.Refs
 
-var inspector: FlowInspector
 var inspected_node : Node
 var native_inspector_target: Object
 var editor_settings_proxy: FlowEditorSettingsProxy
@@ -110,7 +110,6 @@ var unsaved_close_dialog: ConfirmationDialog
 var unsaved_close_discard_button: Button
 var pending_unsaved_close_tab_index: int = -1
 var save_dialog_closes_tab_index: int = -1
-var analyze_panel: Control
 var current_analyzed_node: FlowNodeBase
 var last_graph_open_dir := "res://graphs"
 var graph_loading_overlay: PanelContainer
@@ -578,7 +577,7 @@ func _on_tab_close_pressed(index: int):
 
 func _clear_ui_nodes() -> void:
 	clear_graph()
-	_ensure_inspector()
+	#_ensure_inspector()
 
 func _refresh_active_tab_resource_from_disk() -> void:
 	if not _active_tab_is_valid() or current_resource == null:
@@ -1173,7 +1172,6 @@ func _process(delta: float) -> void:
 	if node_registry_version != FlowNodeRegistry.get_version():
 		_on_node_registry_changed()
 	_update_graph_loading_animation(delta)
-	_sync_internal_inspector_mode_if_needed()
 	if not current_resource:
 		return
 
@@ -1548,6 +1546,8 @@ func _ready():
 	if dpi > 150:
 		ui_scale *= 2.0
 
+	data_inspector.set_flow_editor(self)
+
 	scanAvailableNodes()
 	_chrome_refs = FlowEditorChrome.Refs.new()
 	_chrome_refs.host = self
@@ -1587,7 +1587,7 @@ func _exit_tree() -> void:
 func _finish_editor_ready() -> void:
 	if not is_inside_tree():
 		return
-	_ensure_inspector()
+	#_ensure_inspector()
 	_apply_bottom_dock_layout()
 	FlowEditorChrome.apply_translations(_chrome_refs)
 	_sync_tab_bar_from_open_tabs()
@@ -1613,11 +1613,9 @@ func _apply_bottom_dock_layout() -> void:
 		main_split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		main_split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		main_split.split_offset = int(200 * editor_scale)
-	_apply_internal_inspector_mode(true)
 
 
 func _on_button_expand_graph_pressed() -> void:
-	print("clicked")
 	_float_graph_panel()
 
 func _on_button_settings_pressed() -> void:
@@ -1640,14 +1638,10 @@ func _sync_minimap_button() -> void:
 
 
 func _create_dynamic_editor_ui() -> void:
-	_setup_inline_analyze_panel()
-	_ensure_inspector()
 	_ensure_search_add_node_popup()
 	_setup_graph_loading_overlay()
 
 func _refresh_dynamic_editor_ui() -> void:
-	inspector = null
-	_ensure_inspector()
 	if search_add_node_popup == null or not is_instance_valid(search_add_node_popup):
 		_ensure_search_add_node_popup()
 
@@ -1675,94 +1669,6 @@ func _sync_tab_bar_from_open_tabs() -> void:
 	if tab_changed_was_connected:
 		tab_bar.tab_changed.connect(_on_tab_changed)
 	_update_tab_titles()
-
-func _ensure_inspector() -> void:
-	var splitter := $VBoxContainer/VSplitContainer
-	if splitter == null:
-		return
-	var layout_changed := false
-	for child in splitter.get_children():
-		if child is FlowInspector:
-			if inspector == null or not is_instance_valid(inspector):
-				inspector = child as FlowInspector
-			elif child != inspector:
-				splitter.remove_child(child)
-				child.queue_free()
-				layout_changed = true
-	if inspector == null or not is_instance_valid(inspector):
-		inspector = FlowInspector.new()
-		inspector.name = "FlowInspector"
-		splitter.add_child(inspector)
-		layout_changed = true
-	elif inspector.get_parent() != splitter:
-		if inspector.get_parent() != null:
-			inspector.get_parent().remove_child(inspector)
-		splitter.add_child(inspector)
-		layout_changed = true
-	inspector.editor = self
-	inspector.ui_scale = ui_scale
-	var editor_scale := EditorInterface.get_editor_scale() if Engine.is_editor_hint() else 1.0
-	inspector.custom_minimum_size = Vector2(300, 120) * editor_scale
-	inspector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inspector.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	gedit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	gedit.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	gedit.size_flags_stretch_ratio = 3.0
-	inspector.size_flags_stretch_ratio = 1.0
-	if gedit.get_index() != 0 or inspector.get_index() != 1:
-		layout_changed = true
-	splitter.move_child(gedit, 0)
-	splitter.move_child(inspector, 1)
-	if layout_changed:
-		splitter.set_split_offset(0)
-	_apply_internal_inspector_mode(true)
-	gedit.add_theme_color_override("activity", Color(1, 0.2, 0.2, 1))
-	if not inspector.property_edited.is_connected(_on_flow_inspector_property_edited):
-		inspector.property_edited.connect(_on_flow_inspector_property_edited)
-	if not gedit.node_deselected.is_connected(_on_graph_edit_node_deselected):
-		gedit.node_deselected.connect(_on_graph_edit_node_deselected)
-
-func _sync_internal_inspector_mode_if_needed() -> void:
-	var floating_mode := _is_graph_panel_floating()
-	if floating_mode == internal_inspector_floating_mode:
-		return
-	internal_inspector_floating_mode = floating_mode
-	_apply_internal_inspector_mode(true)
-
-func _apply_internal_inspector_mode(force_layout: bool = false) -> void:
-	if inspector == null or not is_instance_valid(inspector):
-		return
-	var should_show := internal_inspector_floating_mode and inspector.current_target != null
-	if inspector.visible != should_show:
-		inspector.visible = should_show
-		force_layout = true
-	if force_layout:
-		_sync_internal_inspector_layout()
-
-func _sync_internal_inspector_layout() -> void:
-	var splitter := $VBoxContainer/VSplitContainer as Container
-	if splitter == null or inspector == null or not is_instance_valid(inspector):
-		return
-	if gedit.get_parent() == splitter:
-		splitter.move_child(gedit, 0)
-	if inspector.get_parent() == splitter:
-		splitter.move_child(inspector, 1)
-	splitter.queue_sort()
-	if splitter.is_inside_tree() and splitter.is_visible_in_tree():
-		splitter.notification(Container.NOTIFICATION_SORT_CHILDREN)
-
-func _on_flow_inspector_property_edited(prop_name: String) -> void:
-	if prop_name == FlowInspector.GRAPH_PARAMETER_VALUE_EDITED:
-		queueSave()
-		queueRegen()
-		return
-	if _refresh_graph_resource_parameter_edit(prop_name):
-		return
-	if inspected_node is FlowNodeBase:
-		onNodePropertyChanged(prop_name)
-		return
-	if inspected_node is GraphFrame or inspected_node is GraphNode:
-		queueSave()
 
 func _connect_native_inspector() -> void:
 	var native_inspector := EditorInterface.get_inspector()
@@ -1796,10 +1702,6 @@ func _inspect_graph_element(node: Node) -> void:
 			target = current_resource
 		elif flow_node.settings != null:
 			target = flow_node.settings
-	_ensure_inspector()
-	if inspector != null:
-		inspector.edit(node)
-		_apply_internal_inspector_mode(true)
 	_inspect_in_native(target)
 
 func _get_native_inspector_edited_object() -> Object:
@@ -1822,10 +1724,6 @@ func _on_native_inspector_property_edited(prop_name: String) -> void:
 		return
 	if current_resource != null:
 		if edited_object == current_resource:
-			if prop_name == FlowInspector.GRAPH_PARAMETER_VALUE_EDITED:
-				queueSave()
-				queueRegen()
-				return
 			_refresh_graph_resource_parameter_edit(prop_name)
 			return
 		if _graph_resource_contains_parameter(edited_object, current_resource.in_params):
@@ -1876,10 +1774,6 @@ func _show_editor_settings_panel():
 		editor_settings_proxy = FlowEditorSettingsProxy.new()
 	editor_settings_proxy.sync_from_editor(self)
 	inspected_node = null
-	_ensure_inspector()
-	if inspector != null:
-		inspector.edit(editor_settings_proxy)
-		_apply_internal_inspector_mode(true)
 	_inspect_in_native(editor_settings_proxy)
 
 func _load_editor_settings():
@@ -1954,7 +1848,6 @@ func _embed_floating_graph_panel_if_needed() -> bool:
 	push_warning("Data Flow: could not embed floating graph dock.")
 	return false
 
-
 func _float_graph_panel():
 	var current_window := get_window()
 	var main_window := EditorInterface.get_base_control().get_window()
@@ -1995,15 +1888,6 @@ func _get_dock_float_button() -> Button:
 	if not popup:
 		return null
 	return _find_dock_float_button(popup)
-
-func _get_editor_dock() -> Control:
-	var node: Node = self
-	while node:
-		var parent := node.get_parent()
-		if parent is TabContainer and node is Control:
-			return node as Control
-		node = parent
-	return null
 
 func _find_dock_float_button(node: Node) -> Button:
 	for child in node.get_children():
@@ -2049,9 +1933,6 @@ func _refresh_node_translations() -> void:
 			var node := child as FlowNodeBase
 			if node:
 				node.refreshLocalizedText()
-	if inspector:
-		inspector.refresh_localized_text()
-		_apply_internal_inspector_mode(true)
 
 ## Handles debug hotkeys: D (toggle debug), A (toggle inspect), Alt+D (clear all), T (toggle trace).
 ## Uses _input so it fires before GraphEdit consumes the key events.
@@ -2299,124 +2180,6 @@ func analyzeNode(node: FlowNodeBase):
 	if make_inspector_visible and make_inspector_visible.is_valid():
 		make_inspector_visible.call()
 
-func _setup_inline_analyze_panel():
-	var panel := Control.new()
-	panel.name = "InlineAnalyzePanel"
-	panel.visible = false
-	panel.anchor_left = 0.0
-	panel.anchor_top = 1.0
-	panel.anchor_right = 1.0
-	panel.anchor_bottom = 1.0
-	panel.offset_left = 8.0
-	panel.offset_top = -280.0
-	panel.offset_right = -8.0
-	panel.offset_bottom = -8.0
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel.z_index = 100
-	# Minimum size so it doesn't collapse to nothing
-	panel.custom_minimum_size = Vector2(200, 120)
-
-	var panel_background := PanelContainer.new()
-	panel_background.name = "AnalyzePanelBackground"
-	panel_background.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-
-	var panel_sb := StyleBoxFlat.new()
-	panel_sb.bg_color = Color("10141f")
-	panel_sb.set_border_width_all(1)
-	panel_sb.border_color = Color(1.0, 1.0, 1.0, 0.08)
-	panel_sb.set_corner_radius_all(4)
-	panel_sb.content_margin_left = 8
-	panel_sb.content_margin_right = 8
-	panel_sb.content_margin_top = 12 # Extra room for resize handle
-	panel_sb.content_margin_bottom = 8
-	panel_background.add_theme_stylebox_override("panel", panel_sb)
-	panel.add_child(panel_background)
-
-	var packed := load("res://addons/flow_nodes_editor/data_inspector.tscn") as PackedScene
-	if not packed:
-		push_error("Failed to load inline data inspector scene")
-		return
-	var inline_inspector = packed.instantiate() as Control
-	if not inline_inspector:
-		push_error("Failed to instantiate inline data inspector")
-		return
-	inline_inspector.name = "InlineDataInspector"
-	inline_inspector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inline_inspector.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	inline_inspector.anchor_left = 0.0
-	inline_inspector.anchor_top = 0.0
-	inline_inspector.anchor_right = 1.0
-	inline_inspector.anchor_bottom = 1.0
-	inline_inspector.offset_left = 0.0
-	inline_inspector.offset_top = 0.0
-	inline_inspector.offset_right = 0.0
-	inline_inspector.offset_bottom = 0.0
-
-	panel_background.add_child(inline_inspector)
-	gedit.add_child(panel)
-	analyze_panel = panel
-	data_inspector = inline_inspector
-	if inline_inspector.has_method("set_flow_editor"):
-		inline_inspector.set_flow_editor(self)
-
-	# Add resize handle to the top edge
-	_setup_analyze_resize_handle(panel)
-
-var _analyze_drag_active := false
-var _analyze_drag_start_y := 0.0
-var _analyze_drag_start_offset := 0.0
-const ANALYZE_MIN_HEIGHT := 120.0
-const ANALYZE_MAX_HEIGHT_RATIO := 0.85
-
-func _setup_analyze_resize_handle(panel: Control):
-	var handle := Control.new()
-	handle.name = "ResizeHandle"
-	handle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	handle.mouse_default_cursor_shape = Control.CURSOR_VSIZE
-	handle.anchor_left = 0.0
-	handle.anchor_right = 1.0
-	handle.anchor_top = 0.0
-	handle.anchor_bottom = 0.0
-	handle.offset_top = -2.0
-	handle.offset_bottom = 8.0 # 10px grab zone at top
-	handle.offset_left = 0.0
-	handle.offset_right = 0.0
-	# Draw a visible drag handle indicator
-	handle.draw.connect(func():
-		var w = handle.size.x
-		var cy = handle.size.y * 0.5
-		var bar_w = 32.0
-		var bar_x = (w - bar_w) * 0.5
-		handle.draw_line(Vector2(bar_x, cy - 1), Vector2(bar_x + bar_w, cy - 1), Color(1, 1, 1, 0.15), 1.0)
-		handle.draw_line(Vector2(bar_x, cy + 1), Vector2(bar_x + bar_w, cy + 1), Color(1, 1, 1, 0.15), 1.0)
-	)
-	panel.add_child(handle)
-
-	panel.gui_input.connect(func(event: InputEvent):
-		if not (event is InputEventMouseButton or event is InputEventMouseMotion):
-			return
-		var local_y := panel.get_local_mouse_position().y
-		if local_y > 12.0:
-			return
-		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed:
-				_analyze_drag_active = true
-				_analyze_drag_start_y = event.global_position.y
-				_analyze_drag_start_offset = analyze_panel.offset_top
-				panel.accept_event()
-			else:
-				_analyze_drag_active = false
-		elif event is InputEventMouseMotion and _analyze_drag_active:
-			var delta = event.global_position.y - _analyze_drag_start_y
-			var new_offset = _analyze_drag_start_offset + delta
-			var parent_h = gedit.size.y
-			var max_offset = -ANALYZE_MIN_HEIGHT
-			var min_offset = -(parent_h * ANALYZE_MAX_HEIGHT_RATIO)
-			analyze_panel.offset_top = clampf(new_offset, min_offset, max_offset)
-			panel.accept_event()
-	)
-
 func _set_analyze_panel_visible(visible: bool):
 	if not analyze_panel:
 		return
@@ -2467,9 +2230,6 @@ func _on_in_params_changed():
 				registerOutputNodeType(output)
 		populatePopupInputsMenu()
 		populatePopupOutputsMenu()
-		if inspector != null and inspector.current_settings == current_resource:
-			inspector.edit(current_resource)
-			_apply_internal_inspector_mode(true)
 		if native_inspector_target == current_resource:
 			_inspect_in_native(current_resource)
 
@@ -2612,7 +2372,7 @@ func deleteGraphElementsAndRefresh( nodes : Array[GraphNode], frames : Array[Gra
 	deleteNodes( nodes )
 	queueSave()
 	inspected_node = null
-	_ensure_inspector()
+	#_ensure_inspector()
 	queueRegen()
 
 func deleteSelectedNodes():
@@ -4892,10 +4652,6 @@ func _show_graph_inputs_panel():
 	inspected_node = null
 	_clear_graph_selection()
 	if current_resource:
-		_ensure_inspector()
-		if inspector != null:
-			inspector.edit(current_resource)
-			_apply_internal_inspector_mode(true)
 		_inspect_in_native(current_resource)
 
 # Cut/Copy/Paste/Dupe
@@ -5042,8 +4798,6 @@ func clear_graph():
 		node.queue_free()
 	gedit_nodes_by_name.clear()
 	inspected_node = null
-	if inspector:
-		inspector.edit(null)
 	if data_inspector:
 		data_inspector.setNode(null)
 	_set_analyze_panel_visible(false)
@@ -5172,9 +4926,6 @@ func _on_hide_inspector_title_toggled(toggled_on: bool) -> void:
 func _on_hide_resource_builtin_rows_toggled(toggled_on: bool) -> void:
 	hide_resource_builtin_rows = toggled_on
 	_save_editor_settings()
-	if inspector != null and inspector.current_target != null and is_instance_valid(inspector.current_target):
-		inspector.refresh_localized_text()
-		_apply_internal_inspector_mode(true)
 	if native_inspector_target != null and is_instance_valid(native_inspector_target):
 		_inspect_in_native(native_inspector_target)
 

@@ -42,10 +42,6 @@ text_overrun_behavior = 3
 [node name="SlotSelector" type="OptionButton" parent="VBoxContainer/HBoxContainer" unique_id=2098730101]
 unique_name_in_owner = true
 layout_mode = 2
-selected = 0
-item_count = 1
-popup/item_0/text = "Out"
-popup/item_0/id = 0
 
 [node name="BulkSelector" type="OptionButton" parent="VBoxContainer/HBoxContainer" unique_id=1904284069]
 unique_name_in_owner = true
