@@ -34,9 +34,21 @@ func execute( ctx : FlowData.EvaluationContext ):
 		return
 
 	var in_dataB : FlowData.Data = get_input(1)
-	# Empty B set with no streams: same as an existing-but-empty B stream — handled
-	# by the far-fill below. Only a NON-empty B missing the stream is an authoring error.
-	var b_empty : bool = in_dataB == null or in_dataB.size() == 0
+	# An unwired Target port returns null — that's an authoring error, NOT a valid
+	# empty set. Report it (or pass empty in editor preview, like the not-found paths)
+	# instead of silently treating it as "no targets" and writing 1.0 distances for
+	# every point, which would make downstream `dist >= X` filters pass everything.
+	if in_dataB == null:
+		if ctx.owner == null and Engine.is_editor_hint():
+			var empty_data = FlowData.Data.new()
+			set_output(0, empty_data)
+			return
+		setError( "Input B not connected" )
+		return
+	# Connected-but-empty B (e.g. an upstream filter that matched nothing) is the valid
+	# empty case — handled by the far-fill below. Only a NON-empty B missing the stream
+	# is an authoring error.
+	var b_empty : bool = in_dataB.size() == 0
 	if not b_empty and not in_dataB.hasStreamOfType( settings.in_nameB, FlowData.DataType.Vector ):
 		if ctx.owner == null and Engine.is_editor_hint():
 			var empty_data = FlowData.Data.new()
