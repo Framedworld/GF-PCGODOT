@@ -1661,7 +1661,7 @@ data = {
 "cte_resource": null,
 "cte_string": "",
 "cte_vector": Vector3(0, 0, 0),
-"data_type": 2,
+"data_type": 1,
 "debug_bulk": 0,
 "debug_color": Color(1, 1, 1, 1),
 "debug_enabled": false,
