@@ -51,6 +51,16 @@ func execute(_ctx : FlowData.EvaluationContext):
 		setError("Input not found")
 		return
 
+	# Check point count before attribute lookup: an empty upstream (e.g. a filter that
+	# matched nothing) legitimately has no streams yet, so skip the attribute check and
+	# pass two empty outputs rather than spamming "Attribute not found" errors.
+	var num_points = in_data.size()
+	if num_points == 0:
+		var empty = in_data.duplicate()
+		set_output(0, empty)
+		set_output(1, empty)
+		return
+
 	var attr_name = settings.attribute_name.strip_edges()
 	if attr_name == "":
 		setError("Attribute name can't be empty")
@@ -59,13 +69,6 @@ func execute(_ctx : FlowData.EvaluationContext):
 	var stream = in_data.findStream(attr_name)
 	if stream == null:
 		setError("Attribute '%s' not found" % attr_name)
-		return
-
-	var num_points = in_data.size()
-	if num_points == 0:
-		var empty = in_data.duplicate()
-		set_output(0, empty)
-		set_output(1, empty)
 		return
 
 	var stream_size = stream.container.size()

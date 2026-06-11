@@ -313,34 +313,35 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 			src_node.dependants.append(conn)
 			dst_node.deps.append(conn)
 
-	# Topological sort
-	var get_deps_recursive = func(node, visited: Dictionary, this_func) -> Array:
-		if visited.has(node.name):
+	# Topological sort (post-order DFS: a node's dependencies are emitted BEFORE the node
+	# that consumes them). The previous pre-order+reverse approach misordered diamond /
+	# multi-path graphs — a shared upstream node could be scheduled AFTER one of its
+	# consumers, so that consumer executed with an empty input and produced nothing.
+	# Post-order DFS is correct for any DAG (essential for point-based multi-branch styling).
+	var ordered_nodes = []
+	var topo_visited = {}
+	var topo_in_progress = {}
+	var visit_node = func(node, this_func) -> void:
+		if topo_visited.has(node.name):
+			return
+		if topo_in_progress.has(node.name):
 			push_warning("Circular dependency detected involving node: " + node.name)
-			return []
-		visited[node.name] = true
-		var deps = [node]
+			return
+		topo_in_progress[node.name] = true
 		for conn in node.deps:
 			var dep_node = instances.get(conn.from_node)
 			if dep_node:
-				deps.append_array(this_func.call(dep_node, visited, this_func))
-		return deps
+				this_func.call(dep_node, this_func)
+		topo_in_progress.erase(node.name)
+		topo_visited[node.name] = true
+		ordered_nodes.append(node)
 
 	var finals = node_list.filter(func(node):
 		return node.node_template == "output" or node.getMeta().get("is_final", false) or node.settings.debug_enabled or node.settings.inspect_enabled
 	)
 
-	var all_deps = []
 	for node in finals:
-		all_deps.append_array(get_deps_recursive.call(node, {}, get_deps_recursive))
-	all_deps.reverse()
-	
-	var ordered_nodes = []
-	var visited = {}
-	for node in all_deps:
-		if not visited.has(node.name):
-			visited[node.name] = true
-			ordered_nodes.append(node)
+		visit_node.call(node, visit_node)
 			
 	# Construct EvaluationContext for subgraph
 	var ctx = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()
