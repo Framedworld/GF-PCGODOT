@@ -44,7 +44,7 @@ PackedInt32Array GDKdTree::find_nearest_indices( const PackedVector3Array& in_po
     return idxs;
   }
 
-  // Setup 
+  // Setup
   nanoflann::KNNResultSet<real_t> results(1);
   size_t nearest_idx = -1;
   real_t out_distance;
@@ -59,7 +59,7 @@ PackedInt32Array GDKdTree::find_nearest_indices( const PackedVector3Array& in_po
   }
 
   return idxs;
-} 
+}
 
 void GDKdTree::set_points( const PackedVector3Array& in_pos ) {
   all.points = in_pos;

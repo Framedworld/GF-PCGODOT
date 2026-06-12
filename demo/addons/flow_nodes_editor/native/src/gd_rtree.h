@@ -24,7 +24,7 @@ protected:
 public:
   GDRTree();
   ~GDRTree();
-  
+
   void clear();
   bool add( const PackedVector3Array& in_centers, const PackedVector3Array& in_sizes );
   Dictionary overlaps( const PackedVector3Array& others_centers, const PackedVector3Array& others_sizes, bool return_overlapped ) const;

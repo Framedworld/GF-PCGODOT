@@ -15,7 +15,7 @@ class GDKdTree : public RefCounted {
 protected:
   static void _bind_methods();
 
-  // Container of all the points, following the requirements of the 
+  // Container of all the points, following the requirements of the
   // nanoflann::KDTreeSingleIndexDynamicAdaptor
   struct PointCloud {
     PackedVector3Array points;
@@ -43,7 +43,7 @@ protected:
 public:
   GDKdTree( );
   ~GDKdTree();
-  
+
   void set_points( const PackedVector3Array& in_pos );
   int find_nearest_idx( const Vector3& pos ) const;
   PackedInt32Array find_nearest_indices( const PackedVector3Array& in_pos ) const;

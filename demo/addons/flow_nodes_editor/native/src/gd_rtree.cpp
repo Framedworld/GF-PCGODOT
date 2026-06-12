@@ -26,7 +26,7 @@ void GDRTree::clear() {
 }
 
 bool GDRTree::add( const PackedVector3Array& in_centers, const PackedVector3Array& in_sizes ) {
-  
+
   if( in_centers.size() != in_sizes.size() )
     return false;
 
@@ -111,7 +111,7 @@ Dictionary GDRTree::overlaps( const PackedVector3Array& others_centers, const Pa
   if( others_centers.size() == others_sizes.size() ) {
     const size_t i_max = others_centers.size();
     for( size_t i=0; i<i_max; ++i ) {
-      
+
       const real_t* center = &others_centers[i].x;
       const real_t* size = &others_sizes[i].x;
       dbg( "Overlap ", (int)i ); //, " : ", center[0], ", ", center[1], ", ", center[2], ", ", size[0], ", ", size[1], ", ", size[2] );
