@@ -273,6 +273,40 @@ func _ready():
 	if selection:
 		_selection_changed()
 
+func _handles(object: Object) -> bool:
+	return object is FlowGraphResource
+
+func _edit(object: Object) -> void:
+	var graph_resource := object as FlowGraphResource
+	if graph_resource == null:
+		return
+	call_deferred("_open_flow_graph_resource_from_filesystem", graph_resource)
+
+func _open_flow_graph_resource_from_filesystem(graph_resource: FlowGraphResource) -> void:
+	if graph_resource == null:
+		return
+	_ensure_graph_dock()
+	if not _has_valid_graph_dock():
+		return
+	_make_graph_dock_visible()
+	if graph_resource.resource_path != "":
+		await graph_dock._open_graph_file_with_loading(graph_resource.resource_path)
+		return
+	await graph_dock._set_resource_to_edit_with_loading(graph_resource, null)
+
+func _make_graph_dock_visible() -> void:
+	if not _has_valid_graph_dock():
+		return
+	var tab_container := graph_dock_wrapper.get_parent() as TabContainer
+	if tab_container != null:
+		var tab_index := tab_container.get_tab_idx_from_control(graph_dock_wrapper)
+		if tab_index >= 0:
+			tab_container.set_current_tab(tab_index)
+	var window := graph_dock_wrapper.get_window()
+	if window != null:
+		window.grab_focus()
+	graph_dock.grab_focus()
+
 # This is called after the a new scene is loaded, but the 'selection' event of the new
 # scene is called first.
 func on_scene_changed(scene_root: Node) -> void:

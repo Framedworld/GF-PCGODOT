@@ -20,12 +20,19 @@ enum eDomain { PerPoint, PerData }
 		data_type = new_value
 		notify_property_list_changed()
 		
+## Constant bool value used when the selected math/expression mode requires it.
 @export var cte_bool: bool = false
+## Constant int value used when the selected math/expression mode requires it.
 @export var cte_int : int = 0
+## Constant float value used when the selected math/expression mode requires it.
 @export var cte_float : float = 0.0
+## Constant vector value used when the selected math/expression mode requires it.
 @export var cte_vector : Vector3 = Vector3.ZERO
+## Constant color value used when the selected math/expression mode requires it.
 @export var cte_color : Color = Color.WHITE
+## Constant resource value used when the selected math/expression mode requires it.
 @export var cte_resource : Resource
+## Constant string value used when the selected math/expression mode requires it.
 @export var cte_string : String = ""
 
 func _init():

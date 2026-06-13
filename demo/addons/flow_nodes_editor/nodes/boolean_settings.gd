@@ -15,6 +15,7 @@ enum eOperation {
 	Xnor,
 }
 
+## Chooses the operation this node applies to incoming data.
 @export var operation : eOperation = eOperation.And:
 	set(value):
 		value = clampi(value, 0, eOperation.size() - 1)
@@ -22,23 +23,28 @@ enum eOperation {
 			operation = value
 			notify_property_list_changed()
 
+## Name of the first input attribute to read from.
 @export var in_nameA : String = "@last":
 	set(value):
 		in_nameA = value.strip_edges()
 		emit_changed()
+## Name of the second input attribute to read from.
 @export var in_nameB : String = "@last":
 	set(value):
 		in_nameB = value.strip_edges()
 		emit_changed()
+## Toggles whether this node uses constant b instead of default behavior.
 @export var use_constant_b : bool = false:
 	set(value):
 		if use_constant_b != value:
 			use_constant_b = value
 			notify_property_list_changed()
+## Constant operand value used when operation mode expects B as a literal.
 @export var constant_b : bool = false:
 	set(value):
 		constant_b = value
 		emit_changed()
+## Name of the output attribute this node writes.
 @export var out_name : String = "bool_out":
 	set(value):
 		out_name = value.strip_edges()

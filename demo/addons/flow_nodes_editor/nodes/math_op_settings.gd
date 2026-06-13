@@ -26,6 +26,7 @@ enum eOperation {
 	Sqrt,
 }
 
+## Chooses the operation this node applies to incoming data.
 @export var operation : eOperation = eOperation.Add:
 	set(value):
 		if operation != value:
@@ -33,8 +34,11 @@ enum eOperation {
 			# This triggers the refresh of the property list in the property editor
 			notify_property_list_changed()
 			
+## Name of the first input attribute to read from.
 @export var in_nameA : String = "@last"
+## Name of the second input attribute to read from.
 @export var in_nameB : String = "@last"
+## Name of the output attribute this node writes.
 @export var out_name : String
 
 func _init():

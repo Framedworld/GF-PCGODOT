@@ -25,6 +25,7 @@ enum eOutput { SymmetricSize, PerPointBounds }
 		emit_changed()
 ## Minimum corner of the bounds box.
 @export var bounds_min: Vector3 = -Vector3.ONE * 0.5
+## Maximum corner of the bounds box.
 @export var bounds_max: Vector3 = Vector3.ONE * 0.5
 
 func _init():

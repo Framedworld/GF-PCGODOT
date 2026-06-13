@@ -13,6 +13,44 @@ func _init():
 		"tooltip" : "Filter inputs based on some condition.\nThis node splits the input stream in two substreams.",
 	}
 
+
+func _is_numeric_stream_type(data_type : FlowData.DataType) -> bool:
+	return data_type == FlowData.DataType.Float \
+		or data_type == FlowData.DataType.Int \
+		or data_type == FlowData.DataType.Bool
+
+
+func _numeric_as_float(value) -> float:
+	if value is bool:
+		return 1.0 if value else 0.0
+	return float(value)
+
+
+func _passes_numeric_condition(value_a, value_b, condition : int, threshold : float) -> bool:
+	match condition:
+		FilterNodeSettings.eCondition.Equal:
+			return value_a == value_b
+		FilterNodeSettings.eCondition.NotEqual:
+			return value_a != value_b
+		FilterNodeSettings.eCondition.Greater:
+			return _numeric_as_float(value_a) > _numeric_as_float(value_b)
+		FilterNodeSettings.eCondition.GreaterOrEqual:
+			return _numeric_as_float(value_a) >= _numeric_as_float(value_b)
+		FilterNodeSettings.eCondition.Less:
+			return _numeric_as_float(value_a) < _numeric_as_float(value_b)
+		FilterNodeSettings.eCondition.LessOrEqual:
+			return _numeric_as_float(value_a) <= _numeric_as_float(value_b)
+		FilterNodeSettings.eCondition.AlmostEqual:
+			return absf(_numeric_as_float(value_a) - _numeric_as_float(value_b)) < threshold
+		FilterNodeSettings.eCondition.LogicalAND:
+			return bool(value_a) and bool(value_b)
+		FilterNodeSettings.eCondition.LogicalOR:
+			return bool(value_a) or bool(value_b)
+		FilterNodeSettings.eCondition.LogicalXOR:
+			return bool(value_a) != bool(value_b)
+	return false
+
+
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_dataA : FlowData.Data = require_input(0, ctx, "Input A")
 	if in_dataA == null:
@@ -62,18 +100,12 @@ func execute( ctx : FlowData.EvaluationContext ):
 				setError( "Input B %s not found, and can't be interpreted as a constant number (Op:%d)" % [settings.in_nameB, settings.condition])
 				return
 
-	# When comparing int/bool vs floats, promote to float to reduce the casuistics.
-	# Promotion runs before the broadcast check so an Int/Bool B constant or
-	# single-element stream can still be expanded below.
-	if requires_two_operands and sB != null and sA.data_type == FlowData.DataType.Float and (sB.data_type == FlowData.DataType.Int or sB.data_type == FlowData.DataType.Bool):
-		sB = newFloatStream( num_elemsB, sB.name + " as float", func( idx : int ) -> float: return sB.container[idx] )
-
 	# The number of elements should match, unless the B channel has just 1 element
-	# in which case we will expand it. We might need in the future A to be just one
-	# element and B having lots of elements, or the type not to be float...
+	# in which case we will expand it.
 	if requires_two_operands and num_elemsA != num_elemsB:
-		if num_elemsB == 1 and num_elemsA > 0 and sB.data_type == FlowData.DataType.Float:
-			sB = newFloatStream( num_elemsA, sA.name + " as float", sB.container[0])
+		if num_elemsB == 1 and num_elemsA > 0:
+			sB = newStream( num_elemsA, sB.name, sB.container[0], sB.data_type )
+			num_elemsB = num_elemsA
 		else:
 			if ctx.owner == null and Engine.is_editor_hint():
 				var empty_out = FlowData.Data.new()
@@ -84,94 +116,23 @@ func execute( ctx : FlowData.EvaluationContext ):
 			return
 	var num_elems := num_elemsA
 
-	# When comparing int vs floats, promote the ints to float to reduce the casuistics
-	if requires_two_operands and sA.data_type == FlowData.DataType.Int and sB.data_type == FlowData.DataType.Float:
-		sA = newFloatStream( num_elemsA, sA.name + " as float", func( idx : int ) -> float: return sA.container[idx] )
-
-	# Also, when comparing bools vs floats, promote the bool to float to reduce the casuistics
-	if requires_two_operands and sA.data_type == FlowData.DataType.Bool and sB.data_type == FlowData.DataType.Float:
-		sA = newFloatStream( num_elemsA, sA.name + " as float", func( idx : int ) -> float: return sA.container[idx] )
-
 	# This will store the indices that pass the test
 	var indices_true = PackedInt32Array( )
 	var indices_false = PackedInt32Array( )
 		
-	if requires_two_operands and sA.data_type == FlowData.DataType.Float and sB.data_type == FlowData.DataType.Float:
-		var inA : PackedFloat32Array = sA.container
-		var inB : PackedFloat32Array = sB.container
-		match settings.condition:
-
-			FilterNodeSettings.eCondition.Equal:
-				for i in num_elems:
-					if inA[i] == inB[i]:
-						indices_true.append(i)
-					else:
-						indices_false.append(i)
-
-			FilterNodeSettings.eCondition.NotEqual:
-				for i in num_elems:
-					if inA[i] != inB[i]:
-						indices_true.append(i)
-					else:
-						indices_false.append(i)
-
-			FilterNodeSettings.eCondition.Greater:
-				for i in num_elems:
-					if inA[i] > inB[i]:
-						indices_true.append(i)
-					else:
-						indices_false.append(i)
-
-			FilterNodeSettings.eCondition.GreaterOrEqual:
-				for i in num_elems:
-					if inA[i] >= inB[i]:
-						indices_true.append(i)
-					else:
-						indices_false.append(i)
-
-			FilterNodeSettings.eCondition.Less:
-				for i in num_elems:
-					if inA[i] < inB[i]:
-						indices_true.append(i)
-					else:
-						indices_false.append(i)
-
-			FilterNodeSettings.eCondition.LessOrEqual:
-				for i in num_elems:
-					if inA[i] <= inB[i]:
-						indices_true.append(i)
-					else:
-						indices_false.append(i)
-
-			FilterNodeSettings.eCondition.AlmostEqual:
-				var threshold : float = getSettingValue( ctx, "threshold" )
-				for i in num_elems:
-					if abs(inA[i] - inB[i]) < threshold:
-						indices_true.append(i)
-					else:
-						indices_false.append(i)
-
-			FilterNodeSettings.eCondition.LogicalAND:
-				for i in num_elems:
-					if inA[i] && inB[i]:
-						indices_true.append(i)
-					else:
-						indices_false.append(i)
-
-			FilterNodeSettings.eCondition.LogicalOR:
-				for i in num_elems:
-					if inA[i] || inB[i]:
-						indices_true.append(i)
-					else:
-						indices_false.append(i)
-
-			FilterNodeSettings.eCondition.LogicalXOR:
-				# Boolean XOR on truthiness, not raw float inequality
-				for i in num_elems:
-					if (inA[i] != 0.0) != (inB[i] != 0.0):
-						indices_true.append(i)
-					else:
-						indices_false.append(i)
+	if (
+		requires_two_operands
+		and _is_numeric_stream_type(sA.data_type)
+		and _is_numeric_stream_type(sB.data_type)
+	):
+		var inA = sA.container
+		var inB = sB.container
+		var threshold : float = getSettingValue( ctx, "threshold" )
+		for i in num_elems:
+			if _passes_numeric_condition(inA[i], inB[i], settings.condition, threshold):
+				indices_true.append(i)
+			else:
+				indices_false.append(i)
 
 	elif not requires_two_operands:
 		var inA = sA.container

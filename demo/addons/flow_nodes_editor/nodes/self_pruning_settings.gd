@@ -9,14 +9,6 @@ enum ePruneMode {
 	GridCell,
 }
 
-# How overlapped points are resolved in BoundsOverlap mode.
-#  Binary   - legacy default: pruned points are hard-removed (today's behavior).
-#  Minimum  - density := min(density, 1 - overlap_factor). Pruned points survive.
-#  Multiply - density := density * (1 - overlap_factor).
-#  Subtract - density := density - overlap_factor (clamped to 0).
-# Non-Binary modes keep every point and attenuate the density of points that
-# would have been pruned (overlap shaped by steepness when present), leaving
-# culling to a downstream density_filter.
 enum eDensityFunction {
 	Binary,
 	Minimum,
@@ -31,6 +23,7 @@ enum eDensityFunction {
 		notify_property_list_changed()
 		emit_changed()
 
+## When enabled, preserves self intersections instead of discarding/replacing it.
 @export var keep_self_intersections : bool = false
 ## How pruned points are resolved. Binary (default) hard-removes them (legacy).
 ## Minimum/Multiply/Subtract instead keep them with attenuated density.
@@ -43,10 +36,12 @@ enum eDensityFunction {
 	set(value):
 		cell_size = value
 		emit_changed()
+## Attribute name used to read/write prefer on point data.
 @export var prefer_attribute : String:
 	set(value):
 		prefer_attribute = value
 		emit_changed()
+## Preferred attribute value used as a tie-breaker during pruning.
 @export var prefer_value : String:
 	set(value):
 		prefer_value = value

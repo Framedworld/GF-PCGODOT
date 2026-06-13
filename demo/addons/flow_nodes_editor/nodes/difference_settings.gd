@@ -18,21 +18,13 @@ enum eOverlapSource {
 	MergeAAndB,
 }
 
-# How overlapped points are resolved.
-#  Binary   - legacy default: overlapped points are hard-removed (today's
-#             behavior, byte-for-byte). No density is touched.
-#  Minimum  - density := min(density, 1 - overlap_factor). Survives, attenuated.
-#  Multiply - density := density * (1 - overlap_factor).
-#  Subtract - density := density - overlap_factor (clamped to 0).
-# For the non-Binary modes overlapped points are KEPT with reduced density;
-# culling is left to a downstream density_filter. Steepness (when present)
-# shapes the overlap_factor falloff ramp.
 enum eDensityFunction {
 	Binary,
 	Minimum,
 	Multiply,
 	Subtract,
 }
+
 
 ## Chooses the operation this node applies to incoming data.
 @export var operation : eOperation = eOperation.A_Minus_B:
@@ -42,17 +34,20 @@ enum eDensityFunction {
 			operation = value
 			notify_property_list_changed()
 
+## When enabled, preserves a on union overlap instead of discarding/replacing it.
 @export var keep_a_on_union_overlap : bool = true:
 	set(value):
 		keep_a_on_union_overlap = value
 		emit_changed()
 
+## Selects this node behavior mode (LegacyKeepAFlag, FromA, FromB, MergeAAndB).
 @export var union_overlap_source : eOverlapSource = eOverlapSource.LegacyKeepAFlag:
 	set(value):
 		value = clampi(value, 0, eOverlapSource.size() - 1)
 		union_overlap_source = value
 		notify_property_list_changed()
 
+## Selects this node behavior mode (LegacyKeepAFlag, FromA, FromB, MergeAAndB).
 @export var intersection_overlap_source : eOverlapSource = eOverlapSource.FromA:
 	set(value):
 		value = clampi(value, 0, eOverlapSource.size() - 1)

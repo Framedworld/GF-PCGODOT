@@ -133,6 +133,10 @@ func execute( ctx : FlowData.EvaluationContext ):
 			for stream_name in in_data.streams:
 				var stream = in_data.streams[stream_name]
 				target_data.registerStream(stream_name, stream.container, stream.data_type)
+
+			if in_data.streams.size() == 0:
+				set_output( 0, target_data )
+				return
 				
 			var main_stream_name = in_data.last_added_stream_name
 			if main_stream_name == "" or not in_data.hasStream(main_stream_name):

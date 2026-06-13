@@ -379,6 +379,14 @@ icon_alignment = 1
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="ButtonArrange" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
+custom_minimum_size = Vector2(68, 64)
+layout_mode = 2
+tooltip_text = "Automatically arrange selected nodes."
+focus_mode = 3
+theme_type_variation = &"FlatButton"
+icon_alignment = 1
+
 [node name="ButtonMinimap" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer" unique_id=1786087731]
 custom_minimum_size = Vector2(68, 64)
 layout_mode = 2

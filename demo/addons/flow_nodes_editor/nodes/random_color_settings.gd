@@ -4,23 +4,32 @@ extends NodeSettings
 
 @export_group("Random Color")
 
+## Name of the output attribute this node writes.
 @export var out_name : String = "color"
+## Toggles whether this node uses palette instead of default behavior.
 @export var use_palette : bool = true:
 	set(value):
 		if use_palette != value:
 			use_palette = value
 			notify_property_list_changed()
+## Color palette used for random color assignment.
 @export var palette : Array[Color] = [
 	Color(1.0, 0.078, 0.576, 1.0), # Pink
 	Color(0.0, 0.749, 1.0, 1.0),   # Cyan
 	Color(1.0, 0.843, 0.0, 1.0)    # Yellow
 ]
 
+## Minimum hue value for HSV random color generation.
 @export_range(0.0, 1.0) var hue_min : float = 0.0
+## Maximum hue value for HSV random color generation.
 @export_range(0.0, 1.0) var hue_max : float = 1.0
+## Minimum saturation value for HSV random color generation.
 @export_range(0.0, 1.0) var sat_min : float = 0.6
+## Maximum saturation value for HSV random color generation.
 @export_range(0.0, 1.0) var sat_max : float = 1.0
+## Minimum value/brightness for HSV random color generation.
 @export_range(0.0, 1.0) var val_min : float = 0.6
+## Maximum value/brightness for HSV random color generation.
 @export_range(0.0, 1.0) var val_max : float = 1.0
 
 func _init():
