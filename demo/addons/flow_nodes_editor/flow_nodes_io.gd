@@ -741,13 +741,39 @@ static func _coerce_input_data(val, input_name: String):
 		push_warning("evaluate_graph: could not wrap runtime input '%s' (data_type %d)" % [input_name, data_type])
 		return null
 	container.resize(1)
-	container[0] = val
+	# Use the typed writer rather than `container[0] = val`: primitive streams are
+	# backed by Packed*Array (PackedByteArray for Bool, PackedInt32Array for Int,
+	# PackedStringArray for String, ...). Direct subscript assignment of a raw
+	# bool/int/String into the wrong packed type crashes or silently coerces the
+	# runtime feed — the original primitive-graph-input bug. writeValue() casts to
+	# the container's element type, matching the generic-input default-value path.
+	FlowData.Data.writeValue(container, 0, val, data_type)
 	return data
 
-static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary = {}, depth: int = 0) -> Dictionary:
-	if depth > 20:
-		push_error("PCG graph evaluation exceeded maximum recursion depth (20). Check for circular subgraph references.")
-		return {}
+# ---------------------------------------------------------------------------
+# Resumable evaluator foundation (PARITY_ROADMAP "Async / proximity runtime
+# generation", stage 2 only — time-slicing).
+#
+# The evaluation has three phases:
+#   1. _build_evaluation_state(): instance nodes, build deps, topo-sort, build
+#      the EvaluationContext, feed graph inputs. (Cheap; done up front.)
+#   2. execution of the ordered node list — the only resumable part. Each node
+#      is run by _execute_single_node().
+#   3. _finalize_evaluation(): collect outputs, publish flow variables, free the
+#      instanced node Controls.
+#
+# evaluate_graph() runs all three phases synchronously in one call and is
+# byte-for-byte identical to the historical behavior (it just drives the same
+# helpers to completion). GraphEvaluation exposes the same work as a resumable
+# state object with a step(budget_ms) method, so a host (FlowGraphNode3D with
+# async_generation = true) can spread phase 2 across frames. Topo sort, cycle
+# detection, variable/runtime-param publishing and node-instance freeing are
+# shared by both paths — there is a single execution implementation.
+# ---------------------------------------------------------------------------
+
+# Phase 1: instance + order + context + feed inputs. Returns a state Dictionary,
+# or {} on the recursion-guard trip (mirroring evaluate_graph's early return).
+static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary, depth: int) -> Dictionary:
 	var instances = {}
 	var node_list = []
 	for n_data in graph.data.get("nodes", []):
@@ -881,35 +907,56 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 							FlowData.Data.writeValue(container, 0, new_value, param.data_type)
 					node.set_output(i, target_data)
 
-	# Execute nodes in topological order
-	for node in ordered_nodes:
-		if (node.node_template.begins_with("input_") or node.node_template == "input") and node.generated_bulks.size() > 0:
+	return {
+		"graph": graph,
+		"parent_ctx": parent_ctx,
+		"instances": instances,
+		"node_list": node_list,
+		"ordered_nodes": ordered_nodes,
+		"ctx": ctx,
+	}
+
+
+# Phase 2 (one node): identical body to the historical inline execution loop.
+# Shared verbatim by the synchronous path and the resumable step() so the two
+# can never diverge.
+static func _execute_single_node(node, instances: Dictionary, graph: FlowGraphResource, ctx: FlowData.EvaluationContext) -> void:
+	if (node.node_template.begins_with("input_") or node.node_template == "input") and node.generated_bulks.size() > 0:
+		return
+
+	node.inputs.clear()
+	var num_ins = node.getMeta().get("ins", []).size()
+	if node.node_template == "output":
+		if "out_params" in graph and graph.out_params.size() > 0:
+			num_ins = graph.out_params.size()
+		else:
+			num_ins = max(num_ins, 1)
+	node.inputs.resize(num_ins)
+	for conn in node.deps:
+		if conn.get("virtual_variable", false):
 			continue
+		var src = instances.get(conn.from_node)
+		if src and src.generated_bulks.size() > 0:
+			var src_bulk = src.generated_bulks[src.generated_bulks.size() - 1]
+			if conn.from_port < src_bulk.size():
+				node.inputs[conn.to_port] = src_bulk[conn.from_port]
 
-		node.inputs.clear()
-		var num_ins = node.getMeta().get("ins", []).size()
-		if node.node_template == "output":
-			if "out_params" in graph and graph.out_params.size() > 0:
-				num_ins = graph.out_params.size()
-			else:
-				num_ins = max(num_ins, 1)
-		node.inputs.resize(num_ins)
-		for conn in node.deps:
-			if conn.get("virtual_variable", false):
-				continue
-			var src = instances.get(conn.from_node)
-			if src and src.generated_bulks.size() > 0:
-				var src_bulk = src.generated_bulks[src.generated_bulks.size() - 1]
-				if conn.from_port < src_bulk.size():
-					node.inputs[conn.to_port] = src_bulk[conn.from_port]
+	node.preExecute(ctx)
+	if node.settings != null and node.settings.disabled:
+		node.executedDisabled(ctx)
+	elif not FlowVariableEval.try_fast_execute(node, ctx, instances):
+		node.run(ctx)
+	if FlowVariableEval.should_refresh_debug_draw(node):
+		node.setupDrawDebug()
 
-		node.preExecute(ctx)
-		if node.settings != null and node.settings.disabled:
-			node.executedDisabled(ctx)
-		elif not FlowVariableEval.try_fast_execute(node, ctx, instances):
-			node.run(ctx)
-		if FlowVariableEval.should_refresh_debug_draw(node):
-			node.setupDrawDebug()
+
+# Phase 3: collect outputs, publish variables, free instances. Identical to the
+# historical tail of evaluate_graph.
+static func _finalize_evaluation(state: Dictionary) -> Dictionary:
+	var graph: FlowGraphResource = state["graph"]
+	var node_list: Array = state["node_list"]
+	var ctx: FlowData.EvaluationContext = state["ctx"]
+	var parent_ctx: FlowData.EvaluationContext = state["parent_ctx"]
 
 	# Collect output data
 	var outputs = {}
@@ -959,3 +1006,113 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 	# `outputs` keep the data alive) — free the instanced node Controls now.
 	_free_node_instances(node_list)
 	return outputs
+
+
+## Synchronous graph evaluation — the default, unchanged runtime path.
+## Builds the state, runs every ordered node in one pass, finalizes. This is
+## the historical evaluate_graph: same phases, same order, same side effects,
+## same return value. Nested subgraph/loop nodes keep calling this.
+static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary = {}, depth: int = 0) -> Dictionary:
+	if depth > 20:
+		push_error("PCG graph evaluation exceeded maximum recursion depth (20). Check for circular subgraph references.")
+		return {}
+	var state := _build_evaluation_state(graph, input_data_map, parent_ctx, runtime_params, depth)
+	if state.is_empty():
+		return {}
+	var graph_res: FlowGraphResource = state["graph"]
+	var instances: Dictionary = state["instances"]
+	var ctx: FlowData.EvaluationContext = state["ctx"]
+	for node in state["ordered_nodes"]:
+		_execute_single_node(node, instances, graph_res, ctx)
+	return _finalize_evaluation(state)
+
+
+## OPT-IN resumable evaluation (PARITY_ROADMAP async stage 2).
+## Returns a GraphEvaluation the caller drives across frames via step(budget_ms).
+## The work, ordering and side effects are identical to evaluate_graph(); only
+## phase 2 (node execution) is spread over multiple calls. Returns null on the
+## recursion-guard trip, matching evaluate_graph's {} early-out.
+static func begin_evaluation(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary = {}, depth: int = 0):
+	if depth > 20:
+		push_error("PCG graph evaluation exceeded maximum recursion depth (20). Check for circular subgraph references.")
+		return null
+	var state := _build_evaluation_state(graph, input_data_map, parent_ctx, runtime_params, depth)
+	if state.is_empty():
+		return null
+	return GraphEvaluation.new(state)
+
+
+## Resumable, time-sliced driver over an already-built evaluation state.
+##
+## Lifecycle:
+##   var ev = FlowNodeIO.begin_evaluation(graph, args, ctx)
+##   while ev != null and not ev.is_done():
+##       ev.step(frame_budget_ms)   # run nodes until the ms budget is spent
+##   var outputs = ev.outputs       # populated once is_done() is true
+##
+## Granularity is one node: a step never interrupts a node mid-run (a single
+## heavy node can still overrun the budget — the heavy nodes are native-
+## accelerated, so this is acceptable for stage 2). Phase 1 (build) already ran
+## in begin_evaluation; finalize (output collection, variable publishing,
+## instance freeing) runs automatically when the last node completes, so the
+## same teardown guarantees as the synchronous path hold.
+class GraphEvaluation:
+	extends RefCounted
+
+	var _state: Dictionary
+	var _ordered: Array
+	var _instances: Dictionary
+	var _graph: FlowGraphResource
+	var _ctx: FlowData.EvaluationContext
+	var _index: int = 0
+	var _finalized: bool = false
+	var outputs: Dictionary = {}
+
+	func _init(state: Dictionary) -> void:
+		_state = state
+		_ordered = state["ordered_nodes"]
+		_instances = state["instances"]
+		_graph = state["graph"]
+		_ctx = state["ctx"]
+
+	## Total nodes in the ordered execution list.
+	func node_count() -> int:
+		return _ordered.size()
+
+	## Nodes executed so far (for progress reporting / proximity scheduling later).
+	func progress() -> int:
+		return _index
+
+	## True once every node has run and finalize has published outputs.
+	func is_done() -> bool:
+		return _finalized
+
+	## Execute ordered nodes until `budget_ms` of wall-clock time is spent this
+	## call, then return so the host can yield the frame. Resumes from where it
+	## left off next call. Always makes forward progress (at least one node per
+	## call) so a tiny/zero budget cannot deadlock. Returns true when the whole
+	## graph is finished (outputs are then populated).
+	func step(budget_ms: float = 4.0) -> bool:
+		if _finalized:
+			return true
+		var start_us := Time.get_ticks_usec()
+		var budget_us := int(maxf(budget_ms, 0.0) * 1000.0)
+		while _index < _ordered.size():
+			FlowNodeIO._execute_single_node(_ordered[_index], _instances, _graph, _ctx)
+			_index += 1
+			# Node-level granularity: check the budget only between nodes. Guarantee
+			# one node of progress per call regardless of budget.
+			if Time.get_ticks_usec() - start_us >= budget_us:
+				break
+		if _index >= _ordered.size():
+			outputs = FlowNodeIO._finalize_evaluation(_state)
+			_finalized = true
+			return true
+		return false
+
+	## Run the remainder synchronously (e.g. on teardown / forced completion),
+	## still finalizing exactly once.
+	func run_to_completion() -> Dictionary:
+		while not _finalized:
+			step(1.0e12)
+		return outputs

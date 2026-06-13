@@ -3,7 +3,7 @@ extends PopupMenu
 class_name SearchAddNodePopup
 
 signal node_selected(template_name: String)
-signal action_selected(action_id: int)
+signal action_selected(item_id: int)
 signal input_selected(input_idx: int)
 signal output_selected(output_idx: int)
 

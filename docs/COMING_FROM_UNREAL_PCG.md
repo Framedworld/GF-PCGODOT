@@ -75,7 +75,7 @@ The data model is a **column store**: each pin carries `Data` objects, and a `Da
 | `$Color` | a `Color`-typed stream | Conventionally named `color`; `spawn_meshes` reads it for per-instance vertex colors. |
 | `@Last` | `@last` | "The last stream written by the upstream node" — same idea, same place you'd use it (filter inputs default to it). |
 | `@Source`, `@LastCreated` | — | Not supported; name your output attribute explicitly. |
-| `@Data` / `@Points` / `@Elements` domains (5.6+) | — | No attribute domains; everything is per-point. Roadmap. |
+| `@Data` / `@Points` / `@Elements` domains (5.6+) | `@data.<name>` (per-data); per-point is default | Per-data attributes now exist: write one with `add_attribute` in PerData mode (or the `@data.<name>` selector), read it back broadcast via `@data.<name>`. `partition` stamps its key as a per-data attribute. `@Points` is the default per-point domain; `@Elements` has no equivalent yet. |
 | **Attribute Set** | a `Data` with no point streams | A single-row `Data` is the equivalent of UE's single-entry attribute set. Convert with `point_to_attribute_set` / `attribute_set_to_point`. The `assets` node is the idiomatic way to author a weighted table for `match_and_set`. |
 | **Tags** | `Data.tags` | Per-data string tags, exactly like UE: `add_tags` / `delete_tags` / `replace_tags` to mutate, `filter_data_by_tag` to route. |
 | **Spatial data types** (Surface, Volume, Spline, Primitive, composite algebra) | Point streams + dedicated nodes | There is no typed spatial lattice. Splines travel as a `node` stream of `Path3D`s (from `scan_splines`), meshes as a `node`/`mesh` stream (from `scan_meshes`), and you sample them explicitly (`sample_spline`, `sample_mesh`, `surface_sampler`). "To Point" / "Make Concrete" are unnecessary — everything already is points. See [roadmap](PARITY_ROADMAP.md#spatial-data-type-lattice). |
@@ -99,7 +99,7 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Input | `input` | 1:1 | Exposes graph parameters as output ports. |
 | Output | `output` | 1:1 | Graph/subgraph output terminal. |
 | Get Actor Data | `scan_nodes` (alias `points_from_scene`) | 1:1 | One point per matching scene node; filter by group (≈ tag) or class; can import node properties/metadata as attributes. |
-| Get Landscape Data | `scan_meshes` | partial | Godot has no landscape actor. Scan your terrain `MeshInstance3D`(s), then sample (see [forest tutorial](#tutorial-1--forest-quick-start)). No height-field semantics, no paint-layer weights (roadmap). |
+| Get Landscape Data | `scan_meshes` (+ `sample_terrain_layers`) | partial | Godot has no landscape actor. Scan your terrain `MeshInstance3D`(s), then sample (see [forest tutorial](#tutorial-1--forest-quick-start)). No height-field semantics. Paint-layer weights now have a generic equivalent: `sample_terrain_layers` reads N user-assigned mask textures (world-XZ or UV) and writes a `layer_<name>` Float stream per layer, then filter with `density_filter`/`attribute_filter_range`. Terrain-plugin splat auto-detection is still roadmap. |
 | Get Spline Data | `scan_splines` | 1:1 | Collects `Path3D` nodes (by group or scene scan) as a `node` stream. |
 | Get Volume Data | `make_bounds` / `scan_nodes` (size_to_bounds) | partial | No volume actor type; a bounds point + `volume_sampler` covers the sampling use. |
 | Get Primitive Data | `scan_meshes` | 1:1 | Meshes with their `mesh` resources as streams. |
@@ -111,6 +111,7 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Data Table Row To Attribute Set | `data_table_row_to_attribute_set` | 1:1 | By index or key match. |
 | Load PCG Data Asset | `load_pcg_data_asset` | 1:1 | JSON / Resource-backed point data. |
 | Load Alembic File | `load_alembic_file` | 1:1 | |
+| — (bonus) | `points_from_imported_scene` | Godot-only | Loads a `PackedScene` or `Mesh` resource file and emits one point per `MeshInstance3D` found inside it (uses mesh AABB for position/size). No scene-tree involvement — the scene is instantiated off-screen and freed immediately. Optionally exports the `Mesh` resource, source name, or file path as attributes. |
 
 ### Samplers
 
@@ -123,6 +124,8 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Texture Sampler | `texture_sampler` | 1:1 | Writes a Color attribute and/or scalar channel per point. |
 | Copy Points | `copy_points` (alias `copy`) | 1:1 | Source-to-targets transform composition; also a LinearCopies mode ≈ Duplicate Point. |
 | Select Points | `select_points` | 1:1 | Seeded random keep-ratio, optional weight attribute. |
+| — (bonus) | `sample_points` (aliases: Point Subdivision, Blue Noise) | Godot-only | Subdivides each input point's volume into sub-points using **Uniform Grid**, **Quasi-Random** (golden-ratio 2D or 3D), or **Blue-Noise 2D** distributions. A point's `size` stream drives the sampling volume; output points carry density=1.0 and per-point seeds. Use it to scatter inside bounds without a separate source mesh. |
+| — (bonus) | `navigation_region_sampler` | Godot-only | Samples `NavigationRegion3D` navmesh data into points. **Polygons** mode emits one point per navmesh polygon (position = centroid, with `normal` and `area` attributes); **Vertices** mode emits one point per navmesh vertex. Useful for AI spawn / placement that stays on walkable surfaces. |
 
 ### Spatial
 
@@ -152,6 +155,10 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | World Ray Hit Query | `ray_cast` (also `physics_shape_sweep`) | 1:1 | Per-point physics raycast with hit position/normal/rotation/collider outputs. |
 | World Volumetric Query | `physics_overlap_query` | 1:1 | |
 | Spatial Data Bounds To Point | `combine_points` | 1:1 | |
+| — (bonus) | `split_splines` | Godot-only | Converts each spline segment between baked samples into a **segment-center point** oriented along the segment (Z-forward). Outputs `start`/`end` world positions, `segment_index`, `spline_index`, and optionally the source `Path3D` reference. Where `sample_spline` gives you uniformly spaced points *along* a spline, `split_splines` gives you one point *per segment* — handy for placing walls between corridor waypoints. |
+| — (bonus) | `create_surface_from_polygon` | Godot-only | Creates an AABB bounds point from ordered polygon point streams. Related to `create_surface_from_spline` but takes explicit point data instead of a `Path3D`. Outputs `area` (shoelace formula), `perimeter`, and `point_count` attributes. Supports a `group_attribute` to produce one surface per group. |
+| — (bonus) | `grid_boundary` | Godot-only | Given a set of **filled grid cells** (position stream snapped to a cell grid), emits the exposed **edge** and **corner** points — the faces that have no filled neighbor. Each edge point is sized and rotated to span one cell face; corner points sit at exposed vertices. Three output pins: Edges, Corners, All. Perfect for building walls around a dungeon room layout. |
+| — (bonus) | `grid_connect_points` | Godot-only | Connects ordered points with **orthogonal grid-cell paths** on the XZ plane (Manhattan / L-shaped corridors). Walk axis order is configurable (X-then-Z or Z-then-X). Outputs one cell point per step; optionally tags each path segment with a `path_index` attribute. Pairs with `grid_boundary` for dungeon corridor + wall generation. |
 
 ### Point Ops
 
@@ -181,6 +188,7 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Filter Attributes by Name | `remove_attribute` | 1:1 | Keep/remove listed streams. |
 | Self Pruning | `self_pruning` | 1:1 | Native RTree bounds-overlap pruning (large-to-small) + a grid-cell dedupe mode. Overlap uses `size` as bounds. |
 | Discard Points on Irregular Surface | — | roadmap | Compose `ray_cast` probes + `point_neighborhood` + `density_filter` meanwhile. |
+| Difference (simple) | `substract` | partial | Older RTree subtraction node: removes points from A that overlap points from B (or keeps only the overlap in Intersection mode). Superseded by `difference` which has more modes and the same native acceleration — prefer `difference` in new graphs. |
 
 ### Density
 
@@ -190,6 +198,7 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Curve Remap Density | `curve_remap_density` | 1:1 | Remap through a Godot `Curve` resource. |
 | Distance to Density | `distance_to_density` (or `distance` + `density_remap`) | 1:1 | |
 | Density Noise | `attribute_noise` (targets `density` by default) | 1:1 | Exactly the UE 5.3+ story: Density Noise *is* Attribute Noise pointed at density. Set/Min/Max/Add/Multiply modes, per-point seeded, clamps when targeting density. |
+| — (bonus) | `remap` | Godot-only | Remaps **any float attribute** through a Godot `Curve` resource. Unlike `density_remap` (linear in/out range) and `curve_remap_density` (always writes to density), `remap` lets you curve-shape any attribute by name. Set `Out Name` to `@in_name` to overwrite the source attribute in place. |
 
 ### Attributes / Metadata
 
@@ -200,6 +209,7 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Attribute Rename | `attribute_rename` | 1:1 | |
 | Delete Attributes | `remove_attribute` | 1:1 | |
 | Attribute Noise | `attribute_noise` | 1:1 | Per-point seeded randomization of any attribute (also see `attribute_random` for the simple uniform case and `noise` for spatially-coherent noise). |
+| — | `attribute_random` | bonus | Fills any attribute with **uniform random values** (float or int, min/max range). Simpler than `attribute_noise` — no noise type, no spatial coherence, just a flat random draw. Uses the point `seed` stream when present for per-point stability. Also supports a `use_index_as_value` mode to write sequential indices (0, 1, 2, …) into any attribute. |
 | Attribute Partition | `partition` | 1:1 | One output data per unique value. |
 | Attribute Select | `reduce` | partial | Average/Min/Max reductions; no median, no per-axis select. |
 | Attribute String Op | `expression` | partial | Any GDScript string expression per point. |
@@ -218,6 +228,7 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Compare Op | `filter` / `expression` | partial | `filter` routes instead of writing a bool attribute; use `expression` to materialize the bool. |
 | Trig / Vector / Rotator / Transform Op | `expression` (+ `compose_vector`/`decompose_vector`, `build_rotation_from_up`) | partial | `expression` evaluates arbitrary GDScript per point with all streams bound by name — it is the escape hatch for the whole op-family zoo. Rotator/Transform composition is limited by the Euler model. |
 | Reduce Op | `reduce` | 1:1 | Average/Min/Max across entries. |
+| — (bonus) | `size` (node) | Godot-only | Returns the **point count** of the input as a single-entry Int attribute. Useful when you need the count as data to drive downstream expressions or graph inputs rather than as a debug display. (For the display use, `get_points_count` is the right choice.) |
 
 ### Spawners
 
@@ -243,19 +254,20 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Subgraph | `subgraph` | 1:1 | Nested `.tres` graphs, dynamic pins from graph params, per-instance override pins (≈ graph parameter overrides), collapse-selection-to-subgraph. |
 | Loop | `loop` | 1:1 | Runs a subgraph per data/entry, with a sequential feedback parameter. |
 | Get Loop Index | `get_loop_index` | 1:1 | |
+| Set Variable / Get Variable | `set_variable` / `get_variable` | 1:1 | Named in-graph data channels: `set_variable` stores its input under a named key in the evaluation context and passes the data through unchanged; `get_variable` reads the stored data by name. Wire color matches across paired nodes. Use these to share data between distant parts of a complex graph without long cross-canvas wires — exactly like UE PCG's Variable nodes added in 5.4. |
 
 ### Hierarchical / GPU
 
 | UE node | Here | Status | Notes |
 |---|---|---|---|
-| Grid Size (HiGen) | — | roadmap | See [PARITY_ROADMAP.md](PARITY_ROADMAP.md#hierarchical-generation-grid-size). |
-| Custom HLSL / all GPU nodes | — | roadmap | CPU-only; the native GDExtension (KdTree/RTree) covers the hot paths. |
+| Grid Size (HiGen) | `grid_size` | partial | Declaration node landed — it tags its downstream section with a power-of-two cell size. Per-cell partition *execution* on `FlowGraphNode3D` is still deferred ([roadmap](PARITY_ROADMAP.md#hierarchical-generation-grid-size)). |
+| Custom HLSL / all GPU nodes | `compute_kernel` | partial | Escape-hatch node runs a user-supplied GLSL compute shader over point streams via `RenderingDevice` (declared in/out stream bindings), with graceful CPU fallback. Not a transparent "Execute on GPU" flag; the native GDExtension (KdTree/RTree) still covers the hot paths. |
 
 ### Generic / Tags / Debug
 
 | UE node | Here | Status | Notes |
 |---|---|---|---|
-| Add / Delete / Replace Tags | `add_tags` / `delete_tags` / `replace_tags` | 1:1 | |
+| Add / Delete / Replace Tags | `add_tags` / `delete_tags` / `replace_tags` | 1:1 | Also available as a single combined node: `tags_mutate` ("Tags") — select Add / Remove / Replace via its `operation` setting. |
 | Get Data Count | `get_data_count` | 1:1 | |
 | Get Entries Count | `get_entries_count` | 1:1 | |
 | Debug | `debug` (or just press `D`) | 1:1 | |
@@ -266,7 +278,9 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Named Reroute Declaration | — | roadmap | |
 | Execute Blueprint | `expression` / write a node script | partial | `expression` = per-point GDScript with streams bound by name. Full custom nodes are a single `.gd` file extending `FlowNodeBase` — substantially less ceremony than a `UPCGBlueprintElement`. |
 
-Nodes here with **no UE counterpart** (you get them for free): `relax` (Lloyd relaxation), `snap_to_grid`, `clip_points_by_polygon`, `random_color`, `sequence_sample`, `points_from_gridmap` / `points_from_tilemap` (Godot-native), the `dungeon_*` generator family, and `expression`.
+Nodes here with **no UE counterpart** (you get them for free): `relax` (Lloyd relaxation), `snap_to_grid`, `clip_points_by_polygon` / `clip_paths` / `polygon_operation` (spline-polygon clipping), `random_color`, `sequence_sample`, `points_from_gridmap` / `points_from_tilemap` / `points_from_imported_scene` (Godot-native data sources), `navigation_region_sampler` (navmesh → points), `sample_points` (subdivision with blue-noise / quasi-random), `split_splines` (spline-segment-center points), `create_surface_from_polygon` (polygon → AABB point), `grid_boundary` / `grid_connect_points` (grid-cell topology helpers), `set_variable` / `get_variable` (named wire-free data channels), `attribute_random` (simple uniform random attribute), `remap` (curve remap any float attribute), `tags_mutate` (combined add/remove/replace tags), `size` (point count as data), the `dungeon_*` generator family, and `expression`.
+
+**New roadmap-parity nodes** (see [PARITY_ROADMAP.md](PARITY_ROADMAP.md#implementation-status-2026-06)): `rotator_op` (Combine/Invert/Lerp/RotateAroundAxis on Euler or quaternion rotations), `subdivide_segment` (slice splines/segments into sized, oriented sub-segments), `grammar_expand` (UE-style shape-grammar expansion into placeable modules), `sample_terrain_layers` (mask-texture paint layers), `compute_kernel` (GLSL compute-shader escape hatch), and `grid_size` (HiGen cell-size declaration). Density-aware set ops live on `difference`/`self_pruning` via their `density_function` setting, and per-point `bounds_min`/`bounds_max`/`steepness` streams are honored when present.
 
 ---
 

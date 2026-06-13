@@ -6,6 +6,35 @@ If a tutorial step depends on one of these, the node dictionary marks it **roadm
 
 ---
 
+## Implementation status (2026-06)
+
+A first pass has landed groundwork for every item below. Each ships behind
+optional streams / opt-in flags / new nodes, so existing `.tres` graphs and
+demos are byte-for-byte unchanged. Per-item implementation notes live in
+[`_roadmap_notes/`](_roadmap_notes/). The design sections that follow remain the
+reference for the *full* intent; "Partial" / "Foundation" mark where only part
+of that intent shipped.
+
+| Roadmap item | Status | What landed |
+|---|---|---|
+| Per-point BoundsMin/Max + Steepness | **Implemented** | Optional `bounds_min`/`bounds_max`/`steepness` streams; `bounds_modifier` PerPointBounds mode; `Data.getEffectiveBounds()`/`getEffectiveSteepness()` |
+| Density-aware Difference / Self-Pruning | **Implemented** | `density_function` setting (Binary default / Minimum / Multiply / Subtract) attenuates density instead of hard-removing |
+| Quaternion rotation model | **Implemented** | `DataType.Quaternion`, optional `rotation_quat` stream (wins over Euler), `rotator_op` node |
+| Attribute domains (`@Data`) | **Implemented** | `Data.data_attrs` + `@data.<name>` selector; `add_attribute` domain toggle; `partition` stamps per-data key |
+| Spatial data type lattice | **Partial** | Lightweight `kind` marker; `filter_data_by_type` honest when set. Full typed algebra still out of scope |
+| Subdivide Segment | **Implemented** | `subdivide_segment` node |
+| Shape grammar | **Implemented** | `grammar_expand` node (UE grammar subset) + `GrammarModuleResourceData` table |
+| Landscape paint-layer sampling | **Partial** | `sample_terrain_layers` (generic mask-texture path); terrain-plugin auto-detect deferred |
+| GPU execution | **Implemented (escape hatch)** | `compute_kernel` node wrapping a user GLSL compute shader via `RenderingDevice` |
+| Hierarchical generation (Grid Size) | **Foundation** | `grid_size` declaration node; per-cell partition *execution* still deferred |
+| Async / proximity runtime | **Foundation** | Opt-in resumable, time-sliced evaluator (`begin_evaluation`/`GraphEvaluation.step`) + primitive graph-input fix; proximity scheduling deferred |
+| Hardening: node-instance leak | **Done** | Instances pooled/freed after evaluation |
+| Hardening: editor/runtime topo sort | **Done** | Unified post-order sort with cycle detection |
+| Hardening: primitive graph-input args | **Done** | `FlowData.Data.writeValue` typed-feed in `_coerce_input_data` |
+| Hardening: stream-length invariants | **Done** | `registerStream` warns on non-broadcast length mismatch |
+
+---
+
 ## Per-point BoundsMin/BoundsMax + Steepness
 
 **Gap.** A UE point carries Scale *and* a separate BoundsMin/BoundsMax pair plus Steepness (the hardness of the point's volume, 1 = binary box, lower = falloff ramp). Here, the `size` stream is simultaneously scale and bounds: `bounds_modifier` collapses min/max into a symmetric extent written into `size`, and any recipe that scales a mesh while keeping collision bounds fixed (or vice versa) cannot be expressed. Steepness does not exist at all, so density falloff at point edges during sampling/projection/difference is always hard.

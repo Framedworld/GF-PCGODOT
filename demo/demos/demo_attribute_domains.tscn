@@ -1,0 +1,120 @@
+[gd_scene load_steps=5 format=3 uid="uid://byqsbkoyise31"]
+
+[ext_resource type="Script" uid="uid://d1krtmb1urldl" path="res://addons/flow_nodes_editor/flow_node.gd" id="1_sv1gj"]
+[ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="2_7xpo0"]
+[ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="4_om314"]
+
+[sub_resource type="Resource" id="Resource_odxoa"]
+resource_local_to_scene = true
+script = ExtResource("4_om314")
+data = {
+"frames": [],
+"links": [{
+"from_node": &"id_0001_grid",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0002_add_attribute",
+"to_port": 0
+}, {
+"from_node": &"id_0002_add_attribute",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0003_add_attribute",
+"to_port": 0
+}],
+"min_pos": Vector2(-20, 200),
+"nodes": [{
+"args_port": {},
+"name": &"id_0001_grid",
+"position": Vector2(0, 0),
+"settings": {
+"debug_color": Color(0.270588, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_scale": 1.0,
+"enabled": true,
+"inspect_enabled": false,
+"origin": Vector3(0, 0, 0),
+"random_seed": 1520961383,
+"rotation": Vector3(0, 0, 0),
+"step": Vector3(1, 1, 1),
+"title": "Grid",
+"trace": false,
+"x": 4,
+"y": 1,
+"z": 4
+},
+"show_disconnected_inputs": false,
+"template": "grid"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0002_add_attribute",
+"position": Vector2(220, 0),
+"settings": {
+"cte_float": 42.0,
+"data_type": 2,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_scale": 1.0,
+"disabled": false,
+"domain": 1,
+"inspect_enabled": false,
+"name": "region_id",
+"random_seed": 12345,
+"title": "Add Attribute",
+"trace": false
+},
+"show_disconnected_inputs": false,
+"template": "add_attribute"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0003_add_attribute",
+"position": Vector2(440, 0),
+"settings": {
+"cte_float": 1.0,
+"data_type": 2,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": true,
+"debug_mode": 1,
+"debug_modulate_by": "",
+"debug_scale": 1.0,
+"disabled": false,
+"domain": 0,
+"inspect_enabled": true,
+"name": "weight",
+"random_seed": 12345,
+"title": "Add Attribute",
+"trace": false
+},
+"show_disconnected_inputs": false,
+"template": "add_attribute"
+}],
+"type": "flow_graph_nodes",
+"version": 1
+}
+view_zoom = 0.909091
+view_offset = Vector2(-118.564, -32.6364)
+new_name_counter = 8
+in_params = Array[ExtResource("2_7xpo0")]([])
+metadata/_custom_type_script = "uid://j6vjeb5cjjoy"
+
+[node name="DemoAttributeDomains" type="Node3D"]
+
+[node name="FlowGraphNode3D" type="Node3D" parent="."]
+script = ExtResource("1_sv1gj")
+graph = SubResource("Resource_odxoa")
+refresh_inputs = Callable()
+metadata/_custom_type_script = "uid://d1krtmb1urldl"

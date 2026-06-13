@@ -61,7 +61,7 @@ appears in the add-node menu.
 
 ## Demo Scenes
 
-26 demo scenes in `demo/demos/`, each a small self-contained graph:
+34 demo scenes in `demo/demos/`, each a small self-contained graph:
 
 | Scene | Shows |
 |---|---|
@@ -81,6 +81,14 @@ appears in the add-node menu.
 | `demo_relax` | Lloyd relaxation of scattered points |
 | `demo_grid_and_copy`, `demo_filter`, `demo_expression`, `demo_partition`, `demo_intersect`, `demo_remap` | Minimal single-concept demos |
 | `demo_regenerate` | Collapsed subgraphs + regeneration |
+| `demo_rotator_op` | **UE PCG parity:** Combine/Invert/Lerp/RotateAroundAxis rotation ops (Euler or quaternion) |
+| `demo_density_difference` | **UE PCG parity:** density-aware Difference — overlap *attenuates* density instead of hard-removing points |
+| `demo_subdivide_segment` | **UE PCG parity:** slice a spline into sized, oriented sub-segment points |
+| `demo_grammar` | **UE PCG parity:** shape-grammar expansion (`"Post {Panel:2,Window:1}* Post"`) into placeable modules |
+| `demo_attribute_domains` | **UE PCG parity:** per-data (`@Data`) vs per-point attributes via `add_attribute` domains |
+| `demo_terrain_layers` | **UE PCG parity:** paint-layer sampling — read a mask texture into a `layer_*` weight, then filter on it |
+| `demo_grid_size` | **UE PCG parity (foundation):** HiGen cell-size declaration node |
+| `demo_compute_kernel` | **UE PCG parity (escape hatch):** run a GLSL compute shader over point streams (graceful CPU fallback) |
 
 > **Assets:** the repository bundles the demo-referenced subset (~6 MB) of the CC0 [KayKit Dungeon Remastered](https://kaylousberg.itch.io/kaykit-dungeon-remastered) pack, so `demo_dungeon` works out of the box on a fresh clone. All other demos are fully self-contained (primitive meshes only).
 

@@ -2,6 +2,7 @@
 extends FlowNodeBase
 
 const DifferenceNodeSettings = preload("res://addons/flow_nodes_editor/nodes/difference_settings.gd")
+const BoundsOverlap = preload("res://addons/flow_nodes_editor/bounds_overlap_util.gd")
 
 func _init():
 	meta_node = {
@@ -214,11 +215,22 @@ func execute(ctx : FlowData.EvaluationContext):
 	var b_only = _sanitize_indices(tB.overlaps(posA, szA, false).idxs_overlapped, in_dataB.size())
 	var b_overlap = _sanitize_indices(tB.overlaps(posA, szA, true).idxs_overlapped, in_dataB.size())
 
+	# Density-function attenuation only applies to the subtractive operations and
+	# only when not Binary. Binary (the default) preserves the legacy hard-remove
+	# behavior exactly.
+	var density_function = settings.density_function if "density_function" in settings else DifferenceNodeSettings.eDensityFunction.Binary
+
 	match op:
 		DifferenceNodeSettings.eOperation.A_Minus_B:
-			set_output(0, in_dataA.filter(a_only))
+			if density_function != DifferenceNodeSettings.eDensityFunction.Binary:
+				set_output(0, _attenuate_difference(in_dataA, posA, in_dataB, posB, a_overlap, density_function))
+			else:
+				set_output(0, in_dataA.filter(a_only))
 		DifferenceNodeSettings.eOperation.B_Minus_A:
-			set_output(0, in_dataB.filter(b_only))
+			if density_function != DifferenceNodeSettings.eDensityFunction.Binary:
+				set_output(0, _attenuate_difference(in_dataB, posB, in_dataA, posA, b_overlap, density_function))
+			else:
+				set_output(0, in_dataB.filter(b_only))
 		DifferenceNodeSettings.eOperation.Intersection:
 			var out_intersection = _build_overlap_output(settings.intersection_overlap_source, in_dataA, in_dataB, a_overlap, b_overlap)
 			if out_intersection == null:
@@ -244,3 +256,67 @@ func execute(ctx : FlowData.EvaluationContext):
 			if out_sym == null:
 				return
 			set_output(0, out_sym)
+
+# Density-aware difference resolution (non-Binary density_function). KEEPS every
+# point in `keep_data`; for the broadphase-flagged `keep_overlap` indices it runs
+# a narrowphase against the cutter boxes, computes a per-point overlap factor
+# (shaped by the kept point's steepness), and folds it into the `density` stream.
+# Culling is intentionally left to a downstream density_filter.
+func _attenuate_difference(keep_data : FlowData.Data, keep_pos : PackedVector3Array, cutter_data : FlowData.Data, cutter_pos : PackedVector3Array, keep_overlap : PackedInt32Array, density_function : int) -> FlowData.Data:
+	var out_data : FlowData.Data = keep_data.duplicate()
+	var n := out_data.size()
+	if n == 0:
+		return out_data
+
+	# Resolve world-space AABBs for both sides (bounds streams when present,
+	# else symmetric size — identical extents to the broadphase).
+	var keep_boxes := BoundsOverlap.world_aabbs(out_data, keep_pos)
+	var cut_boxes := BoundsOverlap.world_aabbs(cutter_data, cutter_pos)
+	var kmin : PackedVector3Array = keep_boxes.min
+	var kmax : PackedVector3Array = keep_boxes.max
+	var cmin : PackedVector3Array = cut_boxes.min
+	var cmax : PackedVector3Array = cut_boxes.max
+
+	var steepness := out_data.getEffectiveSteepness()
+
+	# Ensure a density stream exists (missing density = 1.0, UE parity).
+	var densities : PackedFloat32Array
+	var dsrc = out_data.getContainerChecked(FlowData.AttrDensity, FlowData.DataType.Float)
+	if dsrc != null and dsrc.size() == n:
+		densities = PackedFloat32Array(dsrc)
+	else:
+		densities = PackedFloat32Array()
+		densities.resize(n)
+		if dsrc != null and dsrc.size() == 1:
+			densities.fill(dsrc[0])
+		else:
+			densities.fill(1.0)
+
+	var fn_min : int = DifferenceNodeSettings.eDensityFunction.Minimum
+	var fn_mul : int = DifferenceNodeSettings.eDensityFunction.Multiply
+	var fn_sub : int = DifferenceNodeSettings.eDensityFunction.Subtract
+	var cutter_count : int = cutter_pos.size()
+
+	for idx in keep_overlap:
+		if idx < 0 or idx >= n:
+			continue
+		var amin : Vector3 = kmin[idx]
+		var amax : Vector3 = kmax[idx]
+		# Narrowphase: strongest interpenetration across overlapping cutter boxes.
+		var best_ratio : float = 0.0
+		for j in range(cutter_count):
+			var r : float = BoundsOverlap.penetration_ratio(amin, amax, cmin[j], cmax[j])
+			if r > best_ratio:
+				best_ratio = r
+				if best_ratio >= 1.0:
+					break
+		if best_ratio <= 0.0:
+			continue
+		var factor : float = BoundsOverlap.shape_factor(best_ratio, steepness[idx])
+		densities[idx] = BoundsOverlap.fold_density(densities[idx], factor, density_function, fn_min, fn_mul, fn_sub)
+
+	var err = out_data.registerStream(FlowData.AttrDensity, densities, FlowData.DataType.Float)
+	if err:
+		setError(err)
+		return out_data
+	return out_data

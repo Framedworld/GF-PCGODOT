@@ -18,15 +18,45 @@ enum DataType {
 	NodeMesh,
 	NodePath,
 	Color,
+	Quaternion,		# Rotation as a unit quaternion, stored as a Vector4 (x,y,z,w)
 	Invalid = 999
 }
+
+# Spatial data type lattice (lightweight `kind` marker). A Data is a bag of
+# point streams by default; `kind` lets source nodes annotate what the data
+# *represents* so consumers (e.g. filter_data_by_type) can classify it honestly
+# instead of heuristically. Absent/Points = identical to historical behavior,
+# so existing .tres / graphs are untouched.
+enum Kind {
+	Points,     # default: per-point streams
+	Spline,     # spline reference data (NodePath 'node' stream, etc.)
+	Surface,    # surface description (bounds + reference geometry)
+	Volume,     # volume description (bounds + reference geometry)
+	AttrSet     # an attribute set with no spatial role
+}
+
+# Selector prefix for the per-data attribute domain (UE @Data parity). A stream
+# name beginning with this prefix addresses `data_attrs` instead of a per-point
+# stream. See findStream()/registerStream().
+const DataAttrPrefix : String = "@data."
 
 const AttrPosition : StringName = &"position"
 const AttrRotation : StringName = &"rotation"
 const AttrSize     : StringName = &"size"
+# Optional canonical stream: when present it WINS over AttrRotation (Euler) for
+# building point bases (see getTransformsStream). Stored as DataType.Quaternion
+# (PackedVector4Array of x,y,z,w). Absent by default — Euler stays the default
+# authoring representation and existing graphs are unaffected.
+const AttrRotationQuat : StringName = &"rotation_quat"
 const AttrDensity  : StringName = &"density"	# Float, 0..1, soft existence probability (UE $Density)
 const AttrSeed     : StringName = &"seed"		# Int, per-point deterministic seed (UE $Seed)
 const AttrNormal   : StringName = &"normal"		# Vector, surface normal where known
+# Optional bounds/steepness attributes (UE PCG parity). When these streams are
+# absent, consumers MUST behave exactly as before (deriving symmetric bounds
+# from `size`), so existing graphs are byte-for-byte unchanged.
+const AttrBoundsMin : StringName = &"bounds_min"	# Vector, per-point local-space min corner of the bounds box
+const AttrBoundsMax : StringName = &"bounds_max"	# Vector, per-point local-space max corner of the bounds box
+const AttrSteepness : StringName = &"steepness"		# Float, 0..1, hardness of the point volume edge (UE $Steepness; 1 = binary box)
 
 class EvaluationContext:
 	var owner : FlowGraphNode3D
@@ -97,17 +127,54 @@ static func eulerToBasis( euler : Vector3) -> Basis:
 	euler.z = deg_to_rad( euler.z )
 	return Basis.from_euler( euler )
 
+# --- Quaternion helpers ---------------------------------------------------
+# A Quaternion stream stores each rotation as a Vector4 (x,y,z,w) so it can live
+# in a PackedVector4Array container. These convert between that storage form and
+# Godot's Quaternion/Basis without any degree<->radian round-trips.
+
+static func vec4ToQuat( v : Vector4 ) -> Quaternion:
+	return Quaternion( v.x, v.y, v.z, v.w )
+
+static func quatToVec4( q : Quaternion ) -> Vector4:
+	return Vector4( q.x, q.y, q.z, q.w )
+
+static func quatToBasis( q : Quaternion ) -> Basis:
+	return Basis( q )
+
+static func basisToQuat( basis : Basis ) -> Quaternion:
+	return basis.orthonormalized().get_rotation_quaternion()
+
+# Euler (degrees) <-> Quaternion bridges, layered on the existing Euler helpers
+# so both representations agree.
+static func eulerToQuat( euler : Vector3 ) -> Quaternion:
+	return eulerToBasis( euler ).get_rotation_quaternion()
+
+static func quatToEuler( q : Quaternion ) -> Vector3:
+	return basisToEuler( Basis( q ) )
+
 # A wrapper around the Position/Rotation/Scale streams
 class TransformsStream:
 	var positions : PackedVector3Array
 	var eulers : PackedVector3Array
 	var sizes : PackedVector3Array
+	# When an AttrRotationQuat stream is present, getTransformsStream fills these
+	# and sets use_quats = true. The quaternion path then WINS over the Euler one.
+	# When absent (the default), use_quats stays false and behavior is identical
+	# to the historical Euler-only path.
+	var quats : PackedVector4Array
+	var use_quats : bool = false
+
+	func basisAt( id: int ) -> Basis:
+		if use_quats:
+			return FlowData.quatToBasis( FlowData.vec4ToQuat( quats[id] ) )
+		return FlowData.eulerToBasis( eulers[id] )
+
 	func atIndex( id: int ) -> Transform3D:
-		var basis := FlowData.eulerToBasis( eulers[id] )
+		var basis := basisAt( id )
 		return Transform3D( basis.scaled( sizes[id] ), positions[id] )
-	
+
 	func atIndexAbsScale( id: int, scale: float ) -> Transform3D:
-		var basis := FlowData.eulerToBasis( eulers[id] )
+		var basis := basisAt( id )
 		return Transform3D( basis.scaled( Vector3.ONE * scale ), positions[id] )
 
 	func size() -> int:
@@ -118,6 +185,12 @@ class Data:
 	var streams : Dictionary = {}
 	var last_added_stream_name : String
 	var tags : PackedStringArray = PackedStringArray()
+	# Per-data attribute domain (UE @Data parity). Maps attribute name -> a small
+	# record { value, data_type }. Addressed via the "@data." selector prefix in
+	# findStream()/registerStream(). Absent/empty == historical behavior.
+	var data_attrs : Dictionary = {}
+	# Spatial data type lattice marker. Defaults to Points so absent == today.
+	var kind : Kind = Kind.Points
 
 
 	static func newContainerOfType( data_type : DataType ):
@@ -140,6 +213,8 @@ class Data:
 				return Array([], TYPE_OBJECT, "Node", null)
 			DataType.Color:
 				return PackedColorArray()
+			DataType.Quaternion:
+				return PackedVector4Array()
 			_:
 				push_error( "newContainerOfType(%d) type not supported" % [ data_type ])
 		return null
@@ -173,9 +248,34 @@ class Data:
 			DataType.Color:
 				var typed_container : PackedColorArray = container
 				typed_container[index] = value
+			DataType.Quaternion:
+				var typed_container : PackedVector4Array = container
+				if value is Quaternion:
+					typed_container[index] = FlowData.quatToVec4( value )
+				else:
+					typed_container[index] = value
 			_:
 				push_error( "writeValue(%d) type not supported" % [ data_type ])
 	
+	# Infer a DataType from a concrete packed-array container. Returns Invalid
+	# when the container type isn't one of the recognized packed arrays.
+	static func _inferContainerType( container ) -> DataType:
+		if container is PackedFloat32Array:
+			return FlowData.DataType.Float
+		elif container is PackedInt32Array:
+			return FlowData.DataType.Int
+		elif container is PackedVector3Array:
+			return FlowData.DataType.Vector
+		elif container is PackedColorArray:
+			return FlowData.DataType.Color
+		elif container is PackedVector4Array:
+			return FlowData.DataType.Quaternion
+		elif container is PackedStringArray:
+			return FlowData.DataType.String
+		elif container is PackedByteArray:
+			return FlowData.DataType.Bool
+		return FlowData.DataType.Invalid
+
 	func numFields() -> int:
 		return streams.size()
 		
@@ -268,8 +368,27 @@ class Data:
 		stream.container = big_container
 		
 	func findStream( name : String ):
+		# Per-data attribute selector (UE @Data). "@data.<attr>" returns a
+		# synthetic length-1 broadcast stream sourced from data_attrs, so the
+		# value reads as a constant for every point under the broadcast rules.
+		if name.length() > DataAttrPrefix.length() and name.begins_with( DataAttrPrefix ):
+			var attr_name := name.substr( DataAttrPrefix.length() )
+			var rec = data_attrs.get( attr_name, null )
+			if rec == null:
+				return null
+			var bcast = newContainerOfType( rec.data_type )
+			if bcast == null:
+				return null
+			bcast.resize( 1 )
+			writeValue( bcast, 0, rec.value, rec.data_type )
+			return {
+				"data_type" : rec.data_type,
+				"container" : bcast,
+				"name" : name
+			}
+
 		name = translateStreamName( name )
-		
+
 		var name_lower := name.to_lower()
 		if name_lower == "front" or name_lower == "up" or name_lower == "right":
 			var rot_stream = streams.get(AttrRotation, null)
@@ -324,7 +443,20 @@ class Data:
 			return null
 		if container == null:
 			push_error("registerStream. Can't register a null container with name %s" %  name )
-			return null			
+			return null
+		# Per-data attribute selector (UE @Data). "@data.<attr>" writes into
+		# data_attrs instead of creating a per-point stream. The container is
+		# read as a broadcast: element 0 (if any) is stored as the data value.
+		if name.length() > DataAttrPrefix.length() and name.begins_with( DataAttrPrefix ):
+			var attr_name := name.substr( DataAttrPrefix.length() )
+			if data_type == FlowData.DataType.Invalid:
+				data_type = _inferContainerType( container )
+			if data_type == FlowData.DataType.Invalid:
+				return "Invalid container type"
+			var value = container[0] if container.size() > 0 else null
+			data_attrs[ attr_name ] = { "value" : value, "data_type" : data_type }
+			last_added_stream_name = name
+			return null
 		name = translateStreamName( name )
 		var parts = name.split( "." )
 		if parts.size() == 2:
@@ -335,19 +467,9 @@ class Data:
 		elif parts.size() > 2:
 			return "Too many '.' in stream name"
 		else:
-			if container is PackedFloat32Array:
-				data_type = FlowData.DataType.Float
-			elif container is PackedInt32Array:
-				data_type = FlowData.DataType.Int
-			elif container is PackedVector3Array:
-				data_type = FlowData.DataType.Vector
-			elif container is PackedColorArray:
-				data_type = FlowData.DataType.Color
-			elif container is PackedStringArray:
-				data_type = FlowData.DataType.String
-			elif container is PackedByteArray:
-				data_type = FlowData.DataType.Bool
-			
+			if data_type == FlowData.DataType.Invalid:
+				data_type = _inferContainerType( container )
+
 			if data_type == FlowData.DataType.Invalid:
 				print( "Invalid data type ", name, " Container:", container)
 				return "Invalid container type"
@@ -355,20 +477,30 @@ class Data:
 			if streams.has(name) and streams[name].data_type != data_type:
 				push_warning("Stream name conflict: '%s' already exists with data_type %d, overwriting with data_type %d" % [name, streams[name].data_type, data_type])
 
-			# Length validation: when the Data already has streams, the new
-			# container should match their element count. Exempt: length-1
-			# broadcast streams and empty containers (register-empty-then-fill
-			# idiom). Verbose-only because build-up idioms (merge's offset
-			# padding) legitimately register mismatched sizes mid-construction;
-			# run with --verbose when debugging stream-length corruption.
-			if container.size() > 1 and streams.size() > 0:
+			# Stream-length invariant (engine-hardening). Once a Data carries
+			# points, every per-point stream must be either size()==point count
+			# or a length-1 broadcast. A registration of any other non-empty
+			# length silently corrupts downstream per-point reads, so warn
+			# clearly. We measure against the established point count size()
+			# (which ignores the stream being (re)written when it replaces an
+			# existing one). Exempt: empty containers (register-empty-then-fill
+			# idiom) and broadcast (size 1). Warn-only — never hard-error — to
+			# avoid breaking legitimate mid-construction build-up idioms.
+			var point_count : int = size()
+			if point_count > 0 and container.size() > 1 and container.size() != point_count:
+				# size() can equal the stream being overwritten; recompute the
+				# point count from the *other* streams so an overwrite of the
+				# very first stream doesn't false-positive against itself.
+				var other_count := 0
 				for existing_name in streams:
 					if existing_name == name:
 						continue
 					var existing_size : int = streams[existing_name].container.size()
-					if existing_size > 1 and existing_size != container.size():
-						print_verbose("registerStream: stream '%s' has %d elements but Data streams have %d — lengths should match (or be 1 for broadcast)" % [name, container.size(), existing_size])
+					if existing_size > 1:
+						other_count = existing_size
 						break
+				if other_count > 0 and container.size() != other_count:
+					push_warning("registerStream: stream '%s' has %d elements but this Data holds %d points — per-point streams must match the point count or be length 1 (broadcast). Downstream per-point reads may be corrupted." % [name, container.size(), other_count])
 
 			streams[ name ] = {
 				"container" : container,
@@ -412,6 +544,8 @@ class Data:
 				#print( "Duped container vec3 %s %s" % [ name, new_container ])
 			DataType.Color:
 				new_container = PackedColorArray( prev_stream.container )
+			DataType.Quaternion:
+				new_container = PackedVector4Array( prev_stream.container )
 			DataType.String:
 				new_container = PackedStringArray( prev_stream.container )
 			_:  # Resource
@@ -465,7 +599,15 @@ class Data:
 				for idx in range( new_size ):
 					new_container[idx] = old_container[ indices[idx] ]
 				return new_container
-				
+
+			DataType.Quaternion:
+				var old_container : PackedVector4Array = old_stream.container
+				var new_container := PackedVector4Array( )
+				new_container.resize( new_size )
+				for idx in range( new_size ):
+					new_container[idx] = old_container[ indices[idx] ]
+				return new_container
+
 			DataType.String:
 				var old_container : PackedStringArray = old_stream.container
 				var new_container : PackedStringArray
@@ -505,6 +647,8 @@ class Data:
 			s.streams[name]["container"] = streams[name]["container"].duplicate()
 		s.last_added_stream_name = last_added_stream_name
 		s.tags = tags.duplicate()
+		s.data_attrs = data_attrs.duplicate( true )
+		s.kind = kind
 		return s
 		
 	func filter( indices : PackedInt32Array ) -> Data:
@@ -513,6 +657,10 @@ class Data:
 			var new_container = filteredStream( old_stream, indices )
 			new_data.registerStream( old_stream.name, new_container, old_stream.data_type )
 		new_data.tags = tags.duplicate()
+		# Per-data attributes are domain-level metadata, not per-point: filtering
+		# the point set does not change them, so carry them through verbatim.
+		new_data.data_attrs = data_attrs.duplicate( true )
+		new_data.kind = kind
 		return new_data
 
 	func dump( title : String ):
@@ -543,15 +691,111 @@ class Data:
 			container = PackedVector3Array()
 		return container
 
+	## Per-point bounds resolution (UE PCG BoundsMin/BoundsMax parity).
+	##
+	## Returns a Dictionary with two PackedVector3Array entries, "min" and "max",
+	## holding the LOCAL-space (relative to each point's position) min/max corners
+	## of the point's bounds box, one entry per point.
+	##
+	## Resolution order:
+	##  - When BOTH `bounds_min` and `bounds_max` streams are present, they are
+	##    used directly (asymmetric bounds preserved). Broadcast (length-1) streams
+	##    are honored via bcast_idx.
+	##  - Otherwise bounds are derived symmetrically from `size` EXACTLY as the
+	##    native broadphase does today: min = -size*0.5, max = +size*0.5. When
+	##    `size` is missing, Vector3.ONE is assumed (matching existing fallbacks).
+	##
+	## This keeps every existing graph byte-for-byte identical: with no bounds
+	## streams, "max"-"min" == size and the box center stays on the point.
+	func getEffectiveBounds() -> Dictionary:
+		var n := size()
+		var out_min := PackedVector3Array()
+		var out_max := PackedVector3Array()
+		out_min.resize( n )
+		out_max.resize( n )
+
+		var has_bounds : bool = streams.has( AttrBoundsMin ) and streams.has( AttrBoundsMax )
+		if has_bounds:
+			var bmin : PackedVector3Array = getVector3Container( AttrBoundsMin )
+			var bmax : PackedVector3Array = getVector3Container( AttrBoundsMax )
+			# Defensive: if either container is empty/malformed, fall back to size.
+			if bmin.size() >= 1 and bmax.size() >= 1:
+				for i in range( n ):
+					out_min[i] = bmin[ FlowData.bcast_idx( bmin.size(), i ) ]
+					out_max[i] = bmax[ FlowData.bcast_idx( bmax.size(), i ) ]
+				return { "min": out_min, "max": out_max }
+
+		# Symmetric fallback from `size` — identical to today's center ± size*0.5.
+		var sizes : PackedVector3Array = getVector3Container( AttrSize )
+		var half := Vector3( 0.5, 0.5, 0.5 )
+		for i in range( n ):
+			var s : Vector3 = Vector3.ONE
+			if sizes.size() >= 1:
+				s = sizes[ FlowData.bcast_idx( sizes.size(), i ) ]
+			var h : Vector3 = s * half
+			out_min[i] = -h
+			out_max[i] = h
+		return { "min": out_min, "max": out_max }
+
+	## Per-point steepness (UE $Steepness parity). Returns a PackedFloat32Array of
+	## length `size()`. When the `steepness` stream is absent, every entry is 1.0
+	## (binary box — hard edge), preserving current behavior. Values are clamped
+	## to 0..1. Broadcast (length-1) streams are honored.
+	func getEffectiveSteepness() -> PackedFloat32Array:
+		var n := size()
+		var out := PackedFloat32Array()
+		out.resize( n )
+		var src = getContainerChecked( AttrSteepness, DataType.Float )
+		if src == null or src.size() == 0:
+			out.fill( 1.0 )
+			return out
+		var typed : PackedFloat32Array = src
+		for i in range( n ):
+			out[i] = clampf( typed[ FlowData.bcast_idx( typed.size(), i ) ], 0.0, 1.0 )
+		return out
+
+	func getVector4Container( stream_name : StringName ) -> PackedVector4Array:
+		var container = getContainerChecked( stream_name, DataType.Quaternion )
+		if container == null:
+			container = PackedVector4Array()
+		return container
+
 	func getTransformsStream() -> TransformsStream:
-		if not (streams.has(AttrPosition) and streams.has(AttrRotation) and streams.has(AttrSize)):
+		# Position and size are always required. Rotation can come from either the
+		# Euler `rotation` stream (default) or the optional `rotation_quat`
+		# quaternion stream. The quaternion stream WINS when present.
+		var has_quat : bool = streams.has(AttrRotationQuat)
+		if not (streams.has(AttrPosition) and streams.has(AttrSize)):
+			return null
+		if not (streams.has(AttrRotation) or has_quat):
 			return null
 		var trs := TransformsStream.new()
 		trs.positions = getVector3Container( AttrPosition )
-		trs.eulers = getVector3Container( AttrRotation )
 		trs.sizes = getVector3Container( AttrSize )
-		if trs.positions.is_empty() or trs.eulers.is_empty() or trs.sizes.is_empty():
+		if trs.positions.is_empty() or trs.sizes.is_empty():
 			return null
-		if trs.sizes.size() == trs.positions.size() && trs.sizes.size() == trs.eulers.size():
+		if trs.sizes.size() != trs.positions.size():
+			return null
+
+		if has_quat:
+			# Quaternion path wins over Euler when rotation_quat is present.
+			trs.quats = getVector4Container( AttrRotationQuat )
+			if trs.quats.is_empty() or trs.quats.size() != trs.positions.size():
+				return null
+			trs.use_quats = true
+			# Keep eulers populated too (derived from the quats) so consumers that
+			# read trs.eulers directly still get a consistent value.
+			var derived_eulers := PackedVector3Array()
+			derived_eulers.resize( trs.quats.size() )
+			for i in range( trs.quats.size() ):
+				derived_eulers[i] = FlowData.quatToEuler( FlowData.vec4ToQuat( trs.quats[i] ) )
+			trs.eulers = derived_eulers
+			return trs
+
+		# Euler path: unchanged from the historical behavior.
+		trs.eulers = getVector3Container( AttrRotation )
+		if trs.eulers.is_empty():
+			return null
+		if trs.sizes.size() == trs.eulers.size():
 			return trs
 		return null

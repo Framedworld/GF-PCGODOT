@@ -1,0 +1,123 @@
+[gd_scene load_steps=5 format=3 uid="uid://b8kq3xn7vd2mp"]
+
+[ext_resource type="Script" uid="uid://d1krtmb1urldl" path="res://addons/flow_nodes_editor/flow_node.gd" id="1_sv1gj"]
+[ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="2_7xpo0"]
+[ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="4_om314"]
+
+[sub_resource type="Resource" id="Resource_odxoa"]
+resource_local_to_scene = true
+script = ExtResource("4_om314")
+data = {
+"frames": [],
+"links": [{
+"from_node": &"id_0038_grid",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0037_compute_kernel",
+"to_port": 0
+}],
+"min_pos": Vector2(-20, 200),
+"nodes": [{
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0037_compute_kernel",
+"position": Vector2(240, 0),
+"settings": {
+"bind_point_count": true,
+"debug_color": Color(0.270588, 1, 1, 1),
+"debug_enabled": true,
+"debug_mode": 1,
+"debug_modulate_by": "density",
+"debug_scale": 0.845,
+"enabled": true,
+"input_bindings": PackedStringArray("position:0"),
+"inspect_enabled": false,
+"local_size_x": 64,
+"output_bindings": PackedStringArray("1:density:float"),
+"point_count_binding": 7,
+"random_seed": 466698300,
+"shader_file_path": "",
+"shader_mode": 0,
+"shader_source": "#version 450
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+// Input: per-point position, packed VEC4_PADDED (x, y, z, 0.0).
+layout(set = 0, binding = 0, std430) restrict readonly buffer InPos {
+	vec4 data[];
+} in_pos;
+
+// Output: per-point density (1 float per point).
+layout(set = 0, binding = 1, std430) restrict writeonly buffer OutDensity {
+	float data[];
+} out_density;
+
+// Point count params buffer.
+layout(set = 0, binding = 7, std430) restrict readonly buffer Params {
+	uint point_count;
+} params;
+
+void main() {
+	uint idx = gl_GlobalInvocationID.x;
+	if (idx >= params.point_count) {
+		return;
+	}
+	// Grid is 16x16 on X/Z with step 1, so the centre is (7.5, 0, 7.5).
+	vec3 p = in_pos.data[idx].xyz;
+	vec3 centre = vec3(7.5, 0.0, 7.5);
+	float dist = length(p - centre);
+	// Radial falloff: 1.0 at the centre, decaying outward.
+	out_density.data[idx] = 1.0 / (1.0 + dist);
+}
+",
+"title": "Compute Kernel",
+"trace": false,
+"vec3_packing": 0
+},
+"show_disconnected_inputs": false,
+"template": "compute_kernel"
+}, {
+"args_port": {},
+"name": &"id_0038_grid",
+"position": Vector2(0, 0),
+"settings": {
+"debug_color": Color(0.270588, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 1,
+"debug_modulate_by": "",
+"debug_scale": 0.845,
+"enabled": true,
+"inspect_enabled": false,
+"origin": Vector3(0, 0, 0),
+"random_seed": 1520961383,
+"rotation": Vector3(0, 0, 0),
+"step": Vector3(1, 1, 1),
+"title": "Grid",
+"trace": false,
+"x": 16,
+"y": 1,
+"z": 16
+},
+"show_disconnected_inputs": false,
+"template": "grid"
+}],
+"type": "flow_graph_nodes",
+"version": 1
+}
+view_zoom = 0.909091
+view_offset = Vector2(-118.564, -32.6364)
+new_name_counter = 8
+in_params = Array[ExtResource("2_7xpo0")]([])
+metadata/_custom_type_script = "uid://j6vjeb5cjjoy"
+
+[node name="DemoComputeKernel" type="Node3D"]
+
+[node name="FlowGraphNode3D" type="Node3D" parent="."]
+script = ExtResource("1_sv1gj")
+graph = SubResource("Resource_odxoa")
+refresh_inputs = Callable()
+metadata/_custom_type_script = "uid://d1krtmb1urldl"

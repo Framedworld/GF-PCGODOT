@@ -397,6 +397,16 @@ toggle_mode = true
 icon = SubResource("DPITexture_nrbh4")
 icon_alignment = 1
 
+[node name="ButtonGrid" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer"]
+custom_minimum_size = Vector2(68, 64)
+layout_mode = 2
+tooltip_text = "Toggle background grid"
+focus_mode = 3
+theme_type_variation = &"FlatButton"
+toggle_mode = true
+button_pressed = true
+icon_alignment = 1
+
 [node name="ButtonInputs" type="Button" parent="VBoxContainer/ScrollContainer/HBoxContainer" unique_id=870448300]
 custom_minimum_size = Vector2(68, 64)
 layout_mode = 2

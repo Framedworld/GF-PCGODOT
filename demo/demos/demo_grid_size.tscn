@@ -1,0 +1,85 @@
+[gd_scene load_steps=5 format=3 uid="uid://bsw0j7n2ulnbq"]
+
+[ext_resource type="Script" uid="uid://d1krtmb1urldl" path="res://addons/flow_nodes_editor/flow_node.gd" id="1_sv1gj"]
+[ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="2_7xpo0"]
+[ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="4_om314"]
+
+[sub_resource type="Resource" id="Resource_odxoa"]
+resource_local_to_scene = true
+script = ExtResource("4_om314")
+data = {
+"frames": [],
+"links": [{
+"from_node": &"id_0038_grid",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0039_grid_size",
+"to_port": 0
+}],
+"min_pos": Vector2(-20, 200),
+"nodes": [{
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0039_grid_size",
+"position": Vector2(200, 0),
+"settings": {
+"cell_size": 4.0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": true,
+"debug_mode": 1,
+"debug_modulate_by": "",
+"debug_scale": 1.0,
+"disabled": false,
+"inspect_enabled": false,
+"label": "Grid Size",
+"random_seed": 12345,
+"title": "Grid Size",
+"trace": false
+},
+"show_disconnected_inputs": false,
+"template": "grid_size"
+}, {
+"args_port": {},
+"name": &"id_0038_grid",
+"position": Vector2(0, 0),
+"settings": {
+"debug_color": Color(0.270588, 1, 1, 1),
+"debug_enabled": true,
+"debug_mode": 1,
+"debug_modulate_by": "",
+"debug_scale": 0.845,
+"disabled": false,
+"inspect_enabled": false,
+"origin": Vector3(0, 0, 0),
+"random_seed": 1520961383,
+"rotation": Vector3(0, 0, 0),
+"step": Vector3(1, 1, 1),
+"title": "Grid",
+"trace": false,
+"x": 8,
+"y": 1,
+"z": 8
+},
+"show_disconnected_inputs": false,
+"template": "grid"
+}],
+"type": "flow_graph_nodes",
+"version": 1
+}
+view_zoom = 0.909091
+view_offset = Vector2(-118.564, -32.6364)
+new_name_counter = 8
+in_params = Array[ExtResource("2_7xpo0")]([])
+metadata/_custom_type_script = "uid://j6vjeb5cjjoy"
+
+[node name="DemoGridSize" type="Node3D"]
+
+[node name="FlowGraphNode3D" type="Node3D" parent="."]
+script = ExtResource("1_sv1gj")
+graph = SubResource("Resource_odxoa")
+refresh_inputs = Callable()
+metadata/_custom_type_script = "uid://d1krtmb1urldl"

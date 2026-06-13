@@ -1,0 +1,171 @@
+[gd_scene load_steps=8 format=3 uid="uid://be2twkolj7omf"]
+
+[ext_resource type="Script" uid="uid://d1krtmb1urldl" path="res://addons/flow_nodes_editor/flow_node.gd" id="1_0q62l"]
+[ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="2_ef63f"]
+[ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="3_3fnrd"]
+[ext_resource type="Script" path="res://addons/flow_nodes_editor/grammar_module_resource.gd" id="4_grm"]
+
+[sub_resource type="Resource" id="Resource_mod_post"]
+resource_name = "Post"
+script = ExtResource("4_grm")
+symbol = "Post"
+mesh = null
+size = 1.5
+weight = 1.0
+
+[sub_resource type="Resource" id="Resource_mod_panel"]
+resource_name = "Panel"
+script = ExtResource("4_grm")
+symbol = "Panel"
+mesh = null
+size = 4.0
+weight = 2.0
+
+[sub_resource type="Resource" id="Resource_mod_window"]
+resource_name = "Window"
+script = ExtResource("4_grm")
+symbol = "Window"
+mesh = null
+size = 2.5
+weight = 1.0
+
+[sub_resource type="Resource" id="Resource_grammar"]
+script = ExtResource("3_3fnrd")
+data = {
+"frames": [],
+"links": [{
+"from_node": &"id_0001_scan_splines",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0002_subdivide_segment",
+"to_port": 0
+}, {
+"from_node": &"id_0002_subdivide_segment",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0003_grammar_expand",
+"to_port": 0
+}],
+"min_pos": Vector2(0, 0),
+"nodes": [{
+"args_port": {},
+"name": &"id_0001_scan_splines",
+"position": Vector2(0, 0),
+"settings": {
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"group_name": "",
+"inspect_enabled": false,
+"random_seed": 358875866,
+"required_meta_bool": &"",
+"title": "Scan Splines",
+"trace": false
+},
+"show_disconnected_inputs": false,
+"template": "scan_splines"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0002_subdivide_segment",
+"position": Vector2(320, 0),
+"settings": {
+"bake_interval": 4.0,
+"cross_section_size": Vector2(0.5, 0.5),
+"debug_bulk": 0,
+"debug_color": Color(0.3, 0.9, 1, 1),
+"debug_enabled": false,
+"debug_mode": 1,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"fit_mode": 0,
+"input_mode": 0,
+"inspect_enabled": false,
+"module_lengths": PackedFloat32Array(8),
+"out_length_attribute": "length",
+"out_segment_index_attribute": "segment_index",
+"out_t_end_attribute": "t_end",
+"out_t_start_attribute": "t_start",
+"random_seed": 1733992100,
+"segment_end_attribute": "segment_end",
+"segment_start_attribute": "segment_start",
+"spline_stream_attribute": "node",
+"subdivide_mode": 0,
+"target_count": 4,
+"title": "Subdivide Segment",
+"trace": false,
+"whole_spline_as_span": false
+},
+"show_disconnected_inputs": true,
+"template": "subdivide_segment"
+}, {
+"args_port": {
+"Spans": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0003_grammar_expand",
+"position": Vector2(640, 0),
+"settings": {
+"cross_section_size": Vector2(0.5, 0.5),
+"debug_bulk": 0,
+"debug_color": Color(1, 0.6, 0.2, 1),
+"debug_enabled": true,
+"debug_mode": 1,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"fit_mode": 0,
+"grammar": "Post {Panel:2,Window:1}* Post",
+"inspect_enabled": false,
+"length_attribute": "length",
+"modules": Array[ExtResource("4_grm")]([SubResource("Resource_mod_post"), SubResource("Resource_mod_panel"), SubResource("Resource_mod_window")]),
+"out_mesh_attribute": "mesh",
+"out_module_index_attribute": "module_index",
+"out_symbol_attribute": "symbol",
+"random_seed": 916284733,
+"title": "Grammar Expand",
+"trace": false
+},
+"show_disconnected_inputs": true,
+"template": "grammar_expand"
+}],
+"type": "flow_graph_nodes",
+"version": 1
+}
+view_zoom = 1.0
+view_offset = Vector2(-60, -60)
+new_name_counter = 3
+in_params = Array[ExtResource("2_ef63f")]([])
+
+[sub_resource type="Curve3D" id="Curve3D_lggi4"]
+bake_interval = 0.5
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 6, 0, 4, 0, 0, 0, 0, 0, 0, 6, 0, 12),
+"tilts": PackedFloat32Array(0, 0, 0, 0)
+}
+point_count = 4
+
+[node name="DemoGrammar" type="Node3D"]
+
+[node name="FlowGraphNode3D" type="Node3D" parent="."]
+script = ExtResource("1_0q62l")
+graph = SubResource("Resource_grammar")
+refresh_inputs = Callable()
+metadata/_custom_type_script = "uid://d1krtmb1urldl"
+
+[node name="Path3D" type="Path3D" parent="."]
+curve = SubResource("Curve3D_lggi4")

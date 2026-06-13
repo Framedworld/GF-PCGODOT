@@ -1,0 +1,148 @@
+[gd_scene load_steps=9 format=3 uid="uid://bwrdussr45srx"]
+
+[ext_resource type="Script" uid="uid://d1krtmb1urldl" path="res://addons/flow_nodes_editor/flow_node.gd" id="1_sv1gj"]
+[ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="2_7xpo0"]
+[ext_resource type="Script" uid="uid://j6vjeb5cjjoy" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="4_om314"]
+[ext_resource type="Script" uid="uid://bp5gyuskgmte4" path="res://addons/flow_nodes_editor/terrain_layer_entry.gd" id="5_tle01"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_mask"]
+frequency = 0.08
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_mask"]
+width = 256
+height = 256
+noise = SubResource("FastNoiseLite_mask")
+
+[sub_resource type="Resource" id="Resource_grass"]
+script = ExtResource("5_tle01")
+layer_name = "grass"
+texture = SubResource("NoiseTexture2D_mask")
+metadata/_custom_type_script = "uid://bp5gyuskgmte4"
+
+[sub_resource type="Resource" id="Resource_odxoa"]
+resource_local_to_scene = true
+script = ExtResource("4_om314")
+data = {
+"frames": [],
+"links": [{
+"from_node": &"id_0038_grid",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0040_sample_terrain_layers",
+"to_port": 0
+}, {
+"from_node": &"id_0040_sample_terrain_layers",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"id_0037_attribute_filter_range",
+"to_port": 0
+}],
+"min_pos": Vector2(-20, 200),
+"nodes": [{
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0037_attribute_filter_range",
+"position": Vector2(400, 0),
+"settings": {
+"attribute_name": "layer_grass",
+"case_sensitive": false,
+"debug_bulk": 0,
+"debug_color": Color(0.270588, 1, 0.4, 1),
+"debug_enabled": true,
+"debug_mode": 1,
+"debug_modulate_by": "layer_grass",
+"debug_output": 0,
+"debug_scale": 0.85,
+"disabled": false,
+"inclusive_max": true,
+"inclusive_min": true,
+"inspect_enabled": false,
+"max_value": 1.0,
+"min_value": 0.55,
+"random_seed": 466698300,
+"string_match_mode": false,
+"string_match_values": "",
+"title": "Attribute Filter Range",
+"trace": false,
+"use_absolute_value": false
+},
+"show_disconnected_inputs": false,
+"template": "attribute_filter_range"
+}, {
+"args_port": {
+"In": {
+"connected": true,
+"port": 0
+}
+},
+"name": &"id_0040_sample_terrain_layers",
+"position": Vector2(200, 0),
+"settings": {
+"debug_bulk": 0,
+"debug_color": Color(1, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 0,
+"debug_modulate_by": "",
+"debug_output": 0,
+"debug_scale": 1.0,
+"disabled": false,
+"inspect_enabled": false,
+"layers": Array[ExtResource("5_tle01")]([SubResource("Resource_grass")]),
+"random_seed": 1212413111,
+"stream_prefix": "layer_",
+"title": "Sample Terrain Layers",
+"trace": false,
+"use_world_xz": true,
+"uv_attribute_name": "uv",
+"value_channel": 0,
+"world_max": Vector2(12, 12),
+"world_min": Vector2(-12, -12),
+"wrap_mode": 0
+},
+"show_disconnected_inputs": false,
+"template": "sample_terrain_layers"
+}, {
+"args_port": {},
+"name": &"id_0038_grid",
+"position": Vector2(0, 0),
+"settings": {
+"debug_color": Color(0.270588, 1, 1, 1),
+"debug_enabled": false,
+"debug_mode": 1,
+"debug_modulate_by": "",
+"debug_scale": 0.845,
+"enabled": true,
+"inspect_enabled": false,
+"origin": Vector3(0, 0, 0),
+"random_seed": 1520961383,
+"rotation": Vector3(0, 0, 0),
+"step": Vector3(1, 1, 1),
+"title": "Grid",
+"trace": false,
+"x": 24,
+"y": 1,
+"z": 24
+},
+"show_disconnected_inputs": false,
+"template": "grid"
+}],
+"type": "flow_graph_nodes",
+"version": 1
+}
+view_zoom = 0.909091
+view_offset = Vector2(-118.564, -32.6364)
+new_name_counter = 41
+in_params = Array[ExtResource("2_7xpo0")]([])
+metadata/_custom_type_script = "uid://j6vjeb5cjjoy"
+
+[node name="DemoTerrainLayers" type="Node3D"]
+
+[node name="FlowGraphNode3D" type="Node3D" parent="."]
+script = ExtResource("1_sv1gj")
+graph = SubResource("Resource_odxoa")
+refresh_inputs = Callable()
+metadata/_custom_type_script = "uid://d1krtmb1urldl"

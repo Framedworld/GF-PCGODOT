@@ -15,7 +15,7 @@ var save_pending := false
 var save_pending_delay := 0.0
 var auto_regen := true
 var dump_performance := false
-var use_native_graph_grid := false
+var use_native_graph_grid := true
 
 @onready var gedit : GraphEdit = %GraphEdit
 @onready var data_inspector : Control = %InlineDataInspector
@@ -1829,6 +1829,8 @@ func _load_editor_settings():
 	})
 	auto_regen = bool(editor_settings.get_setting(EDITOR_SETTING_AUTO_REGEN))
 	use_native_graph_grid = bool(editor_settings.get_setting(EDITOR_SETTING_NATIVE_GRAPH_GRID))
+	_apply_graph_grid_mode()
+	_sync_grid_button()
 	hide_inspector_title = bool(editor_settings.get_setting(EDITOR_SETTING_HIDE_INSPECTOR_TITLE))
 	hide_resource_builtin_rows = bool(editor_settings.get_setting(EDITOR_SETTING_HIDE_RESOURCE_BUILTIN_ROWS))
 	track_external_edits = bool(editor_settings.get_setting(EDITOR_SETTING_TRACK_EXTERNAL_EDITS))
@@ -1843,8 +1845,23 @@ func _save_editor_settings():
 	editor_settings.set_setting(EDITOR_SETTING_HIDE_RESOURCE_BUILTIN_ROWS, hide_resource_builtin_rows)
 	editor_settings.set_setting(EDITOR_SETTING_TRACK_EXTERNAL_EDITS, track_external_edits)
 
+func _apply_graph_grid_mode() -> void:
+	if not gedit:
+		return
+	gedit.show_grid = use_native_graph_grid
+
+
+func _sync_grid_button() -> void:
+	if toolbar_hbox == null:
+		return
+	var grid_button := toolbar_hbox.get_node_or_null("ButtonGrid") as Button
+	if grid_button and grid_button.button_pressed != use_native_graph_grid:
+		grid_button.set_pressed_no_signal(use_native_graph_grid)
+
+
 func _on_native_graph_grid_toggled(toggled_on: bool):
 	use_native_graph_grid = toggled_on
+	_apply_graph_grid_mode()
 	_save_editor_settings()
 
 func _is_graph_panel_floating() -> bool:

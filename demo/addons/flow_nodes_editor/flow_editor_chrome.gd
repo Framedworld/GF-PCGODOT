@@ -13,6 +13,7 @@ const TOOLBAR_ICON_BY_NAME := {
 	"ButtonRegenerate": "RandomNumberGenerator",
 	"ButtonArrange": "Sort",
 	"ButtonMinimap": "GridMinimap",
+	"ButtonGrid": "GridSnap",
 	"ButtonInputs": "GraphEdit",
 	"ButtonSettings": "Tools",
 }
@@ -122,6 +123,7 @@ static func connect_signals(refs: Refs) -> void:
 	_connect_pressed(refs, "ButtonRegenerate", host._on_button_regenerate_pressed)
 	_connect_pressed(refs, "ButtonArrange", host._on_button_arrange_pressed)
 	_connect_button_toggled(refs, "ButtonMinimap", host._on_button_minimap_toggled)
+	_connect_button_toggled(refs, "ButtonGrid", host._on_native_graph_grid_toggled)
 	_connect_pressed(refs, "ButtonInputs", host._on_button_inputs_pressed)
 	_connect_pressed(refs, "ButtonSettings", host._on_button_settings_pressed)
 	_connect_toggled(refs, "AutoRegen", host._on_auto_regen_toggled)

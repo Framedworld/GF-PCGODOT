@@ -64,10 +64,20 @@ func execute( ctx : FlowData.EvaluationContext ):
 	if container == null:
 		setError( "Failed to create a container of type %s" % FlowData.DataType.keys()[settings.data_type] )
 		return
-	container.resize( out_size )
-	container.fill( new_val )
 
-	var err = out_data.registerStream( settings.name, container, settings.data_type )
+	# Per-Data domain: store a single value into Data.data_attrs (addressable as
+	# "@data.<name>") rather than a per-point stream. The "@data." prefix routes
+	# registerStream() to the per-data dictionary; a length-1 container is enough.
+	var target_name : String = settings.name
+	if settings.domain == AddAttributeNodeSettings.eDomain.PerData:
+		target_name = FlowData.DataAttrPrefix + settings.name
+		container.resize( 1 )
+		container.fill( new_val )
+	else:
+		container.resize( out_size )
+		container.fill( new_val )
+
+	var err = out_data.registerStream( target_name, container, settings.data_type )
 	if err:
 		setError( err )
 		return

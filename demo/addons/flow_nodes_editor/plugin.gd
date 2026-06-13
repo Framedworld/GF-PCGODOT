@@ -210,7 +210,6 @@ func _enter_tree():
 		efs.filesystem_changed.connect(_on_filesystem_changed)
 		efs.resources_reimported.connect(_on_resources_reimported)
 
-	selection = EditorInterface.get_selection()
 	if selection and not selection.selection_changed.is_connected(_selection_changed):
 		selection.selection_changed.connect(_selection_changed)
 	elif selection == null:

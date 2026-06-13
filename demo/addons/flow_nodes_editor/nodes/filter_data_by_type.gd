@@ -19,16 +19,30 @@ func execute( ctx : FlowData.EvaluationContext ):
 
 	var target = settings.target_type
 	var match_found = false
-	
-	var has_points = in_data.hasStream(FlowData.AttrPosition) and in_data.hasStream(FlowData.AttrRotation) and in_data.hasStream(FlowData.AttrSize)
-	var has_splines = in_data.hasStream("node") and in_data.streams["node"].data_type == FlowData.DataType.NodePath
-	
-	if target == FilterDataByTypeNodeSettings.eTargetType.PointData:
-		match_found = has_points
-	elif target == FilterDataByTypeNodeSettings.eTargetType.SplineData:
-		match_found = has_splines
-	elif target == FilterDataByTypeNodeSettings.eTargetType.AttributeSet:
-		match_found = not has_points and not has_splines and in_data.streams.size() > 0
+
+	# Prefer the explicit `kind` marker (spatial data type lattice) when a source
+	# node has set it to a non-default value. Falls back to the historical
+	# stream-shape heuristic when kind is unset/default (Points), so older data
+	# and graphs that never stamp `kind` behave exactly as before.
+	if in_data.kind != FlowData.Kind.Points:
+		match target:
+			FilterDataByTypeNodeSettings.eTargetType.PointData:
+				# Explicit non-Points kind means this is not plain point data.
+				match_found = false
+			FilterDataByTypeNodeSettings.eTargetType.SplineData:
+				match_found = in_data.kind == FlowData.Kind.Spline
+			FilterDataByTypeNodeSettings.eTargetType.AttributeSet:
+				match_found = in_data.kind == FlowData.Kind.AttrSet
+	else:
+		var has_points = in_data.hasStream(FlowData.AttrPosition) and in_data.hasStream(FlowData.AttrRotation) and in_data.hasStream(FlowData.AttrSize)
+		var has_splines = in_data.hasStream("node") and in_data.streams["node"].data_type == FlowData.DataType.NodePath
+
+		if target == FilterDataByTypeNodeSettings.eTargetType.PointData:
+			match_found = has_points
+		elif target == FilterDataByTypeNodeSettings.eTargetType.SplineData:
+			match_found = has_splines
+		elif target == FilterDataByTypeNodeSettings.eTargetType.AttributeSet:
+			match_found = not has_points and not has_splines and in_data.streams.size() > 0
 		
 	var empty_data = FlowData.Data.new()
 	if match_found:
