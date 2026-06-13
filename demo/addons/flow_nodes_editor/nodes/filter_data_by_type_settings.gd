@@ -5,6 +5,7 @@ extends NodeSettings
 @export_group("Filter Data By Type")
 
 enum eTargetType { PointData, SplineData, AttributeSet }
+## Selects this node behavior mode (resource_name).
 @export var target_type: eTargetType = eTargetType.PointData
 
 func _init():

@@ -4,6 +4,7 @@ extends NodeSettings
 
 @export_group("Size")
 
+## Name of the output attribute this node writes.
 @export var out_name : String = "count"
 
 func _init():

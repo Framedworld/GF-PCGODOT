@@ -11,6 +11,7 @@ enum eDistribution {
 	BlueNoise2D,
 }
 
+## Selects this node behavior mode (UniformGrid, QuasiRandom2D, QuasiRandom3D, BlueNoise2D).
 @export var distribution : eDistribution = eDistribution.QuasiRandom2D:
 	set(value):
 		if distribution != value:
@@ -19,18 +20,28 @@ enum eDistribution {
 			notify_property_list_changed()
 			
 # Uniform sampling
+## Distance value used by this node for sampling distance.
 @export var sampling_distance : float = 0.2
+## Upper bound used by this node for x.
 @export var max_x : int = 32
+## Upper bound used by this node for y.
 @export var max_y : int = 32
+## Upper bound used by this node for z.
 @export var max_z : int = 32
+## Size parameter controlling new size factor during generation/transforms.
 @export var new_size_factor : float = 1.0
 
 # Non-Uniform sampling
+## Phase offset used to shift periodic sampling patterns.
 @export var phase : float = 0.0
+## Overall size value used by this node for generated data.
 @export var size : float = 1.0
+## Output value/attribute key used for group id.
 @export var out_group_id : String
+## Number of groups/buckets created for grouped sampling operations.
 @export var groups : Array[int] = [ 32 ]
 
+## Number of samples/points this node tries to generate.
 @export var num_samples : int = 64
 
 func _init():

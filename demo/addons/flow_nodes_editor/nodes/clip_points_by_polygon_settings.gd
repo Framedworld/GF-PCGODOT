@@ -9,9 +9,13 @@ enum ePlane {
 	YZ,
 }
 
+## Selects this node behavior mode (XZ, XY, YZ).
 @export var plane : ePlane = ePlane.XZ
+## When enabled, preserves inside instead of discarding/replacing it.
 @export var keep_inside : bool = true
+## Scene/resource path used to resolve polygon node.
 @export var polygon_node_path : NodePath
+## Attribute name used to read/write spline stream on point data.
 @export var spline_stream_attribute : String = "node"
 
 func _init():

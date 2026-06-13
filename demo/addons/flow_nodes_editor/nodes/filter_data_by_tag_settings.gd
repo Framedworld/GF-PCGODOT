@@ -4,6 +4,7 @@ extends NodeSettings
 
 @export_group("Filter Data By Tag")
 
+## Tag list used for filtering or mutation, depending on node mode.
 @export var tags: String = ""
 
 func _init():

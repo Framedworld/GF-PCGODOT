@@ -18,9 +18,13 @@ enum eCondition {
 	IsNull
 }
 
+## Name of the first input attribute to read from.
 @export var in_nameA : String = "@last"
+## Selects this node behavior mode (Equal, NotEqual, Greater, GreaterOrEqual, Less, LessOrEqual, AlmostEqual, LogicalAND, LogicalOR, LogicalXOR, IsNull).
 @export var condition : eCondition = eCondition.Equal
+## Name of the second input attribute to read from.
 @export var in_nameB : String = "@last"
+## Threshold used to decide when threshold passes/fails the condition.
 @export var threshold : float = 0.1
 
 func _init():

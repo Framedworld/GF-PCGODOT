@@ -10,6 +10,7 @@ enum eOperation {
 	#A_Union_B,
 }
 
+## Chooses the operation this node applies to incoming data.
 @export var operation : eOperation = eOperation.A_Minus_B
 
 func _init():

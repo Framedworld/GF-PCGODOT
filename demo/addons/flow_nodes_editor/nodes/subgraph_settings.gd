@@ -4,6 +4,7 @@ extends NodeSettings
 
 @export_group("Subgraph")
 
+## PCG graph resource this subgraph node executes.
 @export var graph : FlowGraphResource:
 	set(value):
 		graph = value
