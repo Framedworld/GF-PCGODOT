@@ -421,6 +421,9 @@ class Data:
 		
 	func filteredStream( old_stream : Dictionary, indices : PackedInt32Array ):
 		var new_size : int = indices.size()
+		var source_container = old_stream.container
+		if size() > 1 and source_container.size() == 1:
+			return source_container.duplicate()
 		match old_stream.data_type:
 			
 			DataType.Bool:

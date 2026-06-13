@@ -20,8 +20,11 @@ func execute( ctx : FlowData.EvaluationContext ):
 	
 	var streams_to_remove = settings.names
 	if settings.keep_selected_attributes:
+		var kept_names := {}
+		for name in settings.names:
+			kept_names[str(name)] = true
 		streams_to_remove = out_data.streams.keys().filter( func( candidate ): 
-			return not candidate in settings.names 
+			return not kept_names.has(str(candidate))
 		)
 	
 	# Remove from the dict	

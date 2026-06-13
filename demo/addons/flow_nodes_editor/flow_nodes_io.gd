@@ -543,6 +543,26 @@ static func _publish_flow_variables(child_ctx: FlowData.EvaluationContext, paren
 	FlowVariableEval._mirror_variables_to_runtime(parent_ctx)
 
 
+static func _publish_runtime_params(child_ctx: FlowData.EvaluationContext, parent_ctx: FlowData.EvaluationContext, local_params: Dictionary) -> void:
+	if parent_ctx == null:
+		return
+	for key in child_ctx.runtime_params.keys():
+		var runtime_key := str(key)
+		if _is_local_runtime_param(runtime_key) or local_params.has(runtime_key):
+			continue
+		parent_ctx.runtime_params[runtime_key] = child_ctx.runtime_params[key]
+
+
+static func _is_local_runtime_param(runtime_key: String) -> bool:
+	return runtime_key in [
+		"__eval_depth",
+		"debug_enabled",
+		"flow_analyze_node",
+		"flow_suppress_preview_side_effects",
+		"flow_suppress_seed_advance",
+	]
+
+
 static func _is_topo_final_root(node: FlowNodeBase) -> bool:
 	if node.node_template == "output" or node.node_template.begins_with("output_"):
 		return true
@@ -550,6 +570,13 @@ static func _is_topo_final_root(node: FlowNodeBase) -> bool:
 		return true
 	if not node.getMeta().get("is_final", false):
 		return false
+	# Subgraph nodes with downstream consumers are reached through those consumers.
+	# A terminal subgraph is itself the execution root for graphs that intentionally
+	# end at subgraph side effects instead of output nodes.
+	if node.node_template == "subgraph":
+		for conn in node.deps:
+			if not conn.get("virtual_variable", false):
+				return node.dependants.is_empty()
 	return true
 
 
@@ -657,21 +684,20 @@ static func _add_virtual_variable_dependencies(node_list: Array) -> void:
 ## node_list entries must already have physical deps; call _add_virtual_variable_dependencies first when needed.
 static func build_execution_order(node_list: Array, instances_by_name: Dictionary) -> Array:
 	var ordered_nodes: Array = []
-	var topo_visited: Dictionary = {}
-	var topo_in_progress: Dictionary = {}
-	var visit_node = func(node, this_func) -> void:
-		if topo_visited.has(node.name):
+	var visited: Dictionary = {}
+	var visit_node = func(node, on_stack: Dictionary, this_func) -> void:
+		if visited.has(node.name):
 			return
-		if topo_in_progress.has(node.name):
+		if on_stack.has(node.name):
 			push_warning("Circular dependency detected involving node: " + node.name)
 			return
-		topo_in_progress[node.name] = true
+		on_stack[node.name] = true
 		for conn in node.deps:
 			var dep_node = instances_by_name.get(conn.from_node)
 			if dep_node:
-				this_func.call(dep_node, this_func)
-		topo_in_progress.erase(node.name)
-		topo_visited[node.name] = true
+				this_func.call(dep_node, on_stack, this_func)
+		on_stack.erase(node.name)
+		visited[node.name] = true
 		ordered_nodes.append(node)
 
 	var finals = node_list.filter(func(node):
@@ -680,7 +706,7 @@ static func build_execution_order(node_list: Array, instances_by_name: Dictionar
 		return _is_topo_final_root(node)
 	)
 	for node in finals:
-		visit_node.call(node, visit_node)
+		visit_node.call(node, {}, visit_node)
 	_stabilize_variable_execution_order(ordered_nodes)
 	_stabilize_consumer_input_order(ordered_nodes)
 	return ordered_nodes
@@ -927,6 +953,7 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 				elif node.inputs.size() > 0 and node.inputs[0] != null:
 					outputs[out_name] = node.inputs[0]
 	_publish_flow_variables(ctx, parent_ctx)
+	_publish_runtime_params(ctx, parent_ctx, runtime_params)
 
 	# Outputs are collected (FlowData.Data is RefCounted, so the references in
 	# `outputs` keep the data alive) — free the instanced node Controls now.

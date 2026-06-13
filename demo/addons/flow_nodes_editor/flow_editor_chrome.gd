@@ -11,9 +11,22 @@ const TOOLBAR_ICON_BY_NAME := {
 	"ButtonReload": "Reload",
 	"ButtonAnalyze": "PackedDataContainer",
 	"ButtonRegenerate": "RandomNumberGenerator",
+	"ButtonArrange": "Sort",
 	"ButtonMinimap": "GridMinimap",
 	"ButtonInputs": "GraphEdit",
 	"ButtonSettings": "Tools",
+}
+
+const TOOLBAR_TOOLTIP_BY_NAME := {
+	"ButtonSave": "Save the current FlowGraph resource",
+	"ButtonBrowse": "Reveal the saved graph resource in the FileSystem dock",
+	"ButtonReload": "Reload the current FlowGraph resource",
+	"ButtonAnalyze": "Inspect selected node raw data (A)",
+	"ButtonRegenerate": "Regenerate the graph output",
+	"ButtonArrange": "Automatically arrange selected nodes.",
+	"ButtonMinimap": "Toggle the graph minimap.",
+	"ButtonInputs": "Edit graph inputs",
+	"ButtonSettings": "Open Flow editor settings",
 }
 
 
@@ -52,6 +65,7 @@ static func setup(refs: Refs) -> void:
 		return
 	if refs.host.has_meta(INITIALIZED_META):
 		_attach_toolbar_to_graph_menu(refs)
+		connect_signals(refs)
 		apply_styles(refs)
 		apply_translations(refs)
 		return
@@ -106,6 +120,7 @@ static func connect_signals(refs: Refs) -> void:
 	_connect_pressed(refs, "ButtonReload", host._on_button_reload_pressed)
 	_connect_pressed(refs, "ButtonAnalyze", host._on_button_analyze_pressed)
 	_connect_pressed(refs, "ButtonRegenerate", host._on_button_regenerate_pressed)
+	_connect_pressed(refs, "ButtonArrange", host._on_button_arrange_pressed)
 	_connect_button_toggled(refs, "ButtonMinimap", host._on_button_minimap_toggled)
 	_connect_pressed(refs, "ButtonInputs", host._on_button_inputs_pressed)
 	_connect_pressed(refs, "ButtonSettings", host._on_button_settings_pressed)
@@ -209,7 +224,7 @@ static func _style_toolbar_button(btn: Button) -> void:
 	btn.add_theme_color_override("font_pressed_color", Color("a1a1aa"))
 
 
-static func _style_toolbar_icon_button(btn: Button, icon_name: String) -> void:
+static func _style_toolbar_icon_button(btn: Button, icon_name: String, graph_edit: GraphEdit = null) -> void:
 	var editor_scale := EditorInterface.get_editor_scale() if Engine.is_editor_hint() else 1.0
 	btn.text = ""
 	btn.theme_type_variation = "FlatButton"
@@ -219,7 +234,10 @@ static func _style_toolbar_icon_button(btn: Button, icon_name: String) -> void:
 	btn.expand_icon = false
 	if Engine.is_editor_hint():
 		var editor_theme := EditorInterface.get_editor_theme()
-		if editor_theme != null and editor_theme.has_icon(icon_name, "EditorIcons"):
+		if icon_name.begins_with("GraphEdit:") and graph_edit != null:
+			var graph_icon_name := icon_name.trim_prefix("GraphEdit:")
+			btn.icon = graph_edit.get_theme_icon(graph_icon_name, "GraphEdit")
+		elif editor_theme != null and editor_theme.has_icon(icon_name, "EditorIcons"):
 			btn.icon = editor_theme.get_icon(icon_name, "EditorIcons")
 	if btn.name == "ButtonRegenerate":
 		_style_regenerate_button(btn)
