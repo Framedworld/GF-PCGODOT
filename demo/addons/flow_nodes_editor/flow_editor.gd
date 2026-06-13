@@ -97,6 +97,7 @@ var right_drag_pan_moved := false
 var right_drag_pan_start_position := Vector2.ZERO
 var right_drag_pan_start_scroll := Vector2.ZERO
 var suppress_next_popup_request := false
+var search_popup_selection_committed := false
 var status_counts_dirty := true
 var status_nodes_count := 0
 var status_wires_count := 0
@@ -1752,22 +1753,32 @@ func _ensure_search_add_node_popup() -> void:
 	search_add_node_popup.name = "SearchAddNodePopup"
 	add_child(search_add_node_popup)
 	search_add_node_popup.node_selected.connect(func(template_name):
+		search_popup_selection_committed = true
 		addNode(template_name)
 	)
 	search_add_node_popup.action_selected.connect(func(action_id):
+		search_popup_selection_committed = true
 		if action_id == IDM_COLLAPSE_TO_SUBGRAPH:
 			collapse_selected_to_subgraph()
 	)
 	search_add_node_popup.input_selected.connect(func(input_idx):
+		search_popup_selection_committed = true
 		_on_inputs_menu_id_pressed(input_idx)
 	)
 	search_add_node_popup.output_selected.connect(func(output_idx):
+		search_popup_selection_committed = true
 		_on_outputs_menu_id_pressed(output_idx)
 	)
 	search_add_node_popup.popup_hide.connect(func():
-		auto_connect_from_node = ""
-		auto_connect_to_node = ""
+		call_deferred("_on_search_add_node_popup_hide_deferred")
 	)
+
+func _on_search_add_node_popup_hide_deferred() -> void:
+	if search_popup_selection_committed:
+		search_popup_selection_committed = false
+		return
+	auto_connect_from_node = ""
+	auto_connect_to_node = ""
 
 func _show_editor_settings_panel():
 	if editor_settings_proxy == null:
@@ -3300,6 +3311,7 @@ func _open_graph_context_menu(at_position: Vector2):
 		if "out_params" in current_resource:
 			out_params = current_resource.out_params
 
+	search_popup_selection_committed = false
 	search_add_node_popup.setup(node_types, in_params, out_params, getSelectedNodes().size() > 0, required_input_type, required_output_type)
 	search_add_node_popup.position = get_screen_position() + at_position
 	search_add_node_popup.popup()
