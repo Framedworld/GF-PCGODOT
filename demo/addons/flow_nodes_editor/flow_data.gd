@@ -27,6 +27,12 @@ const AttrSize     : StringName = &"size"
 const AttrDensity  : StringName = &"density"	# Float, 0..1, soft existence probability (UE $Density)
 const AttrSeed     : StringName = &"seed"		# Int, per-point deterministic seed (UE $Seed)
 const AttrNormal   : StringName = &"normal"		# Vector, surface normal where known
+# Optional bounds/steepness attributes (UE PCG parity). When these streams are
+# absent, consumers MUST behave exactly as before (deriving symmetric bounds
+# from `size`), so existing graphs are byte-for-byte unchanged.
+const AttrBoundsMin : StringName = &"bounds_min"	# Vector, per-point local-space min corner of the bounds box
+const AttrBoundsMax : StringName = &"bounds_max"	# Vector, per-point local-space max corner of the bounds box
+const AttrSteepness : StringName = &"steepness"		# Float, 0..1, hardness of the point volume edge (UE $Steepness; 1 = binary box)
 
 class EvaluationContext:
 	var owner : FlowGraphNode3D
@@ -539,6 +545,69 @@ class Data:
 		if container == null:
 			container = PackedVector3Array()
 		return container
+
+	## Per-point bounds resolution (UE PCG BoundsMin/BoundsMax parity).
+	##
+	## Returns a Dictionary with two PackedVector3Array entries, "min" and "max",
+	## holding the LOCAL-space (relative to each point's position) min/max corners
+	## of the point's bounds box, one entry per point.
+	##
+	## Resolution order:
+	##  - When BOTH `bounds_min` and `bounds_max` streams are present, they are
+	##    used directly (asymmetric bounds preserved). Broadcast (length-1) streams
+	##    are honored via bcast_idx.
+	##  - Otherwise bounds are derived symmetrically from `size` EXACTLY as the
+	##    native broadphase does today: min = -size*0.5, max = +size*0.5. When
+	##    `size` is missing, Vector3.ONE is assumed (matching existing fallbacks).
+	##
+	## This keeps every existing graph byte-for-byte identical: with no bounds
+	## streams, "max"-"min" == size and the box center stays on the point.
+	func getEffectiveBounds() -> Dictionary:
+		var n := size()
+		var out_min := PackedVector3Array()
+		var out_max := PackedVector3Array()
+		out_min.resize( n )
+		out_max.resize( n )
+
+		var has_bounds : bool = streams.has( AttrBoundsMin ) and streams.has( AttrBoundsMax )
+		if has_bounds:
+			var bmin : PackedVector3Array = getVector3Container( AttrBoundsMin )
+			var bmax : PackedVector3Array = getVector3Container( AttrBoundsMax )
+			# Defensive: if either container is empty/malformed, fall back to size.
+			if bmin.size() >= 1 and bmax.size() >= 1:
+				for i in range( n ):
+					out_min[i] = bmin[ FlowData.bcast_idx( bmin.size(), i ) ]
+					out_max[i] = bmax[ FlowData.bcast_idx( bmax.size(), i ) ]
+				return { "min": out_min, "max": out_max }
+
+		# Symmetric fallback from `size` — identical to today's center ± size*0.5.
+		var sizes : PackedVector3Array = getVector3Container( AttrSize )
+		var half := Vector3( 0.5, 0.5, 0.5 )
+		for i in range( n ):
+			var s : Vector3 = Vector3.ONE
+			if sizes.size() >= 1:
+				s = sizes[ FlowData.bcast_idx( sizes.size(), i ) ]
+			var h : Vector3 = s * half
+			out_min[i] = -h
+			out_max[i] = h
+		return { "min": out_min, "max": out_max }
+
+	## Per-point steepness (UE $Steepness parity). Returns a PackedFloat32Array of
+	## length `size()`. When the `steepness` stream is absent, every entry is 1.0
+	## (binary box — hard edge), preserving current behavior. Values are clamped
+	## to 0..1. Broadcast (length-1) streams are honored.
+	func getEffectiveSteepness() -> PackedFloat32Array:
+		var n := size()
+		var out := PackedFloat32Array()
+		out.resize( n )
+		var src = getContainerChecked( AttrSteepness, DataType.Float )
+		if src == null or src.size() == 0:
+			out.fill( 1.0 )
+			return out
+		var typed : PackedFloat32Array = src
+		for i in range( n ):
+			out[i] = clampf( typed[ FlowData.bcast_idx( typed.size(), i ) ], 0.0, 1.0 )
+		return out
 
 	func getTransformsStream() -> TransformsStream:
 		if not (streams.has(AttrPosition) and streams.has(AttrRotation) and streams.has(AttrSize)):
