@@ -22,6 +22,9 @@ demo/addons/editor_icon_previewer
 
 *.DS_Store
 
+# Claude Code agent worktree checkouts (transient; never part of the repo)
+.claude/worktrees/
+
 # Local editor/tooling state
 .sconsign.dblite
 demo/addons/flow_nodes_editor/bin/~*.TMP
