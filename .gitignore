@@ -59,3 +59,9 @@ demo/addons/flow_nodes_editor/bin/~*.dll
 # Native build intermediates
 demo/addons/flow_nodes_editor/native/src/*.o
 demo/addons/flow_nodes_editor/bin/liblibflow.*.a
+
+# CI builds the Linux GDExtension fresh (only Windows/macOS binaries are shipped);
+# never commit the locally/CI-built Linux library or the godot-cpp build outputs.
+demo/addons/flow_nodes_editor/bin/libflow.linux.*.so
+godot-cpp/bin/
+godot-cpp/gen/

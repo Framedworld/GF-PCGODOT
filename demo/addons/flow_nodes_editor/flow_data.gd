@@ -650,7 +650,23 @@ class Data:
 		s.data_attrs = data_attrs.duplicate( true )
 		s.kind = kind
 		return s
-		
+
+	# Schema-preserving, row-empty clone: every stream is present with the same
+	# name and DataType but zero elements (unlike filter([]), which keeps
+	# broadcast/length-1 streams), plus tags/data_attrs/kind carried over. Used by
+	# nodes that route a whole set elsewhere and must still emit the input's schema
+	# on the other output (e.g. branch), so downstream merges/filters see the
+	# expected streams instead of a bare empty Data.
+	func emptyLike() -> Data:
+		var s := Data.new()
+		for old_stream in streams.values():
+			var new_container = newContainerOfType( old_stream.data_type )
+			s.registerStream( old_stream.name, new_container, old_stream.data_type )
+		s.tags = tags.duplicate()
+		s.data_attrs = data_attrs.duplicate( true )
+		s.kind = kind
+		return s
+
 	func filter( indices : PackedInt32Array ) -> Data:
 		var new_data := Data.new()
 		for old_stream in streams.values():

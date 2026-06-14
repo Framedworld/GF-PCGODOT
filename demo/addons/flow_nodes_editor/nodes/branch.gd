@@ -41,7 +41,9 @@ func execute( ctx : FlowData.EvaluationContext ):
 			else:
 				push_warning("Branch: attribute '%s' is empty — falling back to Branch Value" % settings.attribute_name)
 
-	var empty_data = FlowData.Data.new()
+	# The unselected output still carries the input's schema (zero rows) so a
+	# downstream merge/filter sees the expected streams instead of a bare empty set.
+	var empty_data = in_data.emptyLike()
 	if select_a:
 		set_output(0, in_data)
 		set_output(1, empty_data)

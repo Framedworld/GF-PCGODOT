@@ -144,6 +144,11 @@ func execute( ctx : FlowData.EvaluationContext ):
 				
 			if in_data.streams.size() > 0 and not target_data.hasStream(settings.name):
 				var main_stream = in_data.streams[main_stream_name]
-				target_data.registerStream(settings.name, main_stream.container, settings.data_type)
+				# Register the named output with the main stream's ACTUAL data_type, not
+				# the port's declared settings.data_type. Forcing a declared type onto a
+				# container of a different type (e.g. a Float main stream exposed through a
+				# Vector-typed port) produces a mistyped stream that crashes downstream
+				# filteredStream()/type-strict reads. The container's real type is correct.
+				target_data.registerStream(settings.name, main_stream.container, main_stream.data_type)
 				
 			set_output( 0, target_data )

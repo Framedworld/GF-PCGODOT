@@ -38,7 +38,11 @@ func _copy_stream_if_present(out_data : FlowData.Data, source_name : StringName,
 		return ""
 	var source_stream = out_data.streams[source_name]
 	var container = _clone_stream_container(source_stream)
-	return out_data.registerStream(target_name, container, source_stream.data_type)
+	# registerStream returns null on success / an error String on failure; this
+	# function's contract is "" == OK, so normalise the null (Godot 4.4+ errors on
+	# returning Nil from a String-typed function).
+	var err = out_data.registerStream(target_name, container, source_stream.data_type)
+	return "" if err == null else str(err)
 
 func execute(_ctx : FlowData.EvaluationContext):
 	var in_data : FlowData.Data = require_input(0, _ctx)

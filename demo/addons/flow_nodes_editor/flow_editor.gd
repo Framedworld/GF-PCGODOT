@@ -1062,6 +1062,17 @@ func _on_filesystem_changed():
 				var loaded_class : Script = ResourceLoader.load(meta.full_res_path, "Script", ResourceLoader.CACHE_MODE_REPLACE) as Script
 				if loaded_class:
 					loaded_class.reload(true)
+					# A watched node script can be saved mid-edit in a non-compiling
+					# state (syntax error / missing dependency). ResourceLoader.load
+					# returns a non-null but un-instantiable GDScript, so calling .new()
+					# on it crashes with "Nonexistent function 'new' in base 'GDScript'".
+					# Guard it the same way registerNodeType() already does, and skip
+					# this script until it compiles again.
+					if not loaded_class.can_instantiate():
+						var reload_err := loaded_class.reload(false)
+						if reload_err != OK or not loaded_class.can_instantiate():
+							push_warning("Skipping reload of %s: script failed to compile or cannot be instantiated" % meta.full_res_path)
+							continue
 					var instance = loaded_class.new()
 					var flow_node = instance as FlowNodeBase
 					if flow_node:

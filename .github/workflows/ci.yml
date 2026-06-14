@@ -1,5 +1,12 @@
 # For syntax, see https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 # This workflow is automatically triggered for every push and pull request, to verify that everything still builds.
+#
+# It also boots a headless Godot 4.6 to load every script + scene (the `validate`
+# job) and packages a runnable demo folder (`package-demo`). Both REUSE the Linux
+# GDExtension built by the `build` matrix instead of rebuilding it — the
+# native-dependent nodes (difference, self_pruning, ...) cannot even parse without
+# the compiled library, so validation needs it, and rebuilding it a second time
+# would waste ~6 min per run.
 
 name: Continuous Integration
 on:
@@ -22,6 +29,13 @@ jobs:
           - target: { platform: linux, arch: x86_64, os: ubuntu-22.04 }
             target-type: template_debug
             float-precision: double
+          # Single-precision Linux build: consumed by the `validate` / `package-demo`
+          # jobs (the official Godot editor binary is single precision, so a
+          # double-precision library would not load). Double precision stays
+          # covered above and by the web target below.
+          - target: { platform: linux, arch: x86_64, os: ubuntu-22.04 }
+            target-type: template_debug
+            float-precision: single
           - target: { platform: windows, arch: x86_64, os: windows-latest }
             target-type: template_release
             float-precision: single
@@ -86,3 +100,125 @@ jobs:
         with:
           scons-cache: ${{ github.workspace }}/.scons-cache/
           cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
+
+      # Publish the freshly built Linux (single precision) library so the headless
+      # validation and demo-packaging jobs can reuse it without rebuilding.
+      - name: Upload Linux GDExtension artifact
+        if: ${{ matrix.target.platform == 'linux' && matrix.float-precision == 'single' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gdext-linux
+          path: demo/addons/flow_nodes_editor/bin/libflow.linux.*.so
+          if-no-files-found: error
+          retention-days: 7
+
+  # Boots headless Godot 4.6 to load every addon script + demo scene. Catches the
+  # class of breakage the C++ build cannot see (GDScript parse/type/null errors).
+  validate:
+    name: Headless Godot validation
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download Linux GDExtension
+        uses: actions/download-artifact@v4
+        with:
+          name: gdext-linux
+          path: gdext_dl
+
+      - name: Install library + ephemeral Linux gdextension entry
+        run: |
+          set -e
+          SO=$(find gdext_dl -name 'libflow.linux.*.so' | head -n1)
+          if [ -z "$SO" ]; then echo "::error::Linux GDExtension artifact not found"; exit 1; fi
+          cp "$SO" demo/addons/flow_nodes_editor/bin/
+          REL="res://addons/flow_nodes_editor/bin/$(basename "$SO")"
+          echo "Linking Linux library: $REL"
+          # The committed flow.gdextension intentionally ships only Windows/macOS
+          # entries; add an ephemeral Linux one (never committed) so the native
+          # classes resolve during validation.
+          printf 'linux.x86_64 = "%s"\n' "$REL" >> demo/addons/flow_nodes_editor/bin/flow.gdextension
+          cat demo/addons/flow_nodes_editor/bin/flow.gdextension
+
+      - name: Setup Godot (headless)
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.6.0          # matches config/features in demo/project.godot
+          use-dotnet: false
+          include-templates: false
+
+      - name: Import project
+        working-directory: demo
+        # --import parses every script and imports every resource, generating
+        # .uid files and surfacing parse/import errors. Allowed to "succeed" so
+        # the dedicated grep below is the gate (some import warnings are benign).
+        run: |
+          godot --headless --path . --import 2>&1 | tee import.log || true
+
+      - name: Fail on parse / script errors
+        working-directory: demo
+        run: |
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot use subscript|not declared in the current scope" import.log; then
+            echo "::error::Godot reported script/parse errors during project import (see log above)."
+            exit 1
+          fi
+          echo "No parse/script errors during import."
+
+      - name: Validate all scripts and scenes load
+        working-directory: demo
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/headless_validation.gd 2>&1 | tee validate.log
+
+      # Each test is a SceneTree script that quits(1) on any failed assertion.
+      - name: Run GDScript regression tests
+        working-directory: demo
+        run: |
+          set -o pipefail
+          rc=0
+          for t in tests/flow_nodes_editor/FlowCommonNodeRegressionTest.gd \
+                   tests/flow_nodes_editor/FlowDataFilterBroadcastTest.gd; do
+            echo "--- running $t ---"
+            godot --headless --path . --script "res://$t" 2>&1 | tee "run_$(basename "$t").log" || rc=1
+          done
+          exit $rc
+
+  # Packages a runnable demo folder as a downloadable artifact for easy PR
+  # testing: the committed Windows/macOS libraries plus the freshly built Linux
+  # one, with flow.gdextension pointing at all three.
+  package-demo:
+    name: Package demo
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download Linux GDExtension
+        uses: actions/download-artifact@v4
+        with:
+          name: gdext-linux
+          path: gdext_dl
+
+      - name: Assemble demo with the Linux library
+        run: |
+          set -e
+          SO=$(find gdext_dl -name 'libflow.linux.*.so' | head -n1)
+          if [ -z "$SO" ]; then echo "::error::Linux GDExtension artifact not found"; exit 1; fi
+          cp "$SO" demo/addons/flow_nodes_editor/bin/
+          REL="res://addons/flow_nodes_editor/bin/$(basename "$SO")"
+          # The committed bin/ already carries the Windows + macOS libraries; add Linux.
+          printf 'linux.x86_64 = "%s"\n' "$REL" >> demo/addons/flow_nodes_editor/bin/flow.gdextension
+
+      - name: Zip demo folder
+        run: |
+          cd demo && zip -r ../demo-package.zip . -x '.godot/*'
+
+      - name: Upload demo package
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-package
+          path: demo-package.zip
+          retention-days: 14
