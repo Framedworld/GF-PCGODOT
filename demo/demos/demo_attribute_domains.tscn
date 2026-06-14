@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://byqsbkoyise31"]
+[gd_scene format=3 uid="uid://byqsbkoyise31"]
 
 [ext_resource type="Script" uid="uid://d1krtmb1urldl" path="res://addons/flow_nodes_editor/flow_node.gd" id="1_sv1gj"]
 [ext_resource type="Script" uid="uid://co0f3ugd2wj1y" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="2_7xpo0"]

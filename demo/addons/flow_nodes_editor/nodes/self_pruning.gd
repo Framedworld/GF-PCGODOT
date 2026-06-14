@@ -24,11 +24,11 @@ func execute( ctx : FlowData.EvaluationContext ):
 		_grid_cell_prune(in_dataA)
 		return
 
-	var posA = in_dataA.getVector3Container( FlowData.AttrPosition )
+	var posA := in_dataA.getVector3Container( FlowData.AttrPosition )
 	if posA.is_empty():
 		set_output( 0, FlowData.Data.new() )
 		return
-	var szA = in_dataA.getVector3Container( FlowData.AttrSize )
+	var szA := in_dataA.getVector3Container( FlowData.AttrSize )
 	if szA.size() != posA.size():
 		if szA.size() == 1:
 			# Broadcast the single size to every point
@@ -108,7 +108,7 @@ func _attenuate_self_prune(in_data : FlowData.Data, positions : PackedVector3Arr
 		densities = PackedFloat32Array()
 		densities.resize(n)
 		if dsrc != null and dsrc.size() == 1:
-			densities.fill(dsrc[0])
+			densities.fill((dsrc as PackedFloat32Array)[0])
 		else:
 			densities.fill(1.0)
 

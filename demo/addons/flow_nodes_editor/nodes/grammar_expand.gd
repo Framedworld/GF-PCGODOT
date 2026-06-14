@@ -105,23 +105,23 @@ func _advance() -> Tok:
 		_pos += 1
 	return t
 
-func _parse_grammar(src : String):
+func _parse_grammar(src : String) -> Dictionary:
 	_parse_error = ""
 	_toks = _tokenize(src)
 	if _parse_error != "":
-		return null
+		return {}
 	_pos = 0
 	var seq := _parse_sequence([])
 	if _parse_error != "":
-		return null
+		return {}
 	if _peek().type != "eof":
 		_parse_error = "Unexpected token '%s'" % _peek().type
-		return null
+		return {}
 	return seq
 
 # Parse a sequence of postfix-modified primaries until one of `stop` token types
 # (or eof) is hit. Commas between items are optional separators.
-func _parse_sequence(stop : Array):
+func _parse_sequence(stop : Array) -> Dictionary:
 	var items : Array = []
 	while true:
 		var t : Tok = _peek()
@@ -132,7 +132,7 @@ func _parse_sequence(stop : Array):
 			continue
 		var prim = _parse_postfix()
 		if _parse_error != "":
-			return null
+			return {}
 		if prim == null:
 			break
 		items.append(prim)
@@ -364,8 +364,8 @@ func execute(ctx : FlowData.EvaluationContext):
 	if grammar_src == "":
 		setError("Grammar string is empty")
 		return
-	var ast = _parse_grammar(grammar_src)
-	if _parse_error != "" or ast == null:
+	var ast := _parse_grammar(grammar_src)
+	if _parse_error != "" or ast.is_empty():
 		setError("Grammar parse error: %s" % (_parse_error if _parse_error != "" else "invalid grammar"))
 		return
 

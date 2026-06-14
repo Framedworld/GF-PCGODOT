@@ -1005,7 +1005,7 @@ static func _finalize_evaluation(state: Dictionary) -> Dictionary:
 				elif node.inputs.size() > 0 and node.inputs[0] != null:
 					outputs[out_name] = node.inputs[0]
 	_publish_flow_variables(ctx, parent_ctx)
-	_publish_runtime_params(ctx, parent_ctx, runtime_params)
+	_publish_runtime_params(ctx, parent_ctx, ctx.runtime_params)
 
 	# Outputs are collected (FlowData.Data is RefCounted, so the references in
 	# `outputs` keep the data alive) — free the instanced node Controls now.
