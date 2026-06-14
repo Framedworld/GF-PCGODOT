@@ -50,8 +50,8 @@ class Tok:
 		type = t
 		value = v
 
-func _tokenize(src : String) -> Array:
-	var toks : Array = []
+func _tokenize(src : String) -> Array[Tok]:
+	var toks : Array[Tok] = []
 	var i : int = 0
 	var n : int = src.length()
 	while i < n:
@@ -92,7 +92,7 @@ func _tokenize(src : String) -> Array:
 # ======================================================================
 # Recursive-descent parser
 # ======================================================================
-var _toks : Array = []
+var _toks : Array[Tok] = []
 var _pos : int = 0
 var _parse_error : String = ""
 
@@ -121,7 +121,7 @@ func _parse_grammar(src : String) -> Dictionary:
 
 # Parse a sequence of postfix-modified primaries until one of `stop` token types
 # (or eof) is hit. Commas between items are optional separators.
-func _parse_sequence(stop : Array) -> Dictionary:
+func _parse_sequence(stop : Array[String]) -> Dictionary:
 	var items : Array = []
 	while true:
 		var t : Tok = _peek()
@@ -130,21 +130,21 @@ func _parse_sequence(stop : Array) -> Dictionary:
 		if t.type == ",":
 			_advance()
 			continue
-		var prim = _parse_postfix()
+		var prim := _parse_postfix()
 		if _parse_error != "":
 			return {}
-		if prim == null:
+		if prim.is_empty():
 			break
 		items.append(prim)
 	return { "kind": "seq", "items": items }
 
 # primary with optional postfix repetition (* or :N)
-func _parse_postfix():
-	var node = _parse_primary()
+func _parse_postfix() -> Dictionary:
+	var node := _parse_primary()
 	if _parse_error != "":
-		return null
-	if node == null:
-		return null
+		return {}
+	if node.is_empty():
+		return {}
 	var t : Tok = _peek()
 	if t.type == "*":
 		_advance()
@@ -154,7 +154,7 @@ func _parse_postfix():
 		var num : Tok = _peek()
 		if num.type != "num":
 			_parse_error = "Expected a number after ':'"
-			return null
+			return {}
 		_advance()
 		var count : int = int(num.value)
 		if count < 0:
@@ -162,7 +162,7 @@ func _parse_postfix():
 		return { "kind": "repeat", "child": node, "count": count }
 	return node
 
-func _parse_primary():
+func _parse_primary() -> Dictionary:
 	var t : Tok = _peek()
 	if t.type == "sym":
 		_advance()
@@ -172,15 +172,15 @@ func _parse_primary():
 	if t.type == "{":
 		return _parse_choice()
 	# Nothing primary-like here.
-	return null
+	return {}
 
 # [symbol] or [symbol,behavior]
-func _parse_tuple():
+func _parse_tuple() -> Dictionary:
 	_advance() # consume "["
 	var sym : Tok = _peek()
 	if sym.type != "sym":
 		_parse_error = "Expected a symbol after '['"
-		return null
+		return {}
 	_advance()
 	var behavior : String = ""
 	if _peek().type == ",":
@@ -188,43 +188,43 @@ func _parse_tuple():
 		var beh : Tok = _peek()
 		if beh.type != "sym" and beh.type != "num":
 			_parse_error = "Expected a behavior after ',' in tuple"
-			return null
+			return {}
 		behavior = beh.value
 		_advance()
 	if _peek().type != "]":
 		_parse_error = "Expected ']' to close tuple"
-		return null
+		return {}
 	_advance()
 	return { "kind": "module", "symbol": sym.value, "behavior": behavior }
 
 # { option (, option)* } where option is a sequence with an optional :N weight.
-func _parse_choice():
+func _parse_choice() -> Dictionary:
 	_advance() # consume "{"
-	var options : Array = []
+	var options : Array[Dictionary] = []
 	while true:
 		var t : Tok = _peek()
 		if t.type == "}":
 			break
 		if t.type == "eof":
 			_parse_error = "Unterminated '{' choice"
-			return null
+			return {}
 		if t.type == ",":
 			_advance()
 			continue
 		# An option is a single primary+postfix; capture an explicit :N as weight.
-		var node = _parse_primary()
+		var node := _parse_primary()
 		if _parse_error != "":
-			return null
-		if node == null:
+			return {}
+		if node.is_empty():
 			_parse_error = "Empty option in choice"
-			return null
+			return {}
 		var weight : float = 1.0
 		if _peek().type == ":":
 			_advance()
 			var num : Tok = _peek()
 			if num.type != "num":
 				_parse_error = "Expected a weight number after ':' in choice"
-				return null
+				return {}
 			_advance()
 			weight = float(num.value)
 			if weight < 0.0:
@@ -236,11 +236,11 @@ func _parse_choice():
 		options.append({ "node": node, "weight": weight })
 	if _peek().type != "}":
 		_parse_error = "Expected '}' to close choice"
-		return null
+		return {}
 	_advance()
 	if options.is_empty():
 		_parse_error = "Empty choice '{}'"
-		return null
+		return {}
 	return { "kind": "choice", "options": options }
 
 # ======================================================================
@@ -258,7 +258,7 @@ func _module_size(symbol : String, module_sizes : Dictionary) -> float:
 # Recursively flatten `node` into `out` (Array of symbol strings).
 # remaining_len is how much span length is still free; used to bound `*` fills.
 # rng drives weighted choice. Returns the total footprint size consumed.
-func _expand_node(node : Dictionary, out : Array, remaining_len : float, module_sizes : Dictionary, prng : RandomNumberGenerator) -> float:
+func _expand_node(node : Dictionary, out : Array[String], remaining_len : float, module_sizes : Dictionary, prng : RandomNumberGenerator) -> float:
 	match node.get("kind", ""):
 		"module":
 			var sym : String = node.symbol
@@ -289,7 +289,7 @@ func _expand_node(node : Dictionary, out : Array, remaining_len : float, module_
 					break # produced nothing; avoid infinite loop
 			return used2
 		"choice":
-			var options : Array = node.options
+			var options : Array[Dictionary] = node.options
 			var total_w : float = 0.0
 			for opt in options:
 				total_w += maxf(0.0, opt.weight)
@@ -325,7 +325,7 @@ func _fill_iteration_bound(remaining_len : float, module_sizes : Dictionary) -> 
 # ======================================================================
 # Execute
 # ======================================================================
-func execute(ctx : FlowData.EvaluationContext):
+func execute(ctx : FlowData.EvaluationContext) -> void:
 	var in_data : FlowData.Data = require_input(0, ctx, "Input 'Spans'")
 	if in_data == null:
 		return
@@ -411,14 +411,14 @@ func execute(ctx : FlowData.EvaluationContext):
 			span_rng.seed = (FlowData.point_seed(center, node_seed)) & 0x7fffffff
 
 		# Expand the grammar into an ordered symbol list for this span.
-		var symbols : Array = []
+		var symbols : Array[String] = []
 		_expand_node(ast, symbols, span_len, module_sizes, span_rng)
 		if symbols.is_empty():
 			continue
 
 		# Compute footprint sizes and the fit scaling.
 		var raw_total : float = 0.0
-		var sizes_list : Array = []
+		var sizes_list : Array[float] = []
 		for sym in symbols:
 			var msz : float = _module_size(sym, module_sizes)
 			sizes_list.append(msz)
