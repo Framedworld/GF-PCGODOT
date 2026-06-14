@@ -1,0 +1,101 @@
+# Headless Godot validation. The build matrix in ci.yml only compiles the C++
+# GDExtension — it never loads the project, so a broken addon GDScript (parse
+# error, bad type, null subscript) passes CI and only surfaces when a human
+# opens the editor. This workflow boots Godot 4.6 headless, builds the native
+# extension for Linux, then imports the project and loads every script + scene,
+# failing the PR if anything is broken.
+#
+# Why it builds the extension first: ~10 addon nodes (difference, self_pruning,
+# sample_spline, relax, distance, point_neighborhood, sort, union, intersection,
+# substract) reference native classes (GDRTree/GDKdTree/GDStreamUtils). Without
+# the compiled library those scripts fail to PARSE, which would drown out real
+# errors. The committed flow.gdextension intentionally ships only Windows/macOS
+# entries, so this workflow adds an ephemeral Linux entry at runtime (never
+# committed) pointing at the freshly built library.
+
+name: Godot Project Check
+on:
+  workflow_call:
+  push:
+  pull_request:
+  merge_group:
+
+jobs:
+  godot-check:
+    name: Headless Godot validation
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Setup godot-cpp build deps
+        uses: ./godot-cpp/.github/actions/setup-godot-cpp
+        with:
+          platform: linux
+
+      # Editor target + single precision to match the official Godot editor
+      # binary used below (a template/double-precision lib would not load).
+      - name: Build native GDExtension (Linux, editor, single precision)
+        run: |
+          scons target=editor platform=linux arch=x86_64 precision=single -j"$(nproc)"
+
+      - name: Add ephemeral Linux entry to flow.gdextension
+        run: |
+          set -e
+          SO=$(ls demo/addons/flow_nodes_editor/bin/libflow.linux.*.x86_64.so | head -n1)
+          REL="res://addons/flow_nodes_editor/bin/$(basename "$SO")"
+          echo "Linking Linux library: $REL"
+          # Match the editor feature tag so the headless editor binary loads it.
+          printf 'linux.x86_64.editor = "%s"\n' "$REL" >> demo/addons/flow_nodes_editor/bin/flow.gdextension
+          cat demo/addons/flow_nodes_editor/bin/flow.gdextension
+
+      - name: Setup Godot (headless)
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.6.0          # matches config/features in demo/project.godot
+          use-dotnet: false
+          include-templates: false
+
+      - name: Import project
+        working-directory: demo
+        # --import parses every script and imports every resource, generating
+        # .uid files and surfacing parse/import errors. Allowed to "succeed" so
+        # the dedicated grep below is the gate (some import warnings are benign).
+        run: |
+          godot --headless --path . --import 2>&1 | tee import.log || true
+
+      - name: Fail on parse / script errors
+        working-directory: demo
+        run: |
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot use subscript|not declared in the current scope" import.log; then
+            echo "::error::Godot reported script/parse errors during project import (see log above)."
+            exit 1
+          fi
+          echo "No parse/script errors during import."
+
+      - name: Validate all scripts and scenes load
+        working-directory: demo
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/headless_validation.gd 2>&1 | tee validate.log
+
+      # Non-blocking: FlowCommonNodeRegressionTest currently has two pre-existing
+      # failures under Godot 4.6 (unrelated to graph structure) — direct bool
+      # assignment into a PackedByteArray in expression.gd, and `$`-style UE
+      # attribute parsing. These predate the roadmap work; tracked separately.
+      # Kept here for visibility so the regressions are fixed, not forgotten.
+      - name: Run GDScript regression tests
+        id: regression
+        continue-on-error: true
+        working-directory: demo
+        run: |
+          set -o pipefail
+          rc=0
+          for t in tests/flow_nodes_editor/FlowCommonNodeRegressionTest.gd \
+                   tests/flow_nodes_editor/FlowDataFilterBroadcastTest.gd; do
+            echo "--- running $t ---"
+            godot --headless --path . --script "res://$t" 2>&1 | tee "run_$(basename "$t").log" || rc=1
+          done
+          exit $rc
