@@ -4,7 +4,7 @@ extends NodeSettings
 
 @export_group("Size")
 
-## Name of the output attribute this node writes.
+## Name of output vector attribute stream.
 @export var out_name : String = "count"
 
 func _init():

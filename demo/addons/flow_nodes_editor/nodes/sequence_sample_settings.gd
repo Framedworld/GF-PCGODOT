@@ -4,11 +4,11 @@ extends NodeSettings
 
 @export_group("Sequence Sample")
 
-## Start index used by sequence sampling.
+## Starting value of sequence.
 @export var start : int = 0
-## Number of items taken from the sequence starting at start.
+## Number of sequence items to generate.
 @export var count : int = 0
-## Step amount used when iterating or sampling values.
+## Difference spacing step between adjacent items.
 @export var step : int = 1
 
 func _init():

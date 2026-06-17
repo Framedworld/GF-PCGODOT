@@ -4,9 +4,9 @@ extends NodeSettings
 
 @export_group("Print String")
 
-## Text prefix prepended to each printed debug line.
+## Text message prepended to print statements.
 @export var prefix_message: String = "Log:"
-## Attribute name whose value is printed for each element.
+## Name of the point attribute stream to print.
 @export var attribute_to_print: String = ""
 
 func _init():

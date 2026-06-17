@@ -4,11 +4,11 @@ extends NodeSettings
 
 @export_group("Select Multi")
 
-## Index used to pick/select an item from a sequence or collection.
+## Static integer index option to select.
 @export var index: int = 0
-## Toggles whether this node uses attribute instead of default behavior.
+## If enabled, chooses index value from point attribute stream.
 @export var use_attribute: bool = false
-## Name of the attribute this node reads from or writes to.
+## The attribute stream name to retrieve indices from.
 @export var attribute_name: String = ""
 
 func _init():

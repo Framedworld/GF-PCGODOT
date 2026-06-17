@@ -4,29 +4,38 @@ extends NodeSettings
 @export_group("Load Data Table")
 
 enum eDelimiter {
+	## Column values are separated by a comma (,).
 	Comma,
+	## Column values are separated by a tab character.
 	Tab,
+	## Column values are separated by a semicolon (;).
 	Semicolon,
+	## Column values are separated by a vertical bar (|).
 	Pipe,
 }
 
-## Scene/resource path used to resolve table.
+## The file path to the delimited text file (such as CSV or TSV) to load.
 @export_file("*.csv", "*.tsv", "*.txt") var table_path : String = ""
-## Selects this node behavior mode (Comma, Tab, Semicolon, Pipe).
+## The character delimiter used to separate column values.
 @export var delimiter : eDelimiter = eDelimiter.Comma
-## Treats the first CSV row as column names instead of data.
+## If enabled, treats the first row of the file as header labels.[br]
+## If disabled, headers are automatically generated as 'column_0', 'column_1', etc.
+## Spaces in headers are replaced with underscores, and duplicate headers are made unique.
 @export var first_row_is_header : bool = true
-## Trims leading/trailing whitespace from imported table cells.
+## If enabled, removes leading and trailing whitespace from parsed cell values.
 @export var trim_values : bool = true
-## Attempts to auto-detect value types per column during import.
+## If enabled, automatically casts columns to Bool, Int, Float, or Vector3 if all column values match that type.[br]
+## If disabled, all columns are registered as String streams.
 @export var infer_column_types : bool = true
-## When enabled, appends row index to the output data.
+## If enabled, generates a sequential zero-based row index attribute stream.
 @export var add_row_index : bool = true
-## Attribute name used to read/write row index on point data.
+## The name of the output Int stream to store the row index.
+## Only used when 'add_row_index' is enabled.
 @export var row_index_attribute : String = "row_index"
-## Scene/resource path used to resolve add source.
+## If enabled, records the file path of the source delimited file as a metadata attribute stream.
 @export var add_source_path : bool = false
-## Attribute name used to read/write source path on point data.
+## The name of the output String stream to store the source file path.
+## Only used when 'add_source_path' is enabled.
 @export var source_path_attribute : String = "source_path"
 
 func _init():

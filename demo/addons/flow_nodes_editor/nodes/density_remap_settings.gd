@@ -4,15 +4,15 @@ extends NodeSettings
 
 @export_group("Density Remap")
 
-## Input value/attribute key used for min.
+## The lower limit of the expected input density range.
 @export var in_min: float = 0.0
-## Input value/attribute key used for max.
+## The upper limit of the expected input density range.
 @export var in_max: float = 1.0
-## Output value/attribute key used for min.
+## The lower limit of the output density range mapped from in_min.
 @export var out_min: float = 0.0
-## Output value/attribute key used for max.
+## The upper limit of the output density range mapped from in_max.
 @export var out_max: float = 1.0
-## Parameter used for clamp to output range.
+## If enabled, clamps the remapped density output values to the configured output range limits.
 @export var clamp_to_output_range: bool = true
 
 func _init():

@@ -4,13 +4,13 @@ extends NodeSettings
 
 @export_group("Build Rotation From Up Vector")
 
-## Attribute name used to read/write up vector on point data.
+## The attribute name on point data representing the target normal/up vector.
 @export var up_vector_attribute: String = "normal"
-## Fallback up vector used when no up-vector attribute is provided.
+## The fallback up vector to use if the specified attribute is missing.
 @export var up_vector_constant: Vector3 = Vector3.UP
-## Toggles whether this node uses constant instead of default behavior.
+## If enabled, always uses the constant up vector instead of checking for an attribute.
 @export var use_constant: bool = false
-## Axis used as forward/reference when building rotation from up vectors.
+## The coordinate axis (x, y, or z) that should align to the target up vector.
 @export var axis: String = "z"
 
 func _init():

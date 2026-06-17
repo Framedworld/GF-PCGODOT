@@ -2,23 +2,23 @@
 extends "res://addons/flow_nodes_editor/node_settings.gd"
 
 @export_group("Point From Mesh")
-## Name of the input stream that contains source mesh data.
+## Input attribute name containing source mesh nodes.
 @export var source_stream_name : String = "node":
 	set(value):
 		source_stream_name = value.strip_edges()
 		emit_changed()
-## When enabled, also outputs mesh attribute alongside generated points/data.
+## If enabled, registers mesh resource references to streams.
 @export var include_mesh_attribute : bool = true:
 	set(value):
 		if include_mesh_attribute != value:
 			include_mesh_attribute = value
 			notify_property_list_changed()
-## Attribute name used for mesh in this node.
+## Name of the output mesh resource stream.
 @export var mesh_attribute_name : String = "mesh":
 	set(value):
 		mesh_attribute_name = value.strip_edges()
 		emit_changed()
-## Toggles whether this node uses world scale for bounds instead of default behavior.
+## If enabled, adjusts point bounds/size using world scale.
 @export var use_world_scale_for_bounds : bool = true:
 	set(value):
 		use_world_scale_for_bounds = value

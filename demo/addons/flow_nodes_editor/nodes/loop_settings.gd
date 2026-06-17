@@ -4,23 +4,23 @@ extends NodeSettings
 
 @export_group("Loop")
 
-## PCG graph resource this subgraph node executes.
+## The sub-graph resource to execute repeatedly in the loop.
 @export var graph : FlowGraphResource:
 	set(value):
 		graph = value
 		emit_changed()
-## Input pin/parameter name used for the current loop item in subgraph execution.
+## The input port name of the sub-graph that receives each loop item.
 @export var item_input_name : String = "item":
 	set(value):
 		item_input_name = value
 		emit_changed()
-## Attribute name used for output in this node.
+## The attribute name in which to write the collected loop outputs.
 @export var output_attribute_name : String = "result":
 	set(value):
 		output_attribute_name = value
 		emit_changed()
 
-## Parameter name used to feed previous-iteration data back into the next loop step.
+## The parameter name in the sub-graph used to pass back feedback values.
 @export var feedback_param_name : String = "":
 	set(value):
 		feedback_param_name = value

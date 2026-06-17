@@ -4,7 +4,7 @@ extends NodeSettings
 
 @export_group("Dungeon Expand Rooms")
 
-## Size of each grid cell used by this node.
+## The grid cell size in units used to expand room boundaries in the dungeon layout.
 @export var cell_size : float = 2.0:
 	set(value):
 		cell_size = value

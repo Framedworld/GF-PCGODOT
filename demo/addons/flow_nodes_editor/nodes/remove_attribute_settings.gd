@@ -4,9 +4,9 @@ extends NodeSettings
 
 @export_group("Remove Attribute")
 
-## List of attribute names to remove from each point/entry.
+## Array of attribute names to target for deletion.
 @export var names : Array[String] = []
-## When enabled, preserves selected attributes instead of discarding/replacing it.
+## If enabled, keeps targeted attributes and deletes all others instead.
 @export var keep_selected_attributes : bool = false
 
 func _init():

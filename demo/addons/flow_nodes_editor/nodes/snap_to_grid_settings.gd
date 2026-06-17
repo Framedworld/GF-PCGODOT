@@ -3,23 +3,23 @@ class_name SnapToGridNodeSettings
 extends NodeSettings
 
 @export_group("Snap to Grid")
-## Size parameter controlling grid size during generation/transforms.
+## Grid spacing size vector for snap positions.
 @export var grid_size: Vector3 = Vector3.ONE * 2.0
-## Snaps generated positions to the translation grid.
+## If enabled, snaps positions to grid.
 @export var snap_position: bool = true
-## Rotation value/attribute used when orienting generated instances or points.
+## If enabled, snaps rotations to angular grid.
 @export var snap_rotation: bool = false:
 	set(value):
 		snap_rotation = value
 		notify_property_list_changed()
-## Scale factor used to adjust snap scale.
+## If enabled, snaps scales/sizes to grid sizes.
 @export var snap_scale: bool = false:
 	set(value):
 		snap_scale = value
 		notify_property_list_changed()
-## Step used when snapping rotation (Euler degrees); ZERO falls back to grid_size
+## Angular grid step size (in degrees) for snapping rotations.
 @export var rotation_grid_size: Vector3 = Vector3.ZERO
-## Step used when snapping scale; ZERO falls back to grid_size
+## Scale grid step size for snapping scale/size vectors.
 @export var scale_grid_size: Vector3 = Vector3.ZERO
 
 func exposeParam(name : String) -> bool:

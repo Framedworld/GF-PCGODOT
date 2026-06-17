@@ -4,18 +4,21 @@ extends NodeSettings
 @export_group("Clip Points By Polygon")
 
 enum ePlane {
+	## Clip on the XZ projection plane.
 	XZ,
+	## Clip on the XY projection plane.
 	XY,
+	## Clip on the YZ projection plane.
 	YZ,
 }
 
-## Selects this node behavior mode (XZ, XY, YZ).
+## The reference 2D projection plane (XZ, XY, or YZ) used for clipping.
 @export var plane : ePlane = ePlane.XZ
-## When enabled, preserves inside instead of discarding/replacing it.
+## If enabled, points inside the polygon boundary are kept and points outside are clipped. If disabled, points outside are kept and points inside are clipped.
 @export var keep_inside : bool = true
-## Scene/resource path used to resolve polygon node.
+## The NodePath in the scene tree to the polygon node used for clipping.
 @export var polygon_node_path : NodePath
-## Attribute name used to read/write spline stream on point data.
+## The attribute stream containing the reference spline or polygon node references.
 @export var spline_stream_attribute : String = "node"
 
 func _init():

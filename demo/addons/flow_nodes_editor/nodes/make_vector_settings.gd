@@ -13,7 +13,7 @@ extends NodeSettings
 
 # This is a signal to stop presenting the rest of the output as inputs of the box
 var HiddenFromThisPoint := true
-## Name of the output attribute this node writes.
+## The output attribute stream name in which to write the composed vector.
 @export var out_name : String = "Vector"
 
 func _init():

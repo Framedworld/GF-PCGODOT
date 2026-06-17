@@ -4,9 +4,9 @@ extends NodeSettings
 
 @export_group("Output")
 
-## Human-readable name/key used by this node when creating or selecting entries.
+## The name of the output port/resource parameter.
 @export var name : String = "out_val"
-## Data type used when creating streams/attributes or interpreting values.
+## The data type expected for this output.
 @export var data_type : FlowData.DataType = FlowData.DataType.Float
 
 func _init():

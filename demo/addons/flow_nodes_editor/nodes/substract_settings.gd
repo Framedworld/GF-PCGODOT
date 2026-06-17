@@ -5,12 +5,14 @@ extends NodeSettings
 @export_group("Substract")
 
 enum eOperation {
+	## Removes points in A overlapping points in B.
 	A_Minus_B,
+	## Keeps only points in A overlapping points in B.
 	A_Intersection_B,
 	#A_Union_B,
 }
 
-## Chooses the operation this node applies to incoming data.
+## Culling behavior mode.
 @export var operation : eOperation = eOperation.A_Minus_B
 
 func _init():

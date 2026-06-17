@@ -4,25 +4,25 @@ extends NodeSettings
 
 @export_group("Spawn Meshes")
 
-## Default mesh to spawn when no mesh attribute/variant overrides it.
+## Mesh resource to spawn at point positions.
 @export var mesh : Mesh = preload( "res://addons/flow_nodes_editor/resources/unit_cube.tres" )
-## Attribute name used to read/write mesh on point data.
+## Input attribute name specifying custom meshes per point.
 @export var mesh_attribute : String
-## List of mesh candidates this node can choose from while spawning/assigning.
+## Array of variant Mesh resources.
 @export var mesh_variants : Array[Mesh] = []
-## Relative selection weights used when randomly picking from mesh variant.
+## Selection weights assigned to variant meshes.
 @export var mesh_variant_weights : Array[float] = []
-## Attribute name used to read/write mesh selector on point data.
+## Custom mesh variant index selector attribute name.
 @export var mesh_selector_attribute : String = ""
-## If enabled, randomly chooses from mesh_variants (or mesh_selector_attribute) instead of deterministic selection.
+## If enabled, picks variants randomly per point using stable seeds.
 @export var randomize_mesh_variants : bool = false
-## Attribute name used to read/write color on point data.
+## Color attribute stream name to assign as mesh vertex colors.
 @export var color_attribute : String = "color"
-## Toggles whether this node uses vertex colors instead of default behavior.
+## If enabled, writes point color values directly to mesh vertex data.
 @export var use_vertex_colors : bool = true
-## Scene/resource path used to resolve spawn parent.
+## Scene tree path under which spawned meshes are grouped.
 @export var spawn_parent_path : String = ""
-## When enabled, clears previous instances before writing new results.
+## If enabled, deletes previously spawned mesh instances before evaluation.
 @export var clear_previous_instances : bool = true
 
 func _init():

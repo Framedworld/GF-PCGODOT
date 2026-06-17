@@ -4,21 +4,21 @@ extends NodeSettings
 
 @export_group("Transform")
 
-## Offset applied to offset min before writing final output values.
+## Minimum random translation offset Vector3.
 @export var offset_min := Vector3(0,0,0)
-## Offset applied to offset max before writing final output values.
+## Maximum random translation offset Vector3.
 @export var offset_max := Vector3(0,0,0)
-## Rotation value/attribute used when orienting generated instances or points.
+## Minimum random Euler rotation offset Vector3.
 @export var rotation_min := Vector3(0,0,0)
-## Rotation value/attribute used when orienting generated instances or points.
+## Maximum random Euler rotation offset Vector3.
 @export var rotation_max := Vector3(0,0,0)
-## Rotation value/attribute used when orienting generated instances or points.
+## If enabled, rotation is applied in local point space. If disabled, in world space.
 @export var rotation_local_space := false
-## Scale factor used to adjust scale min.
+## Minimum random scale/size multiplier Vector3.
 @export var scale_min := Vector3(1,1,1)
-## Scale factor used to adjust scale max.
+## Maximum random scale/size multiplier Vector3.
 @export var scale_max := Vector3(1,1,1)
-## Scale factor used to adjust uniform scale.
+## If enabled, applies scale multiplier uniformly across X, Y, and Z.
 @export var uniform_scale := true
 
 func _init():

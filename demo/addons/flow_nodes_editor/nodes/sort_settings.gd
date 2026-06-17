@@ -4,9 +4,9 @@ extends NodeSettings
 
 @export_group("Sort")
 
-## Attribute name used as the sort key.
+## The attribute stream name to sort the points by.
 @export var sort_by : String
-## If enabled, sorts highest-to-lowest instead of ascending order.
+## If enabled, sorts points in descending order. If disabled, sorts in ascending order.
 @export var sort_descending : bool = false
 
 func _init():

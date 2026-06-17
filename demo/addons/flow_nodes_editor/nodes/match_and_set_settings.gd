@@ -4,9 +4,9 @@ extends NodeSettings
 
 @export_group("Match And Set")
 
-## Attribute used as the lookup key when matching source and target rows/points.
+## The attribute stream name used to compare and match entries.
 @export var match_attr : String
-## Optional weight attribute used for weighted match selection.
+## Optional attribute stream name specifying selection weights for random distribution.
 @export var weight_attr : String
 
 func _init():

@@ -10,9 +10,13 @@ extends NodeSettings
 ## - Lerp: spherically interpolates current_rotation towards operand by `alpha`
 ## - RotateAroundAxis: rotates current_rotation by `angle_degrees` around `axis`
 enum eOperation {
+	## Combines two rotations.
 	Combine,
+	## Inverts the rotation.
 	Invert,
+	## Interpolates between two rotations.
 	Lerp,
+	## Rotates around an axis vector.
 	RotateAroundAxis,
 }
 
@@ -21,31 +25,32 @@ enum eOperation {
 ## - Quaternion: read/write the canonical `rotation_quat` stream (Quaternion)
 ## Euler stays the default authoring representation.
 enum eRepresentation {
+	## Uses Euler angles representation.
 	Euler,
+	## Uses Quaternion representation.
 	Quaternion,
 }
 
-## Chooses the operation this node applies to the rotation.
+## Rotation math operation.
 @export var operation : eOperation = eOperation.Combine:
 	set(value):
 		if operation != value:
 			operation = value
 			notify_property_list_changed()
 
-## Representation read from the input and written to the output.
+## Internal representation format: Euler angles or Quaternion.
 @export var representation : eRepresentation = eRepresentation.Euler
 
-## Operand rotation as Euler degrees (used by Combine / Lerp / and the basis the
-## quaternion operand is derived from). Ignored by Invert.
+## Constant Euler angles rotation offset.
 @export var operand_euler : Vector3 = Vector3.ZERO
 
-## Interpolation factor for Lerp (0 = current rotation, 1 = operand).
+## Blend factor used for interpolation/Lerp.
 @export var alpha : float = 0.5
 
-## Axis used by RotateAroundAxis (normalized internally).
+## Rotation axis vector used for RotateAroundAxis.
 @export var axis : Vector3 = Vector3.UP
 
-## Angle in degrees used by RotateAroundAxis.
+## Rotation angle in degrees.
 @export var angle_degrees : float = 0.0
 
 func _init():

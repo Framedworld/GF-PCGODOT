@@ -3,13 +3,13 @@ class_name DecomposeVectorNodeSettings
 extends NodeSettings
 
 @export_group("Decompose Vector")
-## Input attribute name this node reads for .
+## The name of the Vector3 attribute stream to decompose.
 @export var in_attribute: String = "position"
-## Attribute name used to read/write x on point data.
+## The name of the float attribute stream to store the X component in.
 @export var x_attribute: String = "x"
-## Attribute name used to read/write y on point data.
+## The name of the float attribute stream to store the Y component in.
 @export var y_attribute: String = "y"
-## Attribute name used to read/write z on point data.
+## The name of the float attribute stream to store the Z component in.
 @export var z_attribute: String = "z"
 
 func _init():

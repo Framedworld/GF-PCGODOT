@@ -4,11 +4,11 @@ extends NodeSettings
 
 @export_group("Sanity Check")
 
-## Name of the attribute this node reads from or writes to.
+## Attribute stream name to validate.
 @export var attribute_name: String = "density"
-## Lower bound used by this node for value.
+## Lower limit for validation range check.
 @export var min_value: float = 0.0
-## Upper bound used by this node for value.
+## Upper limit for validation range check.
 @export var max_value: float = 1.0
 
 func _init():

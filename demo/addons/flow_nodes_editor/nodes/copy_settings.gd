@@ -5,16 +5,20 @@ extends NodeSettings
 @export_group("Copy")
 
 enum eMode {
+	## Generates duplicate point copies offset consecutively by translation and rotation offsets.
 	LinearCopies,
+	## Places copies of the source point data at each point position of the target stream.
 	SourceToTargets,
 }
 
 enum eSourceSelection {
+	## Matches source points to target points by cycling through them sequentially.
 	Cycle,
+	## Matches source points to target points randomly using a stable random seed.
 	RandomDeterministic,
 }
 
-## Selects which processing mode this node uses (similar to UE PCG node modes).
+## Determines the point copying strategy to use.
 @export var mode : eMode = eMode.LinearCopies:
 	set(value):
 		value = clampi(value, 0, eMode.size() - 1)
@@ -32,7 +36,7 @@ enum eSourceSelection {
 ## Rotation applied to generated or transformed points/instances.
 @export var rotation : Vector3 = Vector3.ZERO
 
-## Selects this node behavior mode (Cycle, RandomDeterministic).
+## Determines how source points are matched to target points when copying.
 @export var source_selection : eSourceSelection = eSourceSelection.Cycle:
 	set(value):
 		value = clampi(value, 0, eSourceSelection.size() - 1)
@@ -40,9 +44,9 @@ enum eSourceSelection {
 		emit_changed()
 ## If enabled, composes source and target transforms instead of replacing target transforms.
 @export var combine_source_with_target_transform : bool = true
-## Scale factor used to adjust inherit target scale.
+## If enabled, target point scale is combined with source point scale.
 @export var inherit_target_scale : bool = true
-## Attribute name used to read/write write target index on point data.
+## Optional attribute stream name in which to write the index of the target point that spawned each copy.
 @export var write_target_index_attribute : String = ""
 
 ## If enabled, adds an attribute identifying which copy instance produced each output point.

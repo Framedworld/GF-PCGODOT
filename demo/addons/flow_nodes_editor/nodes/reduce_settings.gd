@@ -4,9 +4,9 @@ extends NodeSettings
 
 @export_group("Reduce")
 
-## Name of the input attribute to read from.
+## Input attribute stream name to evaluate and reduce.
 @export var in_name : String
-## Output value/attribute key used for prefix.
+## Prefix message added to print output.
 @export var out_prefix : String
 
 func _init():

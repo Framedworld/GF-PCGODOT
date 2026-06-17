@@ -9,14 +9,10 @@ const CTX_KEY := "__grid_size__cell_size"
 
 @export_group("Grid Size")
 
-## Label shown in the node title and used to identify this partition tier
-## when multiple grid_size nodes are stacked (coarse then fine).
+## A descriptive label for this grid size configuration.
 @export var label: String = "Grid Size"
 
-## Cell size in world units. Must be a power of two (e.g. 8, 16, 32, 64, 128).
-## The value is clamped to the nearest valid power-of-two on assignment.
-## This annotation is currently inert — it is recorded on the evaluation
-## context for a future FlowGraphNode3D partition mode to consume.
+## The cell size vector (X, Y, Z) defining cell dimensions.
 @export var cell_size: float = 64.0 :
 	set(v):
 		cell_size = _snap_to_power_of_two(v)

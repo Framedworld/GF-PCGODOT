@@ -4,16 +4,15 @@ extends NodeSettings
 
 @export_group("Terrain Layers")
 
-## List of paint layers to sample.  Each TerrainLayerEntry pairs a name
-## with a mask texture.  Each entry produces one Float stream named
-## "<stream_prefix><layer_name>" on the output points.
+## An array of terrain layers to sample. Each entry associates a layer name with a mask texture.
+## The node outputs a float stream (0.0 to 1.0) for each layer indicating its sample weight.
 @export var layers : Array[TerrainLayerEntry] = []:
 	set(value):
 		layers = value
 		emit_changed()
 
-## Prefix prepended to each layer name when naming the output stream.
-## Default "layer_" makes a layer named "grass" produce stream "layer_grass".
+## The prefix prepended to the generated output stream names for each layer.
+## For example, a prefix of 'layer_' with a layer named 'grass' creates the stream 'layer_grass'.
 @export var stream_prefix : String = "layer_":
 	set(value):
 		stream_prefix = value
@@ -21,33 +20,30 @@ extends NodeSettings
 
 @export_group("World-to-UV Mapping")
 
-## When true the node derives UV from each point's world XZ position
-## (X -> U, Z -> V) using world_min/world_max bounds.
-## When false the node reads a pre-existing UV attribute from the point data.
+## If enabled, projects the points' world-space XZ coordinates into [0, 1] UVs using 'world_min' and 'world_max'.
+## If disabled, reads UV coordinates directly from the point attribute named in 'uv_attribute_name'.
 @export var use_world_xz : bool = true:
 	set(value):
 		if use_world_xz != value:
 			use_world_xz = value
 			notify_property_list_changed()
 
-## World-space minimum corner of the terrain rectangle (X, Z plane).
-## Maps to UV (0, 0).  The Vector2 stores (world_X, world_Z).
-## Only used when use_world_xz is true.
+## The minimum boundary in world coordinates (X and Z) corresponding to UV coordinate (0.0, 0.0) on the textures.
+## Only used when 'use_world_xz' is enabled.
 @export var world_min : Vector2 = Vector2(-100.0, -100.0):
 	set(value):
 		world_min = value
 		emit_changed()
 
-## World-space maximum corner of the terrain rectangle (X, Z plane).
-## Maps to UV (1, 1).  The Vector2 stores (world_X, world_Z).
-## Only used when use_world_xz is true.
+## The maximum boundary in world coordinates (X and Z) corresponding to UV coordinate (1.0, 1.0) on the textures.
+## Only used when 'use_world_xz' is enabled.
 @export var world_max : Vector2 = Vector2(100.0, 100.0):
 	set(value):
 		world_max = value
 		emit_changed()
 
-## Name of the UV attribute to read when use_world_xz is false.
-## The attribute must be of type Vector (XY used) or Color (RG used).
+## The name of the input Vector or Color attribute to read UV coordinates from.
+## Only used when 'use_world_xz' is disabled.
 @export var uv_attribute_name : String = "uv":
 	set(value):
 		uv_attribute_name = value.strip_edges()
@@ -57,14 +53,19 @@ extends NodeSettings
 
 ## Which channel of each mask texture is interpreted as the layer weight.
 enum eValueChannel {
+	## Sample the Red channel.
 	R,
+	## Sample the Green channel.
 	G,
+	## Sample the Blue channel.
 	B,
+	## Sample the Alpha channel.
 	A,
+	## Sample the calculated Luminance value.
 	Luminance,
 }
 
-## Texture channel used as the layer weight value (0..1).
+## The texture color channel (Red, Green, Blue, Alpha, or Luminance) to interpret as the layer weight.
 @export var value_channel : eValueChannel = eValueChannel.R:
 	set(value):
 		value = clampi(value, 0, eValueChannel.size() - 1)
@@ -73,11 +74,13 @@ enum eValueChannel {
 
 ## How UV coordinates outside [0, 1] are handled.
 enum eWrapMode {
+	## Clamps coordinates to terrain boundaries.
 	Clamp,
+	## Wraps coordinates around terrain boundaries.
 	Wrap,
 }
 
-## Clamp keeps the border pixel value; Wrap tiles the texture.
+## Determines how UV coordinates outside the [0, 1] range are handled.
 @export var wrap_mode : eWrapMode = eWrapMode.Clamp:
 	set(value):
 		value = clampi(value, 0, eWrapMode.size() - 1)

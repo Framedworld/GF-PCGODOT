@@ -4,14 +4,13 @@ extends NodeSettings
 
 @export_group("Subgraph")
 
-## PCG graph resource this subgraph node executes.
+## The subgraph resource to run.
 @export var graph : FlowGraphResource:
 	set(value):
 		graph = value
 		emit_changed()
 
-## Per-instance parameter overrides. Maps param_name -> value.
-## Priority chain: connected wire > instance override > graph default.
+## Optional parameters to override on the subgraph.
 @export var param_overrides : Dictionary = {}
 
 func _init():

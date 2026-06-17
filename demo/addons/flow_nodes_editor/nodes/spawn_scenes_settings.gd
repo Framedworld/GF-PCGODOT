@@ -4,25 +4,25 @@ extends NodeSettings
 
 @export_group("Spawn Scenes")
 
-## Default scene to spawn when scene attributes/variants are not used.
+## PackedScene resource to instantiate at point positions.
 @export var scene : PackedScene
-## Attribute name used to read/write scene on point data.
+## Input attribute name specifying custom scenes per point.
 @export var scene_attribute : String
-## List of scene candidates this node can choose from while spawning/assigning.
+## Array of variant PackedScene resources.
 @export var scene_variants : Array[PackedScene] = []
-## Relative selection weights used when randomly picking from scene_variants.
+## Selection weights assigned to variant scenes.
 @export var scene_variant_weights : Array[float] = []
-## Attribute name used to read/write scene selector on point data.
+## Custom scene variant index selector attribute name.
 @export var scene_selector_attribute : String = ""
-## If enabled, randomly chooses from scene_variants instead of using scene_selector_attribute values.
+## If enabled, picks variants randomly per point.
 @export var randomize_scene_variants : bool = false
-## Scene/resource path used to resolve spawn parent.
+## Scene tree parent path under which spawned scenes are grouped.
 @export var spawn_parent_path : String = ""
-## When enabled, clears previous instances before writing new results.
+## If enabled, deletes previously spawned scene instances.
 @export var clear_previous_instances : bool = true
-## Scene/resource path used to resolve assign target.
+## If enabled, outputs path reference to spawned scenes in streams.
 @export var assign_target_path : String = ""
-## When enabled, assigns attributes during node execution.
+## Map of point attributes to set as properties on spawned scene root nodes.
 @export var assign_attributes: Dictionary
 
 func _init():

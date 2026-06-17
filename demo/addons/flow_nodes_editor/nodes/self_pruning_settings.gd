@@ -5,43 +5,48 @@ extends NodeSettings
 @export_group("Self Pruning")
 
 enum ePruneMode {
+	## Prunes points based on bounding box overlaps.
 	BoundsOverlap,
+	## Prunes points that fall in the same grid cell coordinates.
 	GridCell,
 }
 
 enum eDensityFunction {
+	## Applies a hard binary overlap culling.
 	Binary,
+	## Applies a minimum-based density attenuation.
 	Minimum,
+	## Multiplies overlapping densities.
 	Multiply,
+	## Subtracts overlapping densities.
 	Subtract,
 }
 
-## Selects which processing mode this node uses (similar to UE PCG node modes).
+## Pruning algorithm to use.
 @export var mode : ePruneMode = ePruneMode.BoundsOverlap:
 	set(value):
 		mode = value
 		notify_property_list_changed()
 		emit_changed()
 
-## When enabled, preserves self intersections instead of discarding/replacing it.
+## If enabled, retains points that overlap with points from their own source group.
 @export var keep_self_intersections : bool = false
-## How pruned points are resolved. Binary (default) hard-removes them (legacy).
-## Minimum/Multiply/Subtract instead keep them with attenuated density.
+## Operation to resolve overlapping point densities.
 @export var density_function : eDensityFunction = eDensityFunction.Binary:
 	set(value):
 		density_function = clampi(value, 0, eDensityFunction.size() - 1)
 		emit_changed()
-## Size of each grid cell used by this node.
+## Grid cell dimensions used for collision/overlap mapping.
 @export var cell_size : float = 1.0:
 	set(value):
 		cell_size = value
 		emit_changed()
-## Attribute name used to read/write prefer on point data.
+## Name of the attribute stream used to decide priority (e.g. 'density' or 'seed').
 @export var prefer_attribute : String:
 	set(value):
 		prefer_attribute = value
 		emit_changed()
-## Preferred attribute value used as a tie-breaker during pruning.
+## Priority comparison behavior to select which point to keep.
 @export var prefer_value : String:
 	set(value):
 		prefer_value = value

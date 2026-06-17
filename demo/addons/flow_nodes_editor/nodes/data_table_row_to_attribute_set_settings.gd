@@ -4,26 +4,28 @@ extends NodeSettings
 @export_group("Data Table Row To Attribute Set")
 
 enum eSelectionMode {
+	## Selects table rows using a direct numeric index.
 	RowIndex,
+	## Selects table rows by matching a point attribute to a table key value.
 	MatchAttribute,
 }
 
-## Selects this node behavior mode (RowIndex, MatchAttribute).
+## Determines how a row is selected from the data table.
 @export var selection_mode : eSelectionMode = eSelectionMode.RowIndex:
 	set(value):
 		value = clampi(value, 0, eSelectionMode.size() - 1)
 		selection_mode = value
 		notify_property_list_changed()
 
-## Row index used to fetch a specific table row.
+## The 0-based index of the table row to retrieve.
 @export var row_index : int = 0
-## Attribute name used to read/write key on point data.
+## The name of the attribute stream on the input point data to compare against the table keys.
 @export var key_attribute : String = "name"
-## Key value used to find a matching row when key-based lookup is selected.
+## The key string value to look up and match in the data table.
 @export var key_value : String = ""
-## When enabled, also outputs all matches alongside generated points/data.
+## If enabled, retrieves and merges all matching rows. If disabled, retrieves only the first matching row.
 @export var include_all_matches : bool = false
-## If enabled, text matching treats uppercase/lowercase as different values.
+## If enabled, performs case-sensitive key matching comparisons.
 @export var case_sensitive : bool = false
 
 func _init():

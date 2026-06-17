@@ -3,9 +3,9 @@ class_name SurfaceSamplerNodeSettings
 extends NodeSettings
 
 @export_group("Surface Sampler")
-## Number of points to sample/generate on the surface.
+## The number of points to sample across the surface area.
 @export var num_points: int = 40
-## Size assigned to generated points (point extents/scale hint).
+## Default scale size assigned to generated sample points.
 @export var point_size: Vector3 = Vector3.ONE
 
 func _init():

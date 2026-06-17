@@ -4,7 +4,14 @@ extends NodeSettings
 
 @export_group("Bounds Modifier")
 
-enum eMode { Set, Add, Multiply }
+enum eMode {
+	## Directly sets the bounds to the specified minimum and maximum.
+	Set,
+	## Adds the specified values to the existing bounds.
+	Add,
+	## Multiplies the existing bounds by the specified values.
+	Multiply,
+}
 
 # Where the node writes its result.
 #  SymmetricSize  - legacy default: collapse |max-min| into the `size` stream
@@ -13,19 +20,24 @@ enum eMode { Set, Add, Multiply }
 #  PerPointBounds - write asymmetric per-point `bounds_min`/`bounds_max` streams
 #                   (UE BoundsMin/BoundsMax parity), leaving `size` untouched so
 #                   mesh scale and collision bounds can diverge.
-enum eOutput { SymmetricSize, PerPointBounds }
+enum eOutput {
+	## Writes symmetric size output (legacy behavior).
+	SymmetricSize,
+	## Writes asymmetric bounds using position offsets.
+	PerPointBounds,
+}
 
-## Selects which processing mode this node uses (similar to UE PCG node modes).
+## The modification mode to apply to point bounds.
 @export var mode: eMode = eMode.Set
-## Selects whether the result is written into `size` (legacy) or per-point bounds.
+## Determines whether the result is written back to the legacy 'size' stream or to the per-point bounds streams.
 @export var output_mode: eOutput = eOutput.SymmetricSize:
 	set(value):
 		output_mode = value
 		notify_property_list_changed()
 		emit_changed()
-## Minimum corner of the bounds box.
+## The minimum corner of the bounding box.
 @export var bounds_min: Vector3 = -Vector3.ONE * 0.5
-## Maximum corner of the bounds box.
+## The maximum corner of the bounding box.
 @export var bounds_max: Vector3 = Vector3.ONE * 0.5
 
 func _init():

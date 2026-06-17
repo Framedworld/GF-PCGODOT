@@ -5,61 +5,63 @@ extends NodeSettings
 @export_group("RayCast")
 
 enum eDirectionMode {
+	## Sweep along a constant direction vector.
 	Constant,
+	## Sweep along the vector direction read from a point attribute.
 	FromAttribute,
 }
 
-## Ray direction vector before optional normalization.
+## The constant raycast direction Vector3.
 @export var dir : Vector3 = Vector3.DOWN
-## Upper bound used by this node for distance.
+## The maximum distance raycasts will travel.
 @export var max_distance : float = 1e3
-## Selects this node behavior mode (Constant, FromAttribute).
+## Raycast direction source: Constant or FromAttribute.
 @export var direction_mode : eDirectionMode = eDirectionMode.Constant:
 	set(value):
 		value = clampi(value, 0, eDirectionMode.size() - 1)
 		if direction_mode != value:
 			direction_mode = value
 			notify_property_list_changed()
-## Attribute name used to read/write direction on point data.
+## Direction attribute stream name.
 @export var direction_attribute : String = "direction":
 	set(value):
 		direction_attribute = value.strip_edges()
 		emit_changed()
-## Attribute name used to read/write distance on point data.
+## Distance attribute stream name.
 @export var distance_attribute : String = "":
 	set(value):
 		distance_attribute = value.strip_edges()
 		emit_changed()
-## Normalizes ray direction so ray length is controlled only by distance settings.
+## If enabled, normalizes direction vector before casting.
 @export var normalize_direction : bool = true
 
-## Attribute name that provides ray origin positions for each input point.
+## Position offset attribute name to start raycast from.
 @export var from_attribute : String = "position"
 
 @export_group("Collision")
-## Physics collision mask used for overlap/raycast/sweep queries.
+## Physics collision layers checked.
 @export var collision_mask : int = 1
-## Includes physics bodies in the query results.
+## If enabled, collides with PhysicsBody3D.
 @export var collide_with_bodies : bool = true
-## Includes Area nodes in the query results.
+## If enabled, collides with Area3D.
 @export var collide_with_areas : bool = false
-## Allows hits when the ray starts inside a collider volume.
+## If enabled, detects overlaps starting inside collision shapes.
 @export var hit_from_inside : bool = false
-## When enabled, removes nodes group from candidates considered by this node.
+## Optional group name to exclude from collision.
 @export var exclude_nodes_group : String = ""
 
 @export_group("Outputs")
-## Output attribute name that stores result produced by this node.
+## Output hit boolean attribute stream name.
 @export var out_result_attribute : String = "hit"
-## Output attribute name that stores position produced by this node.
+## Output hit position attribute stream name.
 @export var out_position_attribute : String = "position"
-## Output attribute name that stores rotation produced by this node.
+## Output hit normal rotation attribute stream name.
 @export var out_rotation_attribute : String = "rotation"
-## Output attribute name that stores normal produced by this node.
+## Output hit normal vector attribute stream name.
 @export var out_normal_attribute : String = ""
-## Output attribute name that stores distance produced by this node.
+## Output hit distance attribute stream name.
 @export var out_distance_attribute : String = ""
-## Output attribute name that stores collider produced by this node.
+## Output hit collider reference attribute stream name.
 @export var out_collider_attribute : String = ""
 
 func _init():

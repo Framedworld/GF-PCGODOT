@@ -2,19 +2,19 @@
 extends NodeSettings
 
 @export_group("Attribute Rename")
-## Existing attribute name to rename.
+## The name of the existing attribute stream to be renamed.
 @export var from_name : String = "":
 	set(value):
 		from_name = value.strip_edges()
 		emit_changed()
 
-## New attribute name written by the rename operation.
+## The new name to assign to the renamed attribute stream.
 @export var to_name : String = "":
 	set(value):
 		to_name = value.strip_edges()
 		emit_changed()
 
-## If enabled, replaces the destination attribute when it already exists.
+## If enabled, overrides and replaces any existing attribute stream with the new name.
 @export var overwrite_existing : bool = false:
 	set(value):
 		overwrite_existing = value

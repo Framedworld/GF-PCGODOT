@@ -4,19 +4,19 @@ extends NodeSettings
 
 @export_group("Scan Nodes")
 
-## Group name used to find or filter scene nodes.
+## Group name to scan for nodes.
 @export var group_name : String
-## Filter by node name; supports * and ? wildcards (case-insensitive)
+## Optional name text filter for nodes.
 @export var filter_by_name : String
-## Optional class-name substring filter when scanning scene nodes.
+## Optional class type filter for nodes.
 @export var filter_by_class_name : String
-## Scan the whole scene tree; when false only direct children of the scene root are inspected
+## If enabled, scans recursively through sub-nodes.
 @export var recursive : bool = true
-## When enabled, imports metadata from the scanned source.
+## If enabled, writes node metadata into custom streams.
 @export var import_metadata : bool = false
-## When enabled, imports properties from the scanned source.
+## If enabled, writes node property values into custom streams.
 @export var import_properties : Array[ StringName ]
-## Size parameter controlling size to bounds during generation/transforms.
+## If enabled, calculates and sets point sizes from node bounds.
 @export var size_to_bounds : bool = false
 
 func _init():

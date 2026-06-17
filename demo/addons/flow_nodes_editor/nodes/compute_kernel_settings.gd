@@ -11,7 +11,9 @@ extends NodeSettings
 ##  - INLINE: type/paste the shader body into `shader_source` below.
 ##  - FILE:   point `shader_file_path` at a .glsl RDShaderFile resource.
 enum eShaderMode {
+	## Specifies that the GLSL shader code is provided inline within the inspector.
 	INLINE,
+	## Specifies that the GLSL shader code is loaded from an external `.glsl` file.
 	FILE,
 }
 
@@ -24,29 +26,24 @@ enum eShaderMode {
 ##                 std430 `vec3[]` arrays are NOT this layout; only pick this if
 ##                 your shader reads a flat float array.
 enum eVec3Packing {
+	## Pads 3D vectors to 4 floats (aligns with standard std430 vec4 layouts).
 	VEC4_PADDED,
+	## Packs 3D vectors tightly as 3 consecutive floats (aligns with tightly packed vec3 arrays).
 	VEC3_TIGHT,
 }
 
 @export_group("Compute Kernel")
 
-## Where the shader code comes from.
+## Selects where the compute shader GLSL code is loaded from.
 @export var shader_mode : eShaderMode = eShaderMode.INLINE:
 	set(value):
 		if shader_mode != value:
 			shader_mode = value
 			notify_property_list_changed()
 
-## Inline GLSL compute shader source (used when shader_mode == INLINE).
-## Must begin with a `#version` directive and declare a compute stage, e.g.
-##   #[compute]
-##   #version 450
-##   layout(local_size_x = 64) in;
-##   ... your storage buffers at the declared binding indices ...
-## NOTE: Godot's RDShaderSource compiles raw GLSL; the `#[compute]` tag is only
-## required by the RDShaderFile (.glsl) format. For inline sources we feed the
-## text straight to RDShaderSource.source_compute, so omit the `#[compute]` tag
-## and just start at `#version 450`.
+## The inline GLSL compute shader source code.[br]
+## - Must begin with a `#version` directive (e.g. `#version 450`).[br]
+## - Do not include the `#[compute]` tag as it is sent directly to the Godot RenderingDevice compilation API.
 @export_multiline var shader_source : String = """#version 450
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
@@ -75,35 +72,29 @@ void main() {
 }
 """
 
-## Path to a .glsl RDShaderFile resource (used when shader_mode == FILE).
+## The file path to the external `.glsl` RDShaderFile resource to run.
 @export_file("*.glsl") var shader_file_path : String = ""
 
 @export_group("Bindings")
 
-## INPUT bindings. Each entry is "<stream_name>:<binding_index>" (e.g.
-## "position:0" or "@last:0"). The named stream is packed into a storage buffer
-## bound at the given set-0 binding index. Float and Vector3 streams supported.
+## The GPU input buffer bindings mapping point streams to buffer binding indices.[br]
+## - Format: 'stream_name:binding_index' (e.g. 'position:0' or '@last:0').[br]
+## - Supports Float and Vector3/vec3 streams.
 @export var input_bindings : PackedStringArray = PackedStringArray(["@last:0"])
 
-## OUTPUT bindings. Each entry is "<binding_index>:<stream_name>:<type>" where
-## type is one of "float" or "vec3" (e.g. "1:result:float"). After dispatch the
-## buffer at that binding is read back and registered as the named stream on a
-## duplicate of the input Data. A vec3 output buffer is unpacked per the chosen
-## vec3 packing convention.
+## The GPU output buffer bindings mapping buffer binding indices back to named point streams.[br]
+## - Format: 'binding_index:stream_name:type' (e.g. '1:result:float' or '2:normal:vec3').
 @export var output_bindings : PackedStringArray = PackedStringArray(["1:result:float"])
 
-## When true, a small std430 storage buffer holding `uint point_count` is bound
-## at `point_count_binding` so the shader can early-out past the last point.
+## When true, a small std430 storage buffer holding `uint point_count` is bound at `point_count_binding` so the shader can early-out past the last point.
 @export var bind_point_count : bool = true
 
-## Binding index for the point_count params buffer (only used when
-## bind_point_count is true). Keep it clear of your input/output bindings.
+## Binding index for the point_count params buffer (only used when bind_point_count is true). Keep it clear of your input/output bindings.
 @export var point_count_binding : int = 7
 
 @export_group("Dispatch")
 
-## Local workgroup size on X. Must match the `layout(local_size_x = ...)` in the
-## shader. The node dispatches ceil(point_count / local_size_x) workgroups on X.
+## Local workgroup size on X. Must match the `layout(local_size_x = ...)` in the shader. The node dispatches ceil(point_count / local_size_x) workgroups on X.
 @export var local_size_x : int = 64
 
 ## How Vector3 streams are packed into / out of the GPU buffers.

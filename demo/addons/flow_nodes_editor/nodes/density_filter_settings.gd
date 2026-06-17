@@ -13,21 +13,21 @@ const _hidden_parent_props : Array[String] = [
 ]
 
 @export_group("Density Filter")
-## Minimum allowed value for density; points below this threshold are filtered out (unless inverted).
+## The minimum allowed density value. Points with density below this threshold are culled (unless inverted).
 @export var lower_bound : float = 0.5:
 	set(value):
 		lower_bound = value
 		min_value = value
 		emit_changed()
 
-## Maximum allowed value for density; points above this threshold are filtered out (unless inverted).
+## The maximum allowed density value. Points with density above this threshold are culled (unless inverted).
 @export var upper_bound : float = 1.0:
 	set(value):
 		upper_bound = value
 		max_value = value
 		emit_changed()
 
-## Inverts the range test so points outside [lower_bound, upper_bound] are kept instead.
+## If enabled, keeps points outside the [lower_bound, upper_bound] range instead of inside it.
 @export var invert_filter : bool = false:
 	set(value):
 		invert_filter = value

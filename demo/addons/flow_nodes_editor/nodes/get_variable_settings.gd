@@ -4,7 +4,7 @@ extends NodeSettings
 
 @export_group("Get Variable")
 
-## Name of the graph variable to get or set.
+## The name of the graph variable to retrieve.
 @export var variable_name : String = ""
 
 func _init():

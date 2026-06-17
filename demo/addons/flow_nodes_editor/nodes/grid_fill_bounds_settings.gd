@@ -4,43 +4,43 @@ extends NodeSettings
 
 @export_group("Grid Fill Bounds")
 
-## Toggles whether this node uses input bounds instead of default behavior.
+## If enabled, uses the bounding boxes of incoming points as regions to fill. If disabled, uses the constant bounds settings.
 @export var use_input_bounds : bool = true:
 	set(value):
 		use_input_bounds = value
 		notify_property_list_changed()
 		emit_changed()
-## Center point of the bounds region used for fill/sampling.
+## The local/world Vector3 center of the constant bounds region to fill.
 @export var bounds_center : Vector3 = Vector3.ZERO:
 	set(value):
 		bounds_center = value
 		emit_changed()
-## Size parameter controlling bounds size during generation/transforms.
+## The Vector3 dimensions of the constant bounds region to fill.
 @export var bounds_size : Vector3 = Vector3(10.0, 1.0, 10.0):
 	set(value):
 		bounds_size = value
 		emit_changed()
-## Size of each grid cell used by this node.
+## The size spacing (X, Y, Z) between generated grid points.
 @export var cell_size : Vector3 = Vector3.ONE:
 	set(value):
 		cell_size = value
 		emit_changed()
-## If enabled, fills bounds volume across Y instead of a single horizontal layer.
+## If enabled, generates a 3D grid filling the Y axis/volume. If disabled, generates a single 2D horizontal layer of points.
 @export var fill_y_axis : bool = false:
 	set(value):
 		fill_y_axis = value
 		emit_changed()
-## When enabled, copies input attributes from source data into the output.
+## If enabled, copies attributes from the source points/bounds into the generated grid points.
 @export var copy_input_attributes : bool = true:
 	set(value):
 		copy_input_attributes = value
 		emit_changed()
-## Attribute name used to read/write source index on point data.
+## The output integer attribute name storing the index of the source point/bounds that spawned each grid point.
 @export var source_index_attribute : String = "":
 	set(value):
 		source_index_attribute = value.strip_edges()
 		emit_changed()
-## Upper bound used by this node for points.
+## The safety limit of the maximum number of grid points allowed to be generated.
 @export var max_points : int = 100000:
 	set(value):
 		max_points = maxi(1, value)

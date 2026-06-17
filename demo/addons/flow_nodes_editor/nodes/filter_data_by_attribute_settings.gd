@@ -4,7 +4,7 @@ extends NodeSettings
 
 @export_group("Filter Data By Attribute")
 
-## Name of the attribute this node reads from or writes to.
+## The name of the attribute stream to filter the data containers by. Only containers containing this attribute are preserved.
 @export var attribute_name: String = ""
 
 func _init():

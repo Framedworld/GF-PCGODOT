@@ -32,55 +32,66 @@ enum eFitMode {
 
 @export_group("Subdivide Segment")
 
-## How the input span is supplied.
+## How the input span is supplied:
 @export var input_mode : eInputMode = eInputMode.SPLINES
 
-## Attribute name of the Path3D NodePath stream (SPLINES mode).
+## The name of the input NodePath stream containing Path3D spline references.
+## Only used when 'input_mode' is set to SPLINES.
 @export var spline_stream_attribute : String = "node"
 
-## Distance between baked points along each spline (SPLINES mode). Each baked
-## segment between consecutive baked points is treated as one span to subdivide.
+## The distance interval (in meters/units) used to bake the Path3D spline's curve.
+## A lower interval increases subdivision resolution. Clamped to a minimum of 0.001.
+## Only used when 'input_mode' is set to SPLINES.
 @export var bake_interval : float = 4.0
 
-## When true (SPLINES mode), the whole spline is treated as a single span instead
-## of subdividing each baked segment independently. Recommended for grammar fences.
+## When true, the entire spline is treated as a single span from the first baked point to the last.
+## When false, each interval between consecutive baked points is treated as a separate span to subdivide.
+## Only used when 'input_mode' is set to SPLINES. Recommended for grammar fences.
 @export var whole_spline_as_span : bool = true
 
-## Attribute name of the segment start Vector stream (SEGMENTS mode).
+## The name of the input Vector stream containing segment start positions.
+## Only used when 'input_mode' is set to SEGMENTS.
 @export var segment_start_attribute : String = "segment_start"
 
-## Attribute name of the segment end Vector stream (SEGMENTS mode).
+## The name of the input Vector stream containing segment end positions.
+## Only used when 'input_mode' is set to SEGMENTS.
 @export var segment_end_attribute : String = "segment_end"
 
-## How each span is divided.
+## How each span is divided into sub-segments:
 @export var subdivide_mode : eSubdivideMode = eSubdivideMode.MODULE_LENGTHS
 
-## List of module lengths cycled along the span (MODULE_LENGTHS mode). Must
-## contain at least one positive value.
+## A list of module lengths to cycle through along each span. Only positive values are used.
+## There must be at least one positive value in the array.
+## Only used when 'subdivide_mode' is set to MODULE_LENGTHS.
 @export var module_lengths : PackedFloat32Array = PackedFloat32Array([4.0])
 
-## Number of equal sub-segments per span (TARGET_COUNT mode).
+## The number of equal-length sub-segments to produce per span. Clamped to a minimum of 1.
+## Only used when 'subdivide_mode' is set to TARGET_COUNT.
 @export var target_count : int = 4
 
-## How leftover length is handled when the modules do not exactly fill the span.
+## How leftover length is handled when the modules do not exactly fill the span length:
 @export var fit_mode : eFitMode = eFitMode.STRETCH
 
-## Cross-section size written into size.x / size.y of each emitted point. The
-## segment length is written into size.z (the long axis points down the span).
+## The cross-section dimensions (X and Y) written into size.x and size.y of each emitted point.
+## The generated sub-segment length is written into the z component (representing the long axis).
 @export var cross_section_size : Vector2 = Vector2.ONE
 
 @export_group("Output Attributes")
 
-## Output attribute name for each sub-segment length (Float).
+## The output attribute name (Float) to store each sub-segment's length.
+## If left blank or empty, this stream is not registered.
 @export var out_length_attribute : String = "length"
 
-## Output attribute name for each sub-segment index within its span (Int).
+## The output attribute name (Int) to store the zero-based sub-segment index within its parent span.
+## If left blank or empty, this stream is not registered.
 @export var out_segment_index_attribute : String = "segment_index"
 
-## Output attribute name for the normalized start position along the span (Float, 0..1).
+## The output attribute name (Float) to store the normalized start ratio (0.0 to 1.0) along the span.
+## If left blank or empty, this stream is not registered.
 @export var out_t_start_attribute : String = "t_start"
 
-## Output attribute name for the normalized end position along the span (Float, 0..1).
+## The output attribute name (Float) to store the normalized end ratio (0.0 to 1.0) along the span.
+## If left blank or empty, this stream is not registered.
 @export var out_t_end_attribute : String = "t_end"
 
 func _init():

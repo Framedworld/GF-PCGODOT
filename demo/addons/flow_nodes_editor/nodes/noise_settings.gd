@@ -4,70 +4,86 @@ extends NodeSettings
 
 @export_group("Noise")
 
-## Name of the output attribute this node writes.
+## Output attribute name storing generated noise values.
 @export var out_name : String = "density"
-## Input value/attribute key used for scale.
+## Scaling factor applied to point position coordinates before sampling noise.
 @export var in_scale : float = 1.0
-## Constant value added to sampled noise before amplitude/remap.
+## Constant bias value added to generated noise output.
 @export var noise_bias : float = 0.0
-## Multiplier applied to sampled noise values.
+## Amplitude multiplier applied to generated noise output.
 @export var noise_amplitude : float = 1.0
-## Attribute name used to read/write sample on point data.
+## Optional attribute stream name used as coordinate source for noise sampling instead of position.
 @export var sample_attribute : String = "position"
 
 enum eOutputType {
+	## Generates a single float noise value.
 	Float = 0,
+	## Generates 3D vector noise values.
 	Vector3 = 1,
 }
 
 enum eMode {
+	## Overwrites the output attribute stream with noise values.
 	Override = 0,
+	## Adds noise values to the existing attribute stream values.
 	Add = 1,
 }
 
 enum eSampleSpace {
+	## Samples noise using 3D point positions.
 	World3D = 0,
+	## Samples noise using 2D (XZ plane) point positions.
 	XZ2D = 1,
 }
 
 enum eNoiseType {
+	## Cellular-like value noise.
 	Value = 0,
+	## Cubic value noise.
 	ValueCubic = 1,
+	## Classical Perlin noise.
 	Perlin = 2,
+	## Worley/Cellular noise.
 	Cellular = 3,
+	## Simplex noise.
 	Simplex = 4,
+	## Smoothed simplex noise.
 	SimplexSmooth = 5,
 }
 
 enum eFractalType {
+	## No fractal layering.
 	None = 0,
+	## Fractional Brownian Motion fractal.
 	FBM = 1,
+	## Ridged multi-fractal.
 	Ridged = 2,
+	## Ping-Pong fractal layering.
 	PingPong = 3,
 }
 
-## Selects this node behavior mode (Float, Vector3).
+## Output value format: Float or Vector3.
 @export var output_type : eOutputType = eOutputType.Float
-## Selects which processing mode this node uses (similar to UE PCG node modes).
+## Blend mode: Override or Add.
 @export var mode : eMode = eMode.Override
-## Selects this node behavior mode (World3D, XZ2D).
+## The noise sample space (World3D or XZ2D).
 @export var sample_space : eSampleSpace = eSampleSpace.World3D
-## Selects this node behavior mode (Value, ValueCubic, Perlin, Cellular, Simplex, SimplexSmooth).
+## The base noise generator algorithm type.
 @export var noise_type : eNoiseType = eNoiseType.Value
-## Selects this node behavior mode (None, FBM, Ridged, PingPong).
+## The fractal accumulation algorithm type.
 @export var fractal_type : eFractalType = eFractalType.None:
 	set(value):
 		value = clampi(value, 0, eFractalType.size() - 1)
 		if fractal_type != value:
 			fractal_type = value
 			notify_property_list_changed()
-## Number of fractal octaves layered in the noise function.
+## The number of noise octaves for fractal detail.
 @export var fractal_octaves : int = 4
-## Frequency multiplier between consecutive fractal octaves.
+## Lacunarity spacing multiplier for fractal octaves.
 @export var fractal_lacunarity : float = 2.0
-## Amplitude multiplier between consecutive fractal octaves.
+## Gain amplitude multiplier for fractal octaves.
 @export var fractal_gain : float = 0.5
-## Ping-pong shaping strength for fractal noise variants.
+## Strength factor for Ping-Pong fractal type.
 @export var fractal_ping_pong_strength : float = 2.0
 
 func _init():

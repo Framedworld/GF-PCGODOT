@@ -4,13 +4,13 @@ extends NodeSettings
 
 @export_group("Expression")
 
-## Expression string evaluated per element to produce outputs.
+## The mathematical/logical expression string to evaluate per point. Example: 'x + 2 * position.y'.
 @export var expression : String
-## Name of the output attribute this node writes.
+## The name of the attribute stream to write the expression evaluation result to.
 @export var out_name : String = "expr"
-## If enabled, exposes array values as script parameters in the expression context.
+## If enabled, exposes point attribute streams as array variables in the expression evaluator, allowing aggregate functions.
 @export var expose_arrays : bool = false
-## Comma-separated argument names exposed to the expression evaluator.
+## Optional key-value parameters exposed as static constants/arguments in the expression context.
 @export var args : Dictionary = {}
 
 func _init():

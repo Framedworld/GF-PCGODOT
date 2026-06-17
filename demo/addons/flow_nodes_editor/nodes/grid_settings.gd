@@ -4,19 +4,19 @@ extends NodeSettings
 
 @export_group("Grid")
 
-## X component used when composing or overriding vector values.
+## The number of points along the X axis of the grid.
 @export_range( 0, 50 ) var x : int = 3
-## Y component used when composing or overriding vector values.
+## The number of points along the Y axis of the grid.
 @export_range( 0, 50 ) var y : int = 1
-## Z component used when composing or overriding vector values.
+## The number of points along the Z axis of the grid.
 @export_range( 0, 50 ) var z : int = 3
-## Step amount used when iterating or sampling values.
+## The distance spacing between adjacent grid points.
 @export var step : Vector3 = Vector3( 1.0, 1.0, 1.0 )
-## Grid origin position from which cell coordinates are generated.
+## The local origin/offset of the generated grid.
 @export var origin : Vector3 = Vector3.ZERO
-## Rotation applied to generated or transformed points/instances.
+## The local rotation applied to the grid layout.
 @export var rotation : Vector3 = Vector3.ZERO
-## Overall size value used by this node for generated data.
+## The scale/size multiplier applied to the grid layout.
 @export var size : float = 1.0
 
 func _init():

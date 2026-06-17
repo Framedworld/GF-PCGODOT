@@ -4,11 +4,11 @@ extends NodeSettings
 
 @export_group("Select")
 
-## If enabled, routes input B; otherwise routes input A.
+## If enabled, outputs path B instead of path A.
 @export var select_b: bool = false
-## Toggles whether this node uses attribute instead of default behavior.
+## If enabled, reads path selection flag from point attribute.
 @export var use_attribute: bool = false
-## Name of the attribute this node reads from or writes to.
+## The boolean attribute stream name to read selection from.
 @export var attribute_name: String = ""
 
 func _init():

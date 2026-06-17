@@ -4,11 +4,11 @@ extends NodeSettings
 
 @export_group("Remap")
 
-## Name of the input attribute to read from.
+## Input attribute stream name to map.
 @export var in_name : String = "density"
-## Name of the output attribute this node writes.
+## Output attribute stream name storing mapped result.
 @export var out_name : String = "@in_name"
-## Curve asset that remaps input values into the output range.
+## Curve resource used to remap the values.
 @export var remap_curve : Curve
 
 func _init():

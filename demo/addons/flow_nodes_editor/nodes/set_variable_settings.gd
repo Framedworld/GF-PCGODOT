@@ -4,9 +4,9 @@ extends NodeSettings
 
 @export_group("Set Variable")
 
-## Name of the graph variable to get or set.
+## Name of the variable to write to.
 @export var variable_name : String = "variable"
-## Editor color assigned to the variable node representation.
+## Color icon indicator assigned in editor graph.
 @export var node_color : Color = Color("22d3ee")
 
 func _init():

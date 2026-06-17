@@ -4,11 +4,11 @@ extends NodeSettings
 
 @export_group("Duplicate Point")
 
-## Number of duplicate/processing iterations to run.
+## The number of duplicate copies to create per input point.
 @export var iterations: int = 1
-## Offset applied to offset before writing final output values.
+## The offset vector applied to each duplicate iteration.
 @export var offset: Vector3 = Vector3(0, 1, 0)
-## Offset applied to offset relative before writing final output values.
+## If enabled, the offset vector is applied relative to the parent point's rotation/scale. If disabled, offset is in world space.
 @export var offset_relative: bool = true
 
 func _init():

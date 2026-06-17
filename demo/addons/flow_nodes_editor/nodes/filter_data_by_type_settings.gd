@@ -4,8 +4,15 @@ extends NodeSettings
 
 @export_group("Filter Data By Type")
 
-enum eTargetType { PointData, SplineData, AttributeSet }
-## Selects this node behavior mode (resource_name).
+enum eTargetType {
+	## Retains only point data containers.
+	PointData,
+	## Retains only spline/path data containers.
+	SplineData,
+	## Retains only raw attribute set containers.
+	AttributeSet,
+}
+## Selects the data container type to preserve.
 @export var target_type: eTargetType = eTargetType.PointData
 
 func _init():

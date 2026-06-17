@@ -3,27 +3,27 @@ extends NodeSettings
 
 @export_group("Point Offsets")
 
-## Offset applied to offsets before writing final output values.
+## Array of Vector3 offset offsets to apply.
 @export var offsets : Array[Vector3] = [Vector3.ZERO]
-## Rotation value/attribute used when orienting generated instances or points.
+## Array of Vector3 rotation offsets to apply.
 @export var rotations : Array[Vector3] = [Vector3.ZERO]
-## Size parameter controlling sizes during generation/transforms.
+## Array of Vector3 scale/size offsets to apply.
 @export var sizes : Array[Vector3] = [Vector3.ONE]
-## Applies offsets/rotations/sizes in local space instead of world space.
+## If enabled, offsets are applied relative to local coordinates. If disabled, offset is in world coordinates.
 @export var local_space : bool = true
-## Rotation value/attribute used when orienting generated instances or points.
+## If enabled, combines rotation offsets instead of overwriting.
 @export var combine_rotation : bool = true
-## Offset applied to scale offsets by anchor size before writing final output values.
+## If enabled, offsets are scaled by the parent/anchor scale size.
 @export var scale_offsets_by_anchor_size : bool = false
-## Size parameter controlling inherit anchor size during generation/transforms.
+## If enabled, generated points inherit anchor size.
 @export var inherit_anchor_size : bool = false
-## Attribute name used to read/write parent index on point data.
+## Attribute stream name storing parent point index.
 @export var parent_index_attribute : String = "parent_index"
-## Attribute name used to read/write offset index on point data.
+## Attribute stream name storing offset pattern index.
 @export var offset_index_attribute : String = "offset_index"
-## Attribute name used to read/write label on point data.
+## Attribute stream name storing text label.
 @export var label_attribute : String = "offset_label"
-## List of label tokens used to pick indexed offset/rotation/size presets.
+## Array of text labels assigned to offset points.
 @export var labels : Array[String] = []
 
 func _init():

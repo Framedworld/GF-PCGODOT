@@ -4,9 +4,9 @@ extends NodeSettings
 
 @export_group("Partition")
 
-## Name of the attribute this node reads from or writes to.
+## The name of the attribute stream to partition the data by.
 @export var attribute_name : String = "@last"
-## Output attribute name that stores partition produced by this node.
+## The output attribute name storing partition assignment IDs.
 @export var out_partition_attribute : String
 
 func _init():

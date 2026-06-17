@@ -15,7 +15,7 @@ enum eOperation {
 	Xnor,
 }
 
-## Chooses the operation this node applies to incoming data.
+## The boolean operation to perform.
 @export var operation : eOperation = eOperation.And:
 	set(value):
 		value = clampi(value, 0, eOperation.size() - 1)
@@ -39,12 +39,12 @@ enum eOperation {
 		if use_constant_b != value:
 			use_constant_b = value
 			notify_property_list_changed()
-## Constant operand value used when operation mode expects B as a literal.
+## If enabled, evaluates Operand A against a constant value instead of another attribute stream.
 @export var constant_b : bool = false:
 	set(value):
 		constant_b = value
 		emit_changed()
-## Name of the output attribute this node writes.
+## The name of the output boolean stream to write the results into.
 @export var out_name : String = "bool_out":
 	set(value):
 		out_name = value.strip_edges()

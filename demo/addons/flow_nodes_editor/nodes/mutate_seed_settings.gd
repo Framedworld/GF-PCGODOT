@@ -4,8 +4,11 @@ extends NodeSettings
 @export_group("Mutate Seed")
 
 enum eMode {
+	## Replaces the seed with the generated hash.
 	Replace,
+	## Adds the generated hash to the existing seed value.
 	Add,
+	## Bitwise XORs the existing seed with the generated hash.
 	Xor,
 }
 
@@ -34,7 +37,7 @@ enum eMode {
 		seed_offset = value
 		emit_changed()
 
-## When enabled, also outputs position alongside generated points/data.
+## If enabled, mixes point position coordinates into the seed hash calculation.
 @export var include_position : bool = true:
 	set(value):
 		include_position = value

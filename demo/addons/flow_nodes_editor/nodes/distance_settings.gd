@@ -4,15 +4,15 @@ extends NodeSettings
 
 @export_group("Distance")
 
-## Upper bound used by this node for distance.
+## The maximum distance threshold for matching or measuring between points. If set to 0.0, no distance limit is enforced.
 @export var max_distance : float = 0.0
 
 var HiddenFromThisPoint := true
-## Name of the output attribute this node writes.
+## The name of the float attribute stream in which to write the computed distance.
 @export var out_name : String = "distance"
-## Name of the first input attribute to read from.
+## The vector attribute stream name on Input A to measure distance from (defaults to 'position').
 @export var in_nameA : String = FlowData.AttrPosition
-## Name of the second input attribute to read from.
+## The vector attribute stream name on Input B to measure distance to (defaults to 'position').
 @export var in_nameB : String = FlowData.AttrPosition
 
 func _init():

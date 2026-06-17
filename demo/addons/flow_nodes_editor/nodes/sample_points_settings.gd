@@ -5,43 +5,55 @@ extends NodeSettings
 @export_group("Sample Points")
 
 enum eDistribution {
+	## Generates points on a regular grid pattern.
 	UniformGrid,
+	## Generates points using a stable 2D Halton sequence.
 	QuasiRandom2D,
+	## Generates points using a stable 3D Halton sequence.
 	QuasiRandom3D,
+	## Generates points using a 2D blue noise distribution.
 	BlueNoise2D,
 }
 
-## Selects this node behavior mode (UniformGrid, QuasiRandom2D, QuasiRandom3D, BlueNoise2D).
+## The point distribution algorithm used to subdivide each input point.
 @export var distribution : eDistribution = eDistribution.QuasiRandom2D:
 	set(value):
 		if distribution != value:
 			distribution = value
 			# This triggers the refresh of the property list in the property editor
 			notify_property_list_changed()
-			
+
 # Uniform sampling
-## Distance value used by this node for sampling distance.
+## The spacing distance (in world units) between adjacent points in the uniform grid.
+## Used in 'UniformGrid' mode to compute the grid resolution along each axis.
 @export var sampling_distance : float = 0.2
-## Upper bound used by this node for x.
+## The maximum number of points to generate along the X axis for the uniform grid.
 @export var max_x : int = 32
-## Upper bound used by this node for y.
+## The maximum number of points to generate along the Y axis for the uniform grid.
 @export var max_y : int = 32
-## Upper bound used by this node for z.
+## The maximum number of points to generate along the Z axis for the uniform grid.
 @export var max_z : int = 32
-## Size parameter controlling new size factor during generation/transforms.
+## Scale multiplier applied to the size of the generated grid points in 'UniformGrid' mode.
+## The output size is calculated as: Vector3.ONE * sampling_distance * new_size_factor.
 @export var new_size_factor : float = 1.0
 
 # Non-Uniform sampling
-## Phase offset used to shift periodic sampling patterns.
+## The offset phase or seed value (typically between 0.0 and 1.0) used as a base offset
+## for the quasi-random sequence.
 @export var phase : float = 0.0
-## Overall size value used by this node for generated data.
+## The base scale/size assigned to the sample points in quasi-random and blue noise modes.
+## In QuasiRandom mode, sets a uniform scale (Vector3.ONE * size). In BlueNoise2D mode,
+## scales the output relative to the input point's size.
 @export var size : float = 1.0
-## Output value/attribute key used for group id.
+## The name of the custom integer attribute stream to store group IDs.
+## If left blank, group IDs are not saved. Only used in QuasiRandom modes.
 @export var out_group_id : String
-## Number of groups/buckets created for grouped sampling operations.
+## An array of integers defining the number of points to generate for each group/class.
+## The total points generated per input point is the sum of these values. Only used in QuasiRandom modes.
 @export var groups : Array[int] = [ 32 ]
 
-## Number of samples/points this node tries to generate.
+## The target number of points to generate when using the 'BlueNoise2D' distribution.
+## Note: Some points might be skipped if they lie outside the bounds of the input point size.
 @export var num_samples : int = 64
 
 func _init():

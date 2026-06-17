@@ -4,11 +4,11 @@ extends NodeSettings
 
 @export_group("Scan Meshes")
 
-## Group name used to find or filter scene nodes.
+## Group name to scan for meshes in the scene.
 @export var group_name : String
-## Only include nodes that have this boolean metadata entry set to true
+## Metadata key string checked before scanning.
 @export var required_meta_bool : StringName
-## Scan the whole scene tree; when false only direct children of the scene root are inspected
+## If enabled, scans recursively through scene hierarchies.
 @export var recursive : bool = true
 
 func _init():
