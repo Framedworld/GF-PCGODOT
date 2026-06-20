@@ -7,7 +7,7 @@ extends SceneTree
 # C++-only build job cannot see (the addon's GDScript never gets compiled there).
 #
 # Run from the project dir:
-#   godot --headless --path . --script res://tests/headless_validation.gd
+#   godot --headless --path . --script res://tests/legacy/headless_validation.gd
 #
 # Note: this validates that scripts COMPILE and scenes LOAD. Full graph
 # evaluation additionally needs the native GDExtension (GDRTree/GDKdTree) built
