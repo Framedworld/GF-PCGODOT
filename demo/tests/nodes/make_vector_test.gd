@@ -140,7 +140,7 @@ func test_output_is_vector_type() -> void:
 	assert_object(out).is_not_null()
 	var stream = out.findStream("direction")
 	assert_object(stream).is_not_null()
-	assert_int(stream.type).is_equal(FlowDataScript.DataType.Vector)
+	assert_int(stream.data_type).is_equal(FlowDataScript.DataType.Vector)
 	assert_int(stream.container.size()).is_equal(1)
 	node.free()
 

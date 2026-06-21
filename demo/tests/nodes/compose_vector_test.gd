@@ -112,10 +112,10 @@ func test_broadcast_scalar_stream_to_all_points() -> void:
 	s.default_value = Vector3.ZERO
 
 	var d = FlowDataScript.Data.new()
+	d.registerStream("_points", PackedVector3Array([Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]), FlowDataScript.DataType.Vector)
 	d.registerStream("sx", PackedFloat32Array([99.0]), FlowDataScript.DataType.Float)
 	d.registerStream("sy", PackedFloat32Array([88.0]), FlowDataScript.DataType.Float)
 	d.registerStream("sz", PackedFloat32Array([77.0]), FlowDataScript.DataType.Float)
-	d.registerStream("_points", PackedFloat32Array([0.0, 0.0, 0.0]), FlowDataScript.DataType.Float)
 
 	var node = _run([d], s)
 	assert_str(node.err).is_empty()

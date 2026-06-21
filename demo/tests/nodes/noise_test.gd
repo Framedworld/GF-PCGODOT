@@ -254,7 +254,7 @@ func test_missing_input_error() -> void:
 	var s = NoiseSettings.new()
 	s.out_name = "density"
 	var node = _run([null], s)
-	assert_str(node.err).is_empty()
+	assert_str(node.err).is_not_empty()
 	var out = _output(node)
 	assert_object(out).is_null()
 	node.free()

@@ -25,9 +25,10 @@ func _run(inputs: Array, settings) -> AttributeFilterRangeNode:
 
 func _output(node, port: int = 0) -> FlowData.Data:
 	if node.generated_bulks.is_empty(): return null
-	var bulk = node.generated_bulks[port]
+	var bulk = node.generated_bulks[0]
 	if bulk.is_empty(): return null
-	return bulk[0]
+	if port >= bulk.size(): return null
+	return bulk[port]
 
 func test_float_range_splits_inside_outside() -> void:
 	var s = AttributeFilterRangeSettings.new()

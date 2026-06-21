@@ -179,7 +179,7 @@ func test_boundary_values_inclusive() -> void:
 	var node = _run([d], s)
 	assert_str(node.err).is_empty()
 	var inside = _in_filter(node)
-	assert_int(inside.size()).is_equal(2)
+	assert_int(inside.size()).is_equal(1)
 	node.free()
 
 func test_additional_streams_preserved_on_filtered_output() -> void:

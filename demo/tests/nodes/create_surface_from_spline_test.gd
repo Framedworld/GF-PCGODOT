@@ -34,14 +34,14 @@ func _make_input(paths: Array) -> FlowData.Data:
 	return d
 
 func _run(in_data: FlowData.Data, settings) -> CreateSurfaceFromSplineNode:
-	var node := CreateSurfaceFromSplineNode.new()
+	var node = CreateSurfaceFromSplineNode.new()
 	node.name = "test_node"
 	node.settings = settings
 	node.inputs = []
 	node.inputs.resize(1)
 	node.inputs[0] = in_data
-	var ctx := FlowDataScript.EvaluationContext.new()
-	var dummy := FlowGraphNode3D.new()
+	var ctx = FlowDataScript.EvaluationContext.new()
+	var dummy = FlowGraphNode3D.new()
 	ctx.owner = dummy
 	node.preExecute(ctx)
 	node.execute(ctx)
@@ -65,25 +65,25 @@ func test_basic_xz_surface() -> void:
 	s.out_perimeter_attribute = "surface_perimeter"
 	s.include_spline_ref = false
 
-	var node := _run(_make_input([path]), s)
+	var node = _run(_make_input([path]), s)
 	assert_str(node.err).is_empty()
 
-	var out := _output(node)
+	var out = _output(node)
 	assert_object(out).is_not_null()
 
-	var positions := out.getVector3Container(FlowDataScript.AttrPosition)
+	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(1)
 
-	var sizes := out.getVector3Container(FlowDataScript.AttrSize)
+	var sizes = out.getVector3Container(FlowDataScript.AttrSize)
 	assert_int(sizes.size()).is_equal(1)
 	assert_bool(sizes[0].x > 0.0).is_true()
 	assert_bool(sizes[0].z > 0.0).is_true()
 
-	var area_stream := out.findStream("surface_area")
+	var area_stream = out.findStream("surface_area")
 	assert_object(area_stream).is_not_null()
 	assert_bool(area_stream.container[0] > 0.0).is_true()
 
-	var perim_stream := out.findStream("surface_perimeter")
+	var perim_stream = out.findStream("surface_perimeter")
 	assert_object(perim_stream).is_not_null()
 	assert_bool(perim_stream.container[0] > 0.0).is_true()
 
@@ -99,13 +99,13 @@ func test_xy_plane_mode() -> void:
 	s.out_perimeter_attribute = "surface_perimeter"
 	s.include_spline_ref = false
 
-	var node := _run(_make_input([path]), s)
+	var node = _run(_make_input([path]), s)
 	assert_str(node.err).is_empty()
 
-	var out := _output(node)
+	var out = _output(node)
 	assert_object(out).is_not_null()
 
-	var area_stream := out.findStream("surface_area")
+	var area_stream = out.findStream("surface_area")
 	assert_object(area_stream).is_not_null()
 	assert_bool(area_stream.container[0] > 0.0).is_true()
 
@@ -122,16 +122,16 @@ func test_multiple_paths_produce_multiple_surfaces() -> void:
 	s.out_perimeter_attribute = "surface_perimeter"
 	s.include_spline_ref = false
 
-	var node := _run(_make_input([pathA, pathB]), s)
+	var node = _run(_make_input([pathA, pathB]), s)
 	assert_str(node.err).is_empty()
 
-	var out := _output(node)
+	var out = _output(node)
 	assert_object(out).is_not_null()
 
-	var positions := out.getVector3Container(FlowDataScript.AttrPosition)
+	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(2)
 
-	var area_stream := out.findStream("surface_area")
+	var area_stream = out.findStream("surface_area")
 	assert_object(area_stream).is_not_null()
 	assert_int(area_stream.container.size()).is_equal(2)
 
@@ -149,13 +149,13 @@ func test_spline_ref_output_included() -> void:
 	s.include_spline_ref = true
 	s.out_spline_attribute = "node"
 
-	var node := _run(_make_input([path]), s)
+	var node = _run(_make_input([path]), s)
 	assert_str(node.err).is_empty()
 
-	var out := _output(node)
+	var out = _output(node)
 	assert_object(out).is_not_null()
 
-	var ref_stream := out.findStream("node")
+	var ref_stream = out.findStream("node")
 	assert_object(ref_stream).is_not_null()
 	assert_int(ref_stream.container.size()).is_equal(1)
 	assert_bool(ref_stream.container[0] == path).is_true()
@@ -173,13 +173,13 @@ func test_spline_ref_excluded_when_disabled() -> void:
 	s.include_spline_ref = false
 	s.out_spline_attribute = "node"
 
-	var node := _run(_make_input([path]), s)
+	var node = _run(_make_input([path]), s)
 	assert_str(node.err).is_empty()
 
-	var out := _output(node)
+	var out = _output(node)
 	assert_object(out).is_not_null()
 
-	var ref_stream := out.findStream("node")
+	var ref_stream = out.findStream("node")
 	assert_object(ref_stream).is_null()
 
 	node.free()
@@ -199,13 +199,13 @@ func test_minimum_thickness_applied() -> void:
 	s.out_perimeter_attribute = ""
 	s.include_spline_ref = false
 
-	var node := _run(_make_input([path]), s)
+	var node = _run(_make_input([path]), s)
 	assert_str(node.err).is_empty()
 
-	var out := _output(node)
+	var out = _output(node)
 	assert_object(out).is_not_null()
 
-	var sizes := out.getVector3Container(FlowDataScript.AttrSize)
+	var sizes = out.getVector3Container(FlowDataScript.AttrSize)
 	assert_int(sizes.size()).is_equal(1)
 	assert_bool(sizes[0].z >= 1.0).is_true()
 
@@ -214,7 +214,7 @@ func test_minimum_thickness_applied() -> void:
 
 func test_missing_input_produces_error() -> void:
 	var s := CreateSurfaceFromSplineSettings.new()
-	var node := _run(null, s)
+	var node = _run(null, s)
 	assert_str(node.err).is_not_empty()
 	node.free()
 
@@ -227,7 +227,7 @@ func test_wrong_stream_name_produces_error() -> void:
 	var s := CreateSurfaceFromSplineSettings.new()
 	s.spline_stream_attribute = "node"
 
-	var node := _run(d, s)
+	var node = _run(d, s)
 	assert_str(node.err).is_not_empty()
 
 	node.free()
@@ -245,13 +245,13 @@ func test_empty_stream_produces_empty_output() -> void:
 	s.out_perimeter_attribute = "surface_perimeter"
 	s.include_spline_ref = false
 
-	var node := _run(d, s)
+	var node = _run(d, s)
 	assert_str(node.err).is_empty()
 
-	var out := _output(node)
+	var out = _output(node)
 	assert_object(out).is_not_null()
 
-	var positions := out.getVector3Container(FlowDataScript.AttrPosition)
+	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(0)
 
 	node.free()
@@ -265,10 +265,10 @@ func test_optional_attributes_suppressed_when_name_empty() -> void:
 	s.out_perimeter_attribute = ""
 	s.include_spline_ref = false
 
-	var node := _run(_make_input([path]), s)
+	var node = _run(_make_input([path]), s)
 	assert_str(node.err).is_empty()
 
-	var out := _output(node)
+	var out = _output(node)
 	assert_object(out).is_not_null()
 
 	assert_object(out.findStream("surface_area")).is_null()

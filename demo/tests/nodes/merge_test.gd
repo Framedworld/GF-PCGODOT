@@ -28,7 +28,8 @@ func _run_with_bulks(data_bulks: Array) -> Dictionary:
 	var node = MergeNode.new()
 	node.name = "test_merge"
 	node.settings = MergeSettings.new()
-	node.deps = []
+	var empty_deps: Array[Dictionary] = []
+	node.deps = empty_deps
 	var ctx = FlowDataScript.EvaluationContext.new()
 	var dummy = FlowGraphNode3D.new()
 	ctx.owner = dummy
@@ -36,12 +37,8 @@ func _run_with_bulks(data_bulks: Array) -> Dictionary:
 	ctx.eval_id = 0
 	ctx.runtime_params = {}
 	var src = _make_source_node(data_bulks, ctx)
-	node.deps = [{
-		"from_node": "fake_source",
-		"from_port": 0,
-		"to_port": 0,
-		"virtual_variable": false
-	}]
+	var wired_deps: Array[Dictionary] = [{"from_node": "fake_source", "from_port": 0, "to_port": 0, "virtual_variable": false}]
+	node.deps = wired_deps
 	node.preExecute(ctx)
 	node.run(ctx)
 	dummy.free()
@@ -173,7 +170,8 @@ func test_null_input_bulk_is_skipped_gracefully() -> void:
 	var node = MergeNode.new()
 	node.name = "test_merge_null"
 	node.settings = MergeSettings.new()
-	node.deps = []
+	var empty_deps2: Array[Dictionary] = []
+	node.deps = empty_deps2
 	var ctx = FlowDataScript.EvaluationContext.new()
 	var dummy = FlowGraphNode3D.new()
 	ctx.owner = dummy

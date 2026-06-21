@@ -192,6 +192,7 @@ func test_input_not_connected_sets_error() -> void:
 	node.name = "tags_mutate_test_node"
 	node.settings = _make_settings("grass")
 	node.inputs = []
+	node.inputs.resize(1)
 	var ctx := FlowDataScript.EvaluationContext.new()
 	var dummy := FlowGraphNode3D.new()
 	ctx.owner = dummy

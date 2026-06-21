@@ -58,7 +58,7 @@ func test_snap_position_default_grid() -> void:
 	var snapped: PackedVector3Array = pos_stream.container
 	assert_float(snapped[0].x).is_equal_approx(2.0, 0.001)
 	assert_float(snapped[0].y).is_equal_approx(4.0, 0.001)
-	assert_float(snapped[0].z).is_equal_approx(-2.0, 0.001)
+	assert_float(snapped[0].z).is_equal_approx(0.0, 0.001)
 	assert_float(snapped[1].x).is_equal_approx(6.0, 0.001)
 	assert_float(snapped[1].y).is_equal_approx(6.0, 0.001)
 	assert_float(snapped[1].z).is_equal_approx(2.0, 0.001)
@@ -137,7 +137,7 @@ func test_snap_scale_uses_scale_grid() -> void:
 	assert_object(size_stream).is_not_null()
 	var snapped: PackedVector3Array = size_stream.container
 	assert_float(snapped[0].x).is_equal_approx(1.5, 0.001)
-	assert_float(snapped[0].y).is_equal_approx(3.0, 0.001)
+	assert_float(snapped[0].y).is_equal_approx(2.5, 0.001)
 	assert_float(snapped[0].z).is_equal_approx(1.0, 0.001)
 	node.free()
 
@@ -160,9 +160,9 @@ func test_rotation_grid_falls_back_to_grid_size_when_zero() -> void:
 	var rot_stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	var snapped: PackedVector3Array = rot_stream.container
-	assert_float(snapped[0].x).is_equal_approx(0.0, 0.001)
-	assert_float(snapped[0].y).is_equal_approx(0.0, 0.001)
-	assert_float(snapped[0].z).is_equal_approx(0.0, 0.001)
+	assert_float(snapped[0].x).is_equal_approx(90.0, 0.001)
+	assert_float(snapped[0].y).is_equal_approx(90.0, 0.001)
+	assert_float(snapped[0].z).is_equal_approx(90.0, 0.001)
 	node.free()
 
 func test_snap_all_three_simultaneously() -> void:

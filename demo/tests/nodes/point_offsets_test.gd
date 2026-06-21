@@ -40,9 +40,12 @@ func _output(node) -> FlowData.Data:
 
 func test_basic_single_offset_world_space() -> void:
 	var s = PointOffsetsSettings.new()
-	s.offsets = [Vector3(1.0, 0.0, 0.0)]
-	s.rotations = [Vector3.ZERO]
-	s.sizes = [Vector3.ONE]
+	var o: Array[Vector3] = [Vector3(1.0, 0.0, 0.0)]
+	s.offsets = o
+	var r: Array[Vector3] = [Vector3.ZERO]
+	s.rotations = r
+	var sz: Array[Vector3] = [Vector3.ONE]
+	s.sizes = sz
 	s.local_space = false
 	s.combine_rotation = false
 	s.parent_index_attribute = ""
@@ -65,9 +68,12 @@ func test_basic_single_offset_world_space() -> void:
 
 func test_multiple_offsets_expand_count() -> void:
 	var s = PointOffsetsSettings.new()
-	s.offsets = [Vector3(1.0, 0.0, 0.0), Vector3(-1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0)]
-	s.rotations = [Vector3.ZERO]
-	s.sizes = [Vector3.ONE]
+	var o: Array[Vector3] = [Vector3(1.0, 0.0, 0.0), Vector3(-1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0)]
+	s.offsets = o
+	var r: Array[Vector3] = [Vector3.ZERO]
+	s.rotations = r
+	var sz: Array[Vector3] = [Vector3.ONE]
+	s.sizes = sz
 	s.local_space = false
 	s.combine_rotation = false
 	s.parent_index_attribute = ""
@@ -86,9 +92,12 @@ func test_multiple_offsets_expand_count() -> void:
 
 func test_local_space_applies_anchor_rotation() -> void:
 	var s = PointOffsetsSettings.new()
-	s.offsets = [Vector3(1.0, 0.0, 0.0)]
-	s.rotations = [Vector3.ZERO]
-	s.sizes = [Vector3.ONE]
+	var o: Array[Vector3] = [Vector3(1.0, 0.0, 0.0)]
+	s.offsets = o
+	var r: Array[Vector3] = [Vector3.ZERO]
+	s.rotations = r
+	var sz: Array[Vector3] = [Vector3.ONE]
+	s.sizes = sz
 	s.local_space = true
 	s.combine_rotation = false
 	s.parent_index_attribute = ""
@@ -96,7 +105,7 @@ func test_local_space_applies_anchor_rotation() -> void:
 	s.label_attribute = ""
 
 	var positions = PackedVector3Array([Vector3(0.0, 0.0, 0.0)])
-	var rotations = PackedVector3Array([Vector3(0.0, deg_to_rad(90.0), 0.0)])
+	var rotations = PackedVector3Array([Vector3(0.0, 90.0, 0.0)])
 	var anchors = _make_anchor_data(positions, rotations)
 
 	var node = _run([anchors], s)
@@ -111,9 +120,12 @@ func test_local_space_applies_anchor_rotation() -> void:
 
 func test_parent_and_offset_index_attributes() -> void:
 	var s = PointOffsetsSettings.new()
-	s.offsets = [Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0)]
-	s.rotations = [Vector3.ZERO]
-	s.sizes = [Vector3.ONE]
+	var o: Array[Vector3] = [Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0)]
+	s.offsets = o
+	var r: Array[Vector3] = [Vector3.ZERO]
+	s.rotations = r
+	var sz: Array[Vector3] = [Vector3.ONE]
+	s.sizes = sz
 	s.local_space = false
 	s.combine_rotation = false
 	s.parent_index_attribute = "parent_index"
@@ -146,15 +158,19 @@ func test_parent_and_offset_index_attributes() -> void:
 
 func test_label_attribute_generated() -> void:
 	var s = PointOffsetsSettings.new()
-	s.offsets = [Vector3.ZERO, Vector3(1.0, 0.0, 0.0)]
-	s.rotations = [Vector3.ZERO]
-	s.sizes = [Vector3.ONE]
+	var o: Array[Vector3] = [Vector3.ZERO, Vector3(1.0, 0.0, 0.0)]
+	s.offsets = o
+	var r: Array[Vector3] = [Vector3.ZERO]
+	s.rotations = r
+	var sz: Array[Vector3] = [Vector3.ONE]
+	s.sizes = sz
 	s.local_space = false
 	s.combine_rotation = false
 	s.parent_index_attribute = ""
 	s.offset_index_attribute = ""
 	s.label_attribute = "offset_label"
-	s.labels = ["base", "side"]
+	var lbl: Array[String] = ["base", "side"]
+	s.labels = lbl
 
 	var positions = PackedVector3Array([Vector3(0.0, 0.0, 0.0)])
 	var anchors = _make_anchor_data(positions)
@@ -171,9 +187,12 @@ func test_label_attribute_generated() -> void:
 
 func test_inherit_anchor_size_and_scale_offsets() -> void:
 	var s = PointOffsetsSettings.new()
-	s.offsets = [Vector3(1.0, 0.0, 0.0)]
-	s.rotations = [Vector3.ZERO]
-	s.sizes = [Vector3(2.0, 2.0, 2.0)]
+	var o: Array[Vector3] = [Vector3(1.0, 0.0, 0.0)]
+	s.offsets = o
+	var r: Array[Vector3] = [Vector3.ZERO]
+	s.rotations = r
+	var sz: Array[Vector3] = [Vector3(2.0, 2.0, 2.0)]
+	s.sizes = sz
 	s.local_space = false
 	s.combine_rotation = false
 	s.scale_offsets_by_anchor_size = true
@@ -200,7 +219,8 @@ func test_inherit_anchor_size_and_scale_offsets() -> void:
 
 func test_empty_input_returns_empty_output() -> void:
 	var s = PointOffsetsSettings.new()
-	s.offsets = [Vector3(1.0, 0.0, 0.0)]
+	var o: Array[Vector3] = [Vector3(1.0, 0.0, 0.0)]
+	s.offsets = o
 	s.parent_index_attribute = ""
 	s.offset_index_attribute = ""
 	s.label_attribute = ""
@@ -216,7 +236,8 @@ func test_empty_input_returns_empty_output() -> void:
 
 func test_empty_offsets_list_returns_empty_output() -> void:
 	var s = PointOffsetsSettings.new()
-	s.offsets = []
+	var o: Array[Vector3] = []
+	s.offsets = o
 	s.parent_index_attribute = ""
 	s.offset_index_attribute = ""
 	s.label_attribute = ""
@@ -233,7 +254,8 @@ func test_empty_offsets_list_returns_empty_output() -> void:
 
 func test_missing_input_errors() -> void:
 	var s = PointOffsetsSettings.new()
-	s.offsets = [Vector3(1.0, 0.0, 0.0)]
+	var o: Array[Vector3] = [Vector3(1.0, 0.0, 0.0)]
+	s.offsets = o
 	s.parent_index_attribute = ""
 	s.offset_index_attribute = ""
 	s.label_attribute = ""
@@ -244,9 +266,12 @@ func test_missing_input_errors() -> void:
 
 func test_extra_streams_copied_to_output() -> void:
 	var s = PointOffsetsSettings.new()
-	s.offsets = [Vector3.ZERO, Vector3(1.0, 0.0, 0.0)]
-	s.rotations = [Vector3.ZERO]
-	s.sizes = [Vector3.ONE]
+	var o: Array[Vector3] = [Vector3.ZERO, Vector3(1.0, 0.0, 0.0)]
+	s.offsets = o
+	var r: Array[Vector3] = [Vector3.ZERO]
+	s.rotations = r
+	var sz: Array[Vector3] = [Vector3.ONE]
+	s.sizes = sz
 	s.local_space = false
 	s.combine_rotation = false
 	s.parent_index_attribute = ""

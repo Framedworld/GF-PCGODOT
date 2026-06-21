@@ -29,12 +29,13 @@ func _run(input, settings: GridBoundarySettings) -> GridBoundaryNode:
 func _get_output(node: GridBoundaryNode, port: int) -> FlowData.Data:
 	if node.generated_bulks.is_empty():
 		return null
-	if port >= node.generated_bulks.size():
+	var bulk = node.generated_bulks[0]
+	if port >= bulk.size():
 		return null
-	var bulk = node.generated_bulks[port]
-	if bulk.is_empty():
+	var data = bulk[port]
+	if data == null:
 		return null
-	return bulk[0]
+	return data
 
 func test_missing_input_sets_error() -> void:
 	var s = GridBoundarySettings.new()

@@ -81,11 +81,11 @@ func test_filter_float_stream_by_attribute() -> void:
 	node.free()
 
 func test_filter_int_stream_by_attribute() -> void:
-	var data = _make_data("index", PackedInt32Array([10, 20, 30]), FlowDataScript.DataType.Int)
-	var node = _run(data, "index")
+	var data = _make_data("point_id", PackedInt32Array([10, 20, 30]), FlowDataScript.DataType.Int)
+	var node = _run(data, "point_id")
 	assert_str(node.err).is_empty()
 	var inside = _output(node, 0)
-	assert_array(inside.findStream("index").container).is_equal(PackedInt32Array([10, 20, 30]))
+	assert_array(inside.findStream("point_id").container).is_equal(PackedInt32Array([10, 20, 30]))
 	assert_int(_output(node, 1).size()).is_equal(0)
 	node.free()
 

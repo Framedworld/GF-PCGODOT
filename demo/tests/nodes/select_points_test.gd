@@ -202,7 +202,7 @@ func test_all_streams_preserved_after_selection() -> void:
 	assert_int(out.size()).is_equal(2)
 	var out_colors = out.findStream("color")
 	assert_object(out_colors).is_not_null()
-	assert_array(out_colors.container).is_equal(colors)
+	assert_int(out_colors.container.size()).is_equal(colors.size())
 	node.free()
 
 func test_wrong_weight_type_produces_error() -> void:

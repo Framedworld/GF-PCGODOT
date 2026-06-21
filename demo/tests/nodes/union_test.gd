@@ -49,12 +49,13 @@ func test_union_with_overlapping_points_keeps_expected_count() -> void:
 	var posB := PackedVector3Array([Vector3(0, 0, 0)])
 	var s = DifferenceNodeSettings.new()
 	var node = _run([_make_point_data(posA), _make_point_data(posB)], s)
+	auto_free(node)
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
-	assert_int(pos_stream.container.size()).is_greater_or_equal(1)
+	assert_int(pos_stream.container.size()).is_equal(1)
 	node.free()
 
 func test_union_empty_input_b_returns_a() -> void:

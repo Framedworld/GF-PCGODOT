@@ -10,7 +10,7 @@ func _make_data(stream_name: String, values, dtype: int) -> FlowData.Data:
 	d.registerStream(stream_name, values, dtype)
 	return d
 
-func _run(input: FlowData.Data, settings: RandomColorNodeSettings) -> RandomColorNode:
+func _run(input: FlowData.Data, settings: RandomColorSettings) -> RandomColorNode:
 	var node = RandomColorNode.new()
 	node.name = "random_color_test_node"
 	node.settings = settings
@@ -35,7 +35,8 @@ func _make_settings_palette(out_name: String = "color", seed: int = 42) -> Rando
 	var s = RandomColorSettings.new()
 	s.out_name = out_name
 	s.use_palette = true
-	s.palette = [Color(1, 0, 0, 1), Color(0, 1, 0, 1), Color(0, 0, 1, 1)]
+	var p: Array[Color] = [Color(1, 0, 0, 1), Color(0, 1, 0, 1), Color(0, 0, 1, 1)]
+	s.palette = p
 	s.random_seed = seed
 	return s
 
@@ -67,7 +68,7 @@ func test_palette_mode_basic() -> void:
 func test_palette_mode_colors_from_palette() -> void:
 	var pos = PackedVector3Array([Vector3(0,0,0), Vector3(1,0,0), Vector3(2,0,0), Vector3(3,0,0), Vector3(4,0,0)])
 	var in_data = _make_data("pos", pos, FlowDataScript.DataType.Vector)
-	var palette = [Color(1, 0, 0, 1), Color(0, 1, 0, 1), Color(0, 0, 1, 1)]
+	var palette: Array[Color] = [Color(1, 0, 0, 1), Color(0, 1, 0, 1), Color(0, 0, 1, 1)]
 	var s = _make_settings_palette("color", 999)
 	s.palette = palette
 	var node = _run(in_data, s)
@@ -98,7 +99,7 @@ func test_hsv_mode_values_in_range() -> void:
 	assert_int(stream.container.size()).is_equal(4)
 	for i in range(stream.container.size()):
 		var c: Color = stream.container[i]
-		assert_float(c.a).is_equal_approx(1.0)
+		assert_float(c.a).is_equal_approx(1.0, 0.001)
 	node.free()
 
 func test_hsv_mode_alpha_always_one() -> void:
@@ -111,7 +112,8 @@ func test_hsv_mode_alpha_always_one() -> void:
 	var stream = out.findStream("color")
 	assert_object(stream).is_not_null()
 	for i in range(stream.container.size()):
-		assert_float((stream.container[i] as Color).a).is_equal_approx(1.0)
+		var c: Color = stream.container[i]
+		assert_float(c.a).is_equal_approx(1.0, 0.001)
 	node.free()
 
 func test_deterministic_with_seed() -> void:
@@ -122,7 +124,7 @@ func test_deterministic_with_seed() -> void:
 	assert_str(node1.err).is_empty()
 	var out1 = _output(node1)
 	var stream1 = out1.findStream("color")
-	var result1 := PackedColorArray(stream1.container)
+	var result1 = PackedColorArray(stream1.container)
 	node1.free()
 
 	var in_data2 = _make_data("pos", pos, FlowDataScript.DataType.Vector)
@@ -146,7 +148,7 @@ func test_per_point_seed_stream_deterministic() -> void:
 	assert_str(node1.err).is_empty()
 	var out1 = _output(node1)
 	var stream1 = out1.findStream("color")
-	var result1 := PackedColorArray(stream1.container)
+	var result1 = PackedColorArray(stream1.container)
 	node1.free()
 
 	var in_data2 = FlowDataScript.Data.new()

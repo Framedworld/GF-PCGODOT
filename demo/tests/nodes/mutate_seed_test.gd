@@ -290,7 +290,14 @@ func test_broadcast_single_seed_value() -> void:
 	var in_data = _make_data("seed", PackedInt32Array([999]), FlowDataScript.DataType.Int)
 	in_data.registerStream("extra", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
 	var node = _run([in_data], s)
-	assert_str(node.err).is_not_empty()
+	assert_str(node.err).is_empty()
+	var out = _output(node)
+	assert_object(out).is_not_null()
+	var stream = out.findStream("out_seed")
+	assert_object(stream).is_not_null()
+	assert_int(stream.container.size()).is_equal(1)
+	var expected0 = _expected_hash(999, 0, 12345, 1)
+	assert_int(stream.container[0]).is_equal(expected0)
 	node.free()
 
 func test_output_stream_is_int_type() -> void:

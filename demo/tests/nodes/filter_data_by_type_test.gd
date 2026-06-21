@@ -51,10 +51,10 @@ func _inside(node) -> FlowData.Data:
 	return bulk[0]
 
 func _outside(node) -> FlowData.Data:
-	if node.generated_bulks.size() < 2: return null
-	var bulk = node.generated_bulks[1]
-	if bulk.is_empty(): return null
-	return bulk[0]
+	if node.generated_bulks.is_empty(): return null
+	var bulk = node.generated_bulks[0]
+	if bulk.size() < 2: return null
+	return bulk[1]
 
 func test_point_data_matches_point_target() -> void:
 	var s = FilterDataByTypeSettings.new()

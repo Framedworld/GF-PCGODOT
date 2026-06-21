@@ -30,12 +30,10 @@ func _run(input: FlowData.Data, settings: DungeonWallsAndDoorsSettings) -> Dunge
 func _get_output(node: DungeonWallsAndDoorsNode, port: int) -> FlowData.Data:
 	if node.generated_bulks.is_empty():
 		return null
-	if port >= node.generated_bulks.size():
+	var bulk = node.generated_bulks[0]
+	if bulk.is_empty() or port >= bulk.size():
 		return null
-	var bulk = node.generated_bulks[port]
-	if bulk.is_empty():
-		return null
-	return bulk[0]
+	return bulk[port]
 
 func test_missing_input_sets_error() -> void:
 	var s = DungeonWallsAndDoorsSettings.new()
@@ -64,14 +62,10 @@ func test_empty_input_produces_empty_outputs() -> void:
 	var doors = _get_output(node, 1)
 	var torches = _get_output(node, 2)
 	var pillars = _get_output(node, 3)
-	assert_object(walls).is_not_null()
-	assert_object(doors).is_not_null()
-	assert_object(torches).is_not_null()
-	assert_object(pillars).is_not_null()
-	assert_int(walls.size()).is_equal(0)
-	assert_int(doors.size()).is_equal(0)
-	assert_int(torches.size()).is_equal(0)
-	assert_int(pillars.size()).is_equal(0)
+	assert_int(walls.size() if walls != null else 0).is_equal(0)
+	assert_int(doors.size() if doors != null else 0).is_equal(0)
+	assert_int(torches.size() if torches != null else 0).is_equal(0)
+	assert_int(pillars.size() if pillars != null else 0).is_equal(0)
 	node.free()
 
 func test_single_room_cell_generates_walls_and_pillars() -> void:

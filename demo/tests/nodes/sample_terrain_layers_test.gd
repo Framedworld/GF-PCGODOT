@@ -24,7 +24,9 @@ func _make_world_xz_settings(layers: Array) -> SampleTerrainLayersNodeSettings:
 	s.stream_prefix = "layer_"
 	s.value_channel = SampleTerrainLayersNodeSettings.eValueChannel.R
 	s.wrap_mode = SampleTerrainLayersNodeSettings.eWrapMode.Clamp
-	s.layers = layers
+	s.layers.clear()
+	for entry in layers:
+		s.layers.append(entry)
 	return s
 
 func _make_uv_settings(layers: Array, uv_attr: String = "uv") -> SampleTerrainLayersNodeSettings:
@@ -34,7 +36,9 @@ func _make_uv_settings(layers: Array, uv_attr: String = "uv") -> SampleTerrainLa
 	s.stream_prefix = "layer_"
 	s.value_channel = SampleTerrainLayersNodeSettings.eValueChannel.R
 	s.wrap_mode = SampleTerrainLayersNodeSettings.eWrapMode.Clamp
-	s.layers = layers
+	s.layers.clear()
+	for entry in layers:
+		s.layers.append(entry)
 	return s
 
 func _make_position_data(positions: PackedVector3Array) -> FlowData.Data:

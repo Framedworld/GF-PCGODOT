@@ -135,9 +135,9 @@ func test_empty_input_produces_empty_data() -> void:
 
 func test_out_prefix_default_from_in_name() -> void:
 	var s = ReduceSettings.new()
-	s.in_name = "my.attr"
+	s.in_name = "my_attr"
 	var node = _run([
-		_make_data("my.attr", PackedFloat32Array([2.0, 4.0, 6.0]), FlowDataScript.DataType.Float)
+		_make_data("my_attr", PackedFloat32Array([2.0, 4.0, 6.0]), FlowDataScript.DataType.Float)
 	], s)
 	assert_str(node.err).is_empty()
 	var out = _output(node)

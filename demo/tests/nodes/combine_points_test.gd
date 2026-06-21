@@ -162,7 +162,7 @@ func test_non_spatial_stream_carries_first_point_value() -> void:
 	var density_stream = out.findStream("density")
 	assert_object(density_stream).is_not_null()
 	assert_int(density_stream.container.size()).is_equal(1)
-	assert_float(density_stream.container[0]).is_equal(0.9)
+	assert_float(density_stream.container[0]).is_equal_approx(0.9, 0.001)
 	var color_stream = out.findStream("color")
 	assert_object(color_stream).is_not_null()
 	assert_int(color_stream.container.size()).is_equal(1)

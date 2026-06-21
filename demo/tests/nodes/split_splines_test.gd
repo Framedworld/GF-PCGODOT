@@ -23,7 +23,7 @@ func _run(inputs: Array, settings: SplitSplinesSettings) -> SplitSplinesNode:
 	dummy.free()
 	return node
 
-func _output(node: SplitSplinesNode) -> FlowData.Data:
+func _output(node) -> FlowData.Data:
 	if node.generated_bulks.is_empty():
 		return null
 	var bulk = node.generated_bulks[0]
@@ -194,8 +194,8 @@ func test_segment_size_xy_applied_to_size_stream() -> void:
 	var sizes = out.getVector3Container(FlowDataScript.AttrSize)
 	assert_bool(sizes.size() > 0).is_true()
 	for sz in sizes:
-		assert_float(sz.x).is_equal_approx(3.0)
-		assert_float(sz.y).is_equal_approx(7.0)
+		assert_float(sz.x).is_equal_approx(3.0, 0.001)
+		assert_float(sz.y).is_equal_approx(7.0, 0.001)
 		assert_bool(sz.z > 0.0).is_true()
 	node.free()
 	path.free()

@@ -25,14 +25,15 @@ func _run(inputs: Array, settings) -> PointFilterRangeNode:
 
 func _output(node, port: int = 0) -> FlowData.Data:
 	if node.generated_bulks.is_empty(): return null
-	var bulk = node.generated_bulks[port]
+	var bulk = node.generated_bulks[0]
 	if bulk.is_empty(): return null
-	return bulk[0]
+	if port >= bulk.size(): return null
+	return bulk[port]
 
 func test_default_attribute_name_is_position_x() -> void:
 	var s = PointFilterRangeSettings.new()
 	assert_str(s.attribute_name).is_equal("position.X")
-	s.free()
+	# PointFilterRangeSettings is RefCounted — do NOT call .free()
 
 func test_position_x_range_splits_inside_outside() -> void:
 	var s = PointFilterRangeSettings.new()
@@ -40,19 +41,25 @@ func test_position_x_range_splits_inside_outside() -> void:
 	s.max_value = 5.0
 	s.inclusive_min = true
 	s.inclusive_max = true
-	var d = _make_data("position.X", PackedFloat32Array([1.0, 3.0, 5.0, 7.0, 10.0]), FlowDataScript.DataType.Float)
+	# Register a "position" Vector3 stream — the default attribute "position.X"
+	# is split by findStream() into stream="position", component=X.
+	var positions = PackedVector3Array([
+		Vector3(1, 0, 0), Vector3(3, 0, 0), Vector3(5, 0, 0),
+		Vector3(7, 0, 0), Vector3(10, 0, 0)
+	])
+	var d = _make_data("position", positions, FlowDataScript.DataType.Vector)
 	var node = _run([d], s)
 	assert_str(node.err).is_empty()
 	var inside = _output(node, 0)
 	var outside = _output(node, 1)
 	assert_object(inside).is_not_null()
 	assert_object(outside).is_not_null()
-	var inside_stream = inside.findStream("position.X")
-	var outside_stream = outside.findStream("position.X")
-	assert_object(inside_stream).is_not_null()
-	assert_object(outside_stream).is_not_null()
-	assert_int(inside_stream.container.size()).is_equal(3)
-	assert_int(outside_stream.container.size()).is_equal(2)
+	var inside_pos = inside.findStream("position")
+	var outside_pos = outside.findStream("position")
+	assert_object(inside_pos).is_not_null()
+	assert_object(outside_pos).is_not_null()
+	assert_int(inside_pos.container.size()).is_equal(3)
+	assert_int(outside_pos.container.size()).is_equal(2)
 	node.free()
 
 func test_exclusive_boundaries_on_position_x() -> void:
@@ -61,15 +68,19 @@ func test_exclusive_boundaries_on_position_x() -> void:
 	s.max_value = 5.0
 	s.inclusive_min = false
 	s.inclusive_max = false
-	var d = _make_data("position.X", PackedFloat32Array([0.0, 2.5, 5.0]), FlowDataScript.DataType.Float)
+	# Register "position" Vector3 — default attribute "position.X" splits on "." → reads X component
+	var positions = PackedVector3Array([Vector3(0.0, 0, 0), Vector3(2.5, 0, 0), Vector3(5.0, 0, 0)])
+	var d = _make_data("position", positions, FlowDataScript.DataType.Vector)
 	var node = _run([d], s)
 	assert_str(node.err).is_empty()
 	var inside = _output(node, 0)
 	var outside = _output(node, 1)
-	var inside_stream = inside.findStream("position.X")
-	var outside_stream = outside.findStream("position.X")
-	assert_int(inside_stream.container.size()).is_equal(1)
-	assert_int(outside_stream.container.size()).is_equal(2)
+	var inside_pos = inside.findStream("position")
+	var outside_pos = outside.findStream("position")
+	assert_object(inside_pos).is_not_null()
+	assert_object(outside_pos).is_not_null()
+	assert_int(inside_pos.container.size()).is_equal(1)
+	assert_int(outside_pos.container.size()).is_equal(2)
 	node.free()
 
 func test_vector_stream_filters_by_length() -> void:
@@ -99,15 +110,20 @@ func test_absolute_value_mode() -> void:
 	s.inclusive_min = true
 	s.inclusive_max = true
 	s.use_absolute_value = true
-	var d = _make_data("position.X", PackedFloat32Array([-3.0, 2.0, -6.0, 4.0]), FlowDataScript.DataType.Float)
+	# Register "position" Vector3 — attribute "position.X" splits on "." → reads X component (then abs)
+	# abs(-3)=3→inside, abs(2)=2→inside, abs(-6)=6→outside, abs(4)=4→inside
+	var positions = PackedVector3Array([Vector3(-3.0,0,0), Vector3(2.0,0,0), Vector3(-6.0,0,0), Vector3(4.0,0,0)])
+	var d = _make_data("position", positions, FlowDataScript.DataType.Vector)
 	var node = _run([d], s)
 	assert_str(node.err).is_empty()
 	var inside = _output(node, 0)
 	var outside = _output(node, 1)
-	var inside_stream = inside.findStream("position.X")
-	var outside_stream = outside.findStream("position.X")
-	assert_int(inside_stream.container.size()).is_equal(3)
-	assert_int(outside_stream.container.size()).is_equal(1)
+	var inside_pos = inside.findStream("position")
+	var outside_pos = outside.findStream("position")
+	assert_object(inside_pos).is_not_null()
+	assert_object(outside_pos).is_not_null()
+	assert_int(inside_pos.container.size()).is_equal(3)
+	assert_int(outside_pos.container.size()).is_equal(1)
 	node.free()
 
 func test_string_match_mode_case_insensitive() -> void:

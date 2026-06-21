@@ -51,6 +51,7 @@ enum eShapeType {
 @export var out_count_attribute : String = "overlap_count"
 ## The output attribute name (NodePath) to store a reference to the first collider node found.
 ## If left blank or empty, this stream is not registered.
+@export var out_first_collider_attribute : String = ""
 
 func _init():
 	super._init()
