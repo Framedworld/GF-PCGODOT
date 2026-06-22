@@ -158,6 +158,19 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var point_seeds = in_data.getContainerChecked( FlowData.AttrSeed, FlowData.DataType.Int )
 	var has_point_seeds : bool = point_seeds != null and point_seeds.size() == in_size
 
+	# No seed stream: synthesize per-point seeds from position so selection is
+	# deterministic and order-independent (UE $Seed parity) rather than relying on
+	# a global RNG whose result depends on point order/count.
+	if not has_point_seeds:
+		var positions = in_data.getVector3Container( FlowData.AttrPosition )
+		if positions != null and positions.size() == in_size:
+			var synth := PackedInt32Array()
+			synth.resize( in_size )
+			for i in in_size:
+				synth[i] = FlowData.point_seed( positions[i], settings.random_seed )
+			point_seeds = synth
+			has_point_seeds = true
+
 	var indices : PackedInt32Array
 	if has_point_seeds:
 		indices = per_point_seeded_sampling( out_size, point_seeds, weights )

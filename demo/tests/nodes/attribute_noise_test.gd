@@ -51,6 +51,39 @@ func test_set_mode_creates_attribute() -> void:
 		assert_float(stream.container[i]).is_equal_approx(0.5, 0.0001)
 	node.free()
 
+func test_noise_is_position_deterministic_without_seed_stream() -> void:
+	# UE $Seed parity: with no per-point seed stream, the noise must derive from
+	# the point position, so the SAME position yields the SAME value regardless of
+	# its index/order — not the old node-global RNG which depended on draw order.
+	var s = AttributeNoiseSettings.new()
+	s.target_attribute = "value"
+	s.mode = AttributeNoiseSettings.eMode.Set
+	s.noise_min = 0.0
+	s.noise_max = 1000.0
+	s.clamp_result = false
+	var pa := Vector3(1, 2, 3)
+	var pb := Vector3(4, 5, 6)
+	var pc := Vector3(7, 8, 9)
+
+	var in1 = FlowDataScript.Data.new()
+	in1.registerStream("position", PackedVector3Array([pa, pb, pc]), FlowDataScript.DataType.Vector)
+	var n1 = _run(in1, s)
+	var v1 = _output(n1).findStream("value").container
+
+	# Same positions, different order.
+	var in2 = FlowDataScript.Data.new()
+	in2.registerStream("position", PackedVector3Array([pc, pa, pb]), FlowDataScript.DataType.Vector)
+	var n2 = _run(in2, s)
+	var v2 = _output(n2).findStream("value").container
+
+	assert_float(v1[0]).is_equal_approx(v2[1], 0.0001)  # pa: idx 0 vs idx 1
+	assert_float(v1[1]).is_equal_approx(v2[2], 0.0001)  # pb: idx 1 vs idx 2
+	assert_float(v1[2]).is_equal_approx(v2[0], 0.0001)  # pc: idx 2 vs idx 0
+	# And the three positions must actually produce distinct noise (sanity).
+	assert_bool(v1[0] != v1[1] or v1[1] != v1[2]).is_true()
+	n1.free()
+	n2.free()
+
 func test_add_mode_with_existing_float_attribute() -> void:
 	var s = AttributeNoiseSettings.new()
 	s.target_attribute = "density"

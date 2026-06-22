@@ -42,20 +42,30 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var scale_max : Vector3 = getSettingValue( ctx, "scale_max" )
 	var uniform_scale : bool = getSettingValue( ctx, "uniform_scale" )
 	var rotation_local_space : bool = getSettingValue( ctx, "rotation_local_space" )
+	# Per-point seeded randomness (UE parity): each point's random TRS is derived
+	# from its own seed/position, so the result is stable under reordering and
+	# upstream count changes instead of depending on the node-global RNG draw order.
+	var point_seeds = out_data.getContainerChecked( FlowData.AttrSeed, FlowData.DataType.Int )
+	if point_seeds != null and point_seeds.size() != spos.size() and point_seeds.size() != 1:
+		point_seeds = null
+	var node_seed : int = settings.random_seed
+	var prng := RandomNumberGenerator.new()
 	for i in spos.size():
-		var amount_pos = Vector3( rng.randf(), rng.randf(), rng.randf() )
+		# Seed from the point's input position (before we move it) so the draw is deterministic.
+		prng.seed = FlowData.resolve_seed( point_seeds, spos, i, node_seed )
+		var amount_pos = Vector3( prng.randf(), prng.randf(), prng.randf() )
 		var basis := FlowData.eulerToBasis( srot[i] )
 		spos[i] += basis * (offset_min + ( offset_max - offset_min ) * amount_pos)
-		var amount_rot = Vector3( rng.randf(), rng.randf(), rng.randf() )
+		var amount_rot = Vector3( prng.randf(), prng.randf(), prng.randf() )
 		if rotation_local_space:
 			var delta_rot = rotation_min + ( rotation_max - rotation_min ) * amount_rot
 			srot[i] = FlowData.basisToEuler( basis * FlowData.eulerToBasis( delta_rot ) )
 		else:
 			srot[i] += rotation_min + ( rotation_max - rotation_min ) * amount_rot
 		if uniform_scale:
-			var amount_scale = rng.randf()
+			var amount_scale = prng.randf()
 			ssizes[i] *= scale_min.x + ( scale_max.x - scale_min.x ) * amount_scale
 		else:
-			var amount_scale = Vector3( rng.randf(), rng.randf(), rng.randf() )
+			var amount_scale = Vector3( prng.randf(), prng.randf(), prng.randf() )
 			ssizes[i] *= scale_min + ( scale_max - scale_min ) * amount_scale
 	set_output( 0, out_data )

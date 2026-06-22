@@ -60,11 +60,15 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var invert_source : bool = settings.invert_source
 	var clamp_result : bool = settings.clamp_result
 
-	# Per-point seeds (UE parity): prefer the input seed stream, fall back to
-	# the node-level RNG (seeded from settings.random_seed in preExecute).
-	var seed_stream = in_data.findStream(FlowData.AttrSeed)
-	if seed_stream != null and (seed_stream.data_type != FlowData.DataType.Int or seed_stream.container.size() == 0):
-		seed_stream = null
+	# Per-point seeds (UE parity): prefer the input seed stream, else hash the
+	# point position; never the shared node RNG, so noise is stable under
+	# reordering/count changes.
+	var point_seeds = in_data.getContainerChecked(FlowData.AttrSeed, FlowData.DataType.Int)
+	if point_seeds != null and point_seeds.size() == 0:
+		point_seeds = null
+	var positions = in_data.getVector3Container(FlowData.AttrPosition)
+	if positions != null and positions.size() != num_points and positions.size() != 1:
+		positions = null
 	var node_seed : int = settings.random_seed
 	var point_rng := RandomNumberGenerator.new()
 
@@ -72,13 +76,8 @@ func execute( ctx : FlowData.EvaluationContext ):
 	results.resize(num_points)
 
 	for i in range(num_points):
-		var noise_val : float
-		if seed_stream != null:
-			var seed_idx := FlowData.bcast_idx(seed_stream.container.size(), i)
-			point_rng.seed = int(seed_stream.container[seed_idx]) ^ node_seed
-			noise_val = point_rng.randf_range(noise_min, noise_max)
-		else:
-			noise_val = rng.randf_range(noise_min, noise_max)
+		point_rng.seed = FlowData.resolve_seed(point_seeds, positions, i, node_seed)
+		var noise_val : float = point_rng.randf_range(noise_min, noise_max)
 
 		# Missing attribute: density starts at 1.0, anything else at 0.0
 		var source_val := 1.0 if is_density else 0.0

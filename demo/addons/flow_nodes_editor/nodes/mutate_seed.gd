@@ -31,12 +31,17 @@ func _seed_from_stream(stream, idx : int) -> int:
 	return idx
 
 func _mutate_seed(base_seed : int, idx : int, pos : Vector3) -> int:
-	var h = hash([base_seed, idx, settings.random_seed, settings.seed_offset])
+	var h : int
 	if settings.include_position:
+		# Position-deterministic (UE $Seed parity): exclude the point index so the
+		# result is stable under reordering — points at the same position agree.
 		var px = int(round(pos.x * 1000.0))
 		var py = int(round(pos.y * 1000.0))
 		var pz = int(round(pos.z * 1000.0))
-		h = hash([h, px, py, pz])
+		h = hash([base_seed, px, py, pz, settings.random_seed, settings.seed_offset])
+	else:
+		# No position basis: the point index is the only per-point distinguisher.
+		h = hash([base_seed, idx, settings.random_seed, settings.seed_offset])
 	var mutated = h & 0x7fffffff
 
 	match settings.mode:

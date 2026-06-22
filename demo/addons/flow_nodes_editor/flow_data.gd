@@ -83,6 +83,19 @@ static func point_seed( pos : Vector3, node_seed : int ) -> int:
 static func bcast_idx( container_size : int, i : int ) -> int:
 	return i if container_size > 1 else 0
 
+## Resolve the deterministic per-point RNG seed for point `i` (UE $Seed parity).
+## Preference order, so randomness is reorder-/count-stable wherever possible:
+##   1. an explicit per-point seed stream (the point's own $Seed), xored with the node seed
+##   2. a hash of the point's position (same quantization as point_seed)
+##   3. index arithmetic — last resort when neither seed nor position exists
+## Both `point_seeds` and `positions` may be null or broadcast (size 1).
+static func resolve_seed( point_seeds, positions, i : int, node_seed : int ) -> int:
+	if point_seeds != null and point_seeds.size() > 0:
+		return int(point_seeds[bcast_idx(point_seeds.size(), i)]) ^ node_seed
+	if positions != null and positions.size() > 0:
+		return point_seed( positions[bcast_idx(positions.size(), i)], node_seed )
+	return node_seed + i * 256
+
 ## Build a stable orthonormal Basis from a surface normal.
 ## - `normal` is the axis you want to align (default aligns to +Z).
 ## - `up` is your preferred up; a safe fallback is chosen if nearly parallel.

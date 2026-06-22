@@ -36,6 +36,12 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var point_seeds = in_data.getContainerChecked(FlowData.AttrSeed, FlowData.DataType.Int)
 	if point_seeds != null and point_seeds.size() != size:
 		point_seeds = null
+	# When no seed stream exists, fall back to hashing the point position so the
+	# result stays stable under reordering/count changes (UE parity) instead of
+	# the old index-additive seed.
+	var positions = in_data.getVector3Container(FlowData.AttrPosition)
+	if positions != null and positions.size() != size and positions.size() != 1:
+		positions = null
 
 	var v_min = minf(settings.min_value, settings.max_value)
 	var v_max = maxf(settings.min_value, settings.max_value)
@@ -47,8 +53,9 @@ func execute( ctx : FlowData.EvaluationContext ):
 			if settings.use_index_as_value:
 				container[i] = i
 			else:
-				# Deterministic seed per point: prefer the point's own seed stream
-				rng.seed = (point_seeds[i] ^ seed_val) if point_seeds != null else (seed_val + i * 256)
+				# Deterministic seed per point: prefer the point's own seed stream,
+				# else hash its position; only fall back to index arithmetic if neither.
+				rng.seed = FlowData.resolve_seed(point_seeds, positions, i, seed_val)
 				container[i] = rng.randi_range(int(v_min), int(v_max))
 		var err = out_data.registerStream(settings.attribute_name, container, FlowData.DataType.Int)
 		if err:
@@ -61,7 +68,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			if settings.use_index_as_value:
 				container[i] = float(i)
 			else:
-				rng.seed = (point_seeds[i] ^ seed_val) if point_seeds != null else (seed_val + i * 256)
+				rng.seed = FlowData.resolve_seed(point_seeds, positions, i, seed_val)
 				container[i] = rng.randf_range(v_min, v_max)
 		var err = out_data.registerStream(settings.attribute_name, container, FlowData.DataType.Float)
 		if err:
