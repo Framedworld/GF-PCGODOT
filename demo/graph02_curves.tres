@@ -33,6 +33,7 @@ data = {
 "required_meta_bool": &"",
 "title": "Sample Spline",
 "trace": false,
+"legacy_scale_from_extent": true,
 "uniform_interval": 1.94
 },
 "show_disconnected_inputs": false,

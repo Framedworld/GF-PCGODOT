@@ -849,6 +849,7 @@ data = {
 "sample_segments_centers": false,
 "title": "Sample Spline",
 "trace": false,
+"legacy_scale_from_extent": true,
 "uniform_interval": 0.18
 },
 "show_disconnected_inputs": false,
@@ -927,6 +928,7 @@ data = {
 "sample_segments_centers": false,
 "title": "Sample Spline",
 "trace": false,
+"legacy_scale_from_extent": true,
 "uniform_interval": 2.22
 },
 "show_disconnected_inputs": false,

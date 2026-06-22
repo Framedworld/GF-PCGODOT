@@ -120,6 +120,7 @@ data = {
 "inspect_enabled": false,
 "num_random_samples": 10,
 "random_seed": 12345,
+"legacy_scale_from_extent": true,
 "sample_segments_centers": false,
 "sampling_mode": 0,
 "title": "Sample Spline",

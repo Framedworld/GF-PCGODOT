@@ -82,6 +82,7 @@ data = {
 "sample_segments_centers": false,
 "title": "Sample Spline",
 "trace": false,
+"legacy_scale_from_extent": true,
 "uniform_interval": 0.445
 },
 "show_disconnected_inputs": false,
@@ -148,6 +149,7 @@ data = {
 "out_group_id": "",
 "phase": 0.0,
 "random_seed": 1950616807,
+"legacy_scale_from_extent": true,
 "sampling_distance": 0.2,
 "size": 0.43,
 "title": "Sample Points",

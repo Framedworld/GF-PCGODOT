@@ -342,6 +342,7 @@ data = {
 "out_group_id": "type",
 "phase": 0.355,
 "random_seed": 4003151073,
+"legacy_scale_from_extent": true,
 "sampling_distance": 0.2,
 "size": 0.865,
 "title": "Sample Points",

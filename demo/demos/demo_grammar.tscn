@@ -80,6 +80,7 @@ data = {
 "position": Vector2(320, 0),
 "settings": {
 "bake_interval": 4.0,
+"legacy_scale_from_extent": true,
 "cross_section_size": Vector2(0.5, 0.5),
 "debug_bulk": 0,
 "debug_color": Color(0.3, 0.9, 1, 1),
@@ -119,6 +120,7 @@ data = {
 "name": &"id_0003_grammar_expand",
 "position": Vector2(640, 0),
 "settings": {
+"legacy_scale_from_extent": true,
 "cross_section_size": Vector2(0.5, 0.5),
 "debug_bulk": 0,
 "debug_color": Color(1, 0.6, 0.2, 1),

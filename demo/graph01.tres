@@ -100,6 +100,7 @@ data = {
 "sample_segments_centers": false,
 "title": "Sample Spline",
 "trace": false,
+"legacy_scale_from_extent": true,
 "uniform_interval": 0.94
 },
 "show_disconnected_inputs": false,

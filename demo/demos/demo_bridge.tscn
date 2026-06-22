@@ -420,6 +420,7 @@ data = {
 "sampling_mode": 0,
 "title": "Sample Spline",
 "trace": false,
+"legacy_scale_from_extent": true,
 "uniform_interval": 2.0
 },
 "show_disconnected_inputs": false,
@@ -713,6 +714,7 @@ data = {
 "sampling_mode": 0,
 "title": "Sample Spline",
 "trace": false,
+"legacy_scale_from_extent": true,
 "uniform_interval": 0.795
 },
 "show_disconnected_inputs": false,
