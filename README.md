@@ -50,6 +50,14 @@ To use the addon in your own project, copy `demo/addons/flow_nodes_editor/` into
 $FlowGraphNode3D.execute()
 ```
 
+To tune one instance without duplicating its graph, set `overrides` on the
+`FlowGraphNode3D` (`{"scatter/num_points": 200}`, or
+`{"my_subgraph:scatter/num_points": 200}` to target a node inside one subgraph).
+To drive a node setting from a graph input, runtime param or flow variable, add
+`"property" -> "$param"` to that node's `bindings` (Common Settings). A wired
+parameter port beats an override, which beats a binding, which beats the saved
+value. See [Overrides and bindings](docs/COMING_FROM_UNREAL_PCG.md#overrides-and-bindings).
+
 External addons can provide their own Flow node directories by calling
 `FlowNodeRegistry.register_node_directory("res://addons/your_addon_name/nodes")`
 from an editor plugin. Use namespaced node script filenames such as

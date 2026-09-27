@@ -4471,6 +4471,10 @@ func _evaluate_graph_node(node: FlowNodeBase, performance: Array) -> void:
 	var time_node_start = Time.get_ticks_usec()
 	active_nodes.append( node )
 
+	# Overrides / $param bindings: run the node against a scratch copy of its
+	# settings so the dock shows bound values while the authored resource (and the
+	# inspector, save and undo state) never changes. Restored after the node ran.
+	var authored_settings := FlowNodeIO.begin_scratch_setting_bindings( node, current_resource, ctx, {} )
 	node.preExecute( ctx )
 
 	#print( "Evaluating %s" % node.name )
@@ -4490,6 +4494,7 @@ func _evaluate_graph_node(node: FlowNodeBase, performance: Array) -> void:
 	if typeof(scene_fingerprint) == TYPE_INT:
 		node.scene_fingerprint = scene_fingerprint
 		node.has_scene_fingerprint = true
+	FlowNodeIO.end_scratch_setting_bindings( node, authored_settings )
 	var time_node_ends = Time.get_ticks_usec()
 	var exec_usec = time_node_ends - time_node_start
 

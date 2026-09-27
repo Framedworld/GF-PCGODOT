@@ -46,6 +46,14 @@ enum eDebugMode {
 ## If enabled, prints performance timing logs (in microseconds) for the debug drawing loop to the console.
 @export var trace: bool = false
 
+## $param bindings: "property_name" -> "param_name". At evaluation time each listed
+## setting of this node takes the value of the named parameter, looked up first in the
+## graph inputs, then in the runtime params, then in the flow variables (a leading "$"
+## on the parameter name is optional). When the parameter is absent the saved value is
+## kept, so the graph still runs without it (e.g. in the editor). A wired parameter port
+## and a per-instance override (FlowGraphNode3D.overrides) both take precedence.
+@export var bindings : Dictionary = {}
+
 func _init():
 	# Set default values when resource is created
 	resource_name = "Node Settings"

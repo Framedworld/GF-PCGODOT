@@ -23,6 +23,11 @@ signal graph_node_changed( graph_node : FlowGraphNode3D, prop_name : String )
 ## Custom inputs values for this instantiation
 @export var args : Dictionary = {}
 
+## Per-instance node setting overrides: "<node_name>/<property>" -> value, optionally
+## prefixed with a graph basename ("my_subgraph:<node_name>/<property>") to target a
+## node inside that subgraph only. Beats $param bindings; a wired port still wins.
+@export var overrides : Dictionary = {}
+
 # --- Async / time-sliced generation (PARITY_ROADMAP async stage 2, opt-in) ---
 ## When false, execute() runs a single synchronous evaluate_graph()
 ## exactly as before — byte-for-byte the historical behavior. When true, the
@@ -119,6 +124,7 @@ func execute() -> void:
 	ctx.eval_id = 0
 	ctx.gedit_nodes_by_name = {}
 	ctx.runtime_params = {}
+	ctx.overrides = overrides if overrides != null else {}
 	# Root evaluation starts the recursion guard at depth 0; nested
 	# subgraph/loop nodes call evaluate_graph with depth + 1.
 	if async_generation:

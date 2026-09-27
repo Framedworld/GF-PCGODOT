@@ -65,6 +65,7 @@ class EvaluationContext:
 	var gedit_nodes_by_name : Dictionary
 	var runtime_params : Dictionary = {}
 	var variables : Dictionary = {}
+	var overrides : Dictionary = {}
 
 ## Deterministic per-point seed (UE $Seed parity): hashes the position
 ## quantized per component at *1000 (the same quantization mutate_seed.gd

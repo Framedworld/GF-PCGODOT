@@ -7,6 +7,10 @@ class_name FlowNodeIO
 const LOAD_PROGRESS_CHUNK_SIZE := 8
 const FAST_GRAPH_LOAD_NODE_THRESHOLD := 24
 
+# Settings keys that are only written when non-empty, so graphs that never use the
+# feature serialise exactly as before (no new key on every node).
+const OMIT_WHEN_EMPTY_PROPS := { "bindings": true }
+
 static func resource_to_dict(resource: Resource) -> Dictionary:
 	var dict := {}
 	for prop in resource.get_property_list():
@@ -14,7 +18,10 @@ static func resource_to_dict(resource: Resource) -> Dictionary:
 			continue
 		if prop.usage & PROPERTY_USAGE_STORAGE != 0:
 			var name = prop.name
-			dict[name] = resource.get(name)
+			var value = resource.get(name)
+			if OMIT_WHEN_EMPTY_PROPS.has(name) and value is Dictionary and value.is_empty():
+				continue
+			dict[name] = value
 	return dict
 
 static func split_floats(in_str : String) -> Array:
@@ -751,6 +758,300 @@ static func _coerce_input_data(val, input_name: String):
 	return data
 
 # ---------------------------------------------------------------------------
+# Per-instance overrides and $param bindings (RUNTIME_API_P0 §4).
+#
+# Precedence for a node setting at evaluation time, highest first:
+#   1. a wired parameter port (getSettingValue reads the connected input at
+#      execute time, so it wins over whatever is written here)
+#   2. a per-instance override  (ctx.overrides, from FlowGraphNode3D.overrides)
+#   3. a $param binding         (NodeSettings.bindings)
+#   4. the value saved in the graph resource
+# ---------------------------------------------------------------------------
+
+## Meta key on an EvaluationContext holding the Dictionary of override keys that
+## matched at least one node anywhere in the current evaluation tree.
+const OVERRIDE_HITS_META := &"flow_override_hits"
+
+## True when `settings` could be changed by apply_setting_bindings under `ctx`:
+## the context carries overrides or the settings declare bindings. Cheap; lets the
+## evaluators skip all binding work for graphs that use neither.
+static func has_setting_bindings(settings: Resource, ctx: FlowData.EvaluationContext) -> bool:
+	if settings == null:
+		return false
+	if ctx != null and ctx.overrides != null and not ctx.overrides.is_empty():
+		return true
+	if not ("bindings" in settings):
+		return false
+	var bindings = settings.get("bindings")
+	return bindings is Dictionary and not bindings.is_empty()
+
+## Applies the context's per-instance overrides, then the node's $param bindings,
+## to `target_settings` (default: node_instance.settings). Overrides are keyed
+## "<node_name>/<property>", optionally prefixed "<graph basename>:" to target one
+## subgraph; a property set by an override is not rebound. Bindings resolve
+## "property" -> "param" against input_data_map, then ctx.runtime_params, then
+## ctx.variables (a FlowData.Data value yields its first element). A missing
+## parameter keeps the saved value silently; a value that cannot be assigned to the
+## property keeps it with a warning. Does not call refreshFromSettings.
+## Returns true when at least one setting was written.
+static func apply_setting_bindings(node_instance: FlowNodeBase, graph: FlowGraphResource, ctx: FlowData.EvaluationContext, input_data_map: Dictionary = {}, target_settings: Resource = null) -> bool:
+	if node_instance == null or ctx == null:
+		return false
+	var settings: Resource = target_settings if target_settings != null else node_instance.settings
+	if settings == null:
+		return false
+	var node_name := String(node_instance.name)
+	var changed := false
+	var overridden := {}
+
+	if ctx.overrides != null and not ctx.overrides.is_empty():
+		var graph_name := graph_basename(graph)
+		var hits = ctx.get_meta(OVERRIDE_HITS_META, null)
+		for key in ctx.overrides:
+			var target := _parse_override_key(str(key))
+			if target.is_empty() or target.node != node_name:
+				continue
+			if not target.scope.is_empty() and target.scope != graph_name:
+				continue
+			if not _is_bindable_setting(settings, target.prop):
+				continue
+			if hits is Dictionary:
+				hits[key] = true
+			if _assign_setting(settings, target.prop, ctx.overrides[key], node_name, "override '%s'" % key):
+				changed = true
+				overridden[target.prop] = true
+
+	if "bindings" in settings:
+		var bindings = settings.get("bindings")
+		if bindings is Dictionary and not bindings.is_empty():
+			for prop in bindings:
+				var prop_name := str(prop)
+				if overridden.has(prop_name):
+					continue
+				var param_name := str(bindings[prop]).strip_edges().trim_prefix("$")
+				if prop_name.is_empty() or param_name.is_empty():
+					continue
+				if not _is_bindable_setting(settings, prop_name):
+					push_warning("Flow: node '%s' binds unknown setting '%s' to '$%s'; ignored." % [node_name, prop_name, param_name])
+					continue
+				var resolved := _resolve_binding_param(param_name, ctx, input_data_map)
+				if resolved.is_empty():
+					continue
+				if _assign_setting(settings, prop_name, resolved[0], node_name, "binding '$%s'" % param_name):
+					changed = true
+	return changed
+
+## Editor evaluation path: when overrides/bindings apply to `node`, swaps a scratch
+## duplicate of its settings in (the authored resource is never written, so it is
+## never dirtied, saved or re-emitted as changed) and returns the authored settings
+## to hand back to end_scratch_setting_bindings() after the node ran. Returns null,
+## leaving the node untouched, when nothing applies.
+static func begin_scratch_setting_bindings(node: FlowNodeBase, graph: FlowGraphResource, ctx: FlowData.EvaluationContext, input_data_map: Dictionary = {}) -> Resource:
+	if node == null or node.settings == null or not has_setting_bindings(node.settings, ctx):
+		return null
+	var authored: Resource = node.settings
+	var scratch: Resource = authored.duplicate()
+	if not apply_setting_bindings(node, graph, ctx, input_data_map, scratch):
+		return null
+	node.settings = scratch
+	return authored
+
+## Restores the settings returned by begin_scratch_setting_bindings(). No-op on null.
+static func end_scratch_setting_bindings(node: FlowNodeBase, authored: Resource) -> void:
+	if node == null or authored == null or not is_instance_valid(node):
+		return
+	node.settings = authored
+
+## Name used for "<graph>:" override prefixes: the graph file's basename
+## ("res://graphs/style_room_default.tres" -> "style_room_default"). Graphs without
+## a file of their own (in-memory or embedded) fall back to their resource_name.
+static func graph_basename(graph: Resource) -> String:
+	if graph == null:
+		return ""
+	var path := graph.resource_path
+	if path.is_empty() or path.contains("::"):
+		return String(graph.resource_name)
+	return path.get_file().get_basename()
+
+static func _is_bindable_setting(settings: Resource, prop: String) -> bool:
+	if prop == "bindings" or FlowNodeAssets.discarded_props.has(prop):
+		return false
+	return prop in settings
+
+static func _parse_override_key(key: String) -> Dictionary:
+	var scope := ""
+	var rest := key
+	var colon := key.find(":")
+	if colon >= 0:
+		scope = key.substr(0, colon)
+		rest = key.substr(colon + 1)
+	var parts := rest.split("/")
+	if parts.size() != 2 or parts[0].is_empty() or parts[1].is_empty():
+		return {}
+	return { "scope": scope, "node": parts[0], "prop": parts[1] }
+
+# Context the bindings of one graph level resolve against: what the child ctx
+# built later in _build_evaluation_state will hold (parent overrides, parent +
+# local runtime params, inherited variables), without copying anything deeply.
+static func _binding_scope_context(graph: FlowGraphResource, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary, override_hits: Dictionary) -> FlowData.EvaluationContext:
+	var scope = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()
+	scope.graph = graph
+	scope.owner = parent_ctx.owner
+	scope.overrides = parent_ctx.overrides
+	var parent_params: Dictionary = parent_ctx.runtime_params if parent_ctx.runtime_params else {}
+	scope.runtime_params = parent_params.merged(runtime_params, true)
+	scope.variables = parent_ctx.variables
+	scope.set_meta(OVERRIDE_HITS_META, override_hits)
+	return scope
+
+# Returns [value] when `param_name` resolves, [] when it is absent everywhere.
+static func _resolve_binding_param(param_name: String, ctx: FlowData.EvaluationContext, input_data_map: Dictionary) -> Array:
+	for source in [input_data_map, ctx.runtime_params, ctx.variables]:
+		if source == null or not source.has(param_name):
+			continue
+		var value = source[param_name]
+		if value is FlowData.Data:
+			value = _first_value_of(value, param_name)
+		if value != null:
+			return [value]
+	return []
+
+# Element 0 of stream `name` (or of the per-data attribute `name` / "@data.<name>").
+# A Data holding exactly one stream yields that stream's first element whatever its
+# name, mirroring how the graph-input feed treats a Data's main stream. Bool streams
+# are stored as bytes and come back as bool. Returns null when nothing matches.
+static func _first_value_of(data: FlowData.Data, name: String):
+	if data == null:
+		return null
+	var attr_name := name.trim_prefix(FlowData.DataAttrPrefix)
+	if not data.streams.has(name) and data.data_attrs.has(attr_name):
+		return data.data_attrs[attr_name].get("value", null)
+	var stream = data.streams.get(name, null)
+	if stream == null and data.streams.size() == 1:
+		stream = data.streams.values()[0]
+	if stream == null or stream.container == null or stream.container.size() == 0:
+		return null
+	var value = stream.container[0]
+	if stream.data_type == FlowData.DataType.Bool:
+		return bool(value)
+	return value
+
+# Writes `value` into settings[prop] when the types are compatible (with int<->float
+# and String<->StringName coercion); otherwise warns and keeps the current value.
+static func _assign_setting(settings: Resource, prop: String, value, node_name: String, source_label: String) -> bool:
+	var info := {}
+	for p in settings.get_property_list():
+		if p.name == prop:
+			info = p
+			break
+	if info.is_empty():
+		return false
+	var coerced := _coerce_setting_value(value, info, settings.get(prop))
+	if coerced.is_empty():
+		push_warning("Flow: %s cannot assign %s value %s to setting '%s' (%s) of node '%s'; keeping the saved value." % [
+			source_label, type_string(typeof(value)), str(value), prop, type_string(int(info.type)), node_name])
+		return false
+	settings.set(prop, coerced[0])
+	return true
+
+# Returns [coerced_value] or [] when `value` cannot be assigned to the property.
+static func _coerce_setting_value(value, info: Dictionary, current) -> Array:
+	var target_type := int(info.type)
+	var value_type := typeof(value)
+	if target_type == TYPE_NIL:
+		return [value]
+	match target_type:
+		TYPE_FLOAT:
+			if value_type == TYPE_FLOAT or value_type == TYPE_INT:
+				return [float(value)]
+		TYPE_INT:
+			if value_type == TYPE_INT:
+				return [value]
+			if value_type == TYPE_FLOAT:
+				return [int(value)]
+		TYPE_STRING:
+			if value_type == TYPE_STRING or value_type == TYPE_STRING_NAME:
+				return [String(value)]
+		TYPE_STRING_NAME:
+			if value_type == TYPE_STRING or value_type == TYPE_STRING_NAME:
+				return [StringName(value)]
+		TYPE_VECTOR2:
+			if value_type == TYPE_VECTOR2 or value_type == TYPE_VECTOR2I:
+				return [Vector2(value)]
+		TYPE_VECTOR3:
+			if value_type == TYPE_VECTOR3 or value_type == TYPE_VECTOR3I:
+				return [Vector3(value)]
+		TYPE_ARRAY:
+			if value_type == TYPE_ARRAY:
+				if current is Array and current.is_typed():
+					# Build a fresh array of the property's element type; never
+					# mutate `current` (the editor's scratch duplicate may share it).
+					var element_type: int = current.get_typed_builtin()
+					var typed: Array = current.duplicate()
+					typed.clear()
+					for item in value:
+						if element_type == TYPE_OBJECT:
+							if item != null and not (item is Object):
+								return []
+						elif typeof(item) != element_type:
+							return []
+						typed.append(item)
+					return [typed]
+				return [value]
+		TYPE_OBJECT:
+			if value == null:
+				return [null]
+			if value_type != TYPE_OBJECT:
+				return []
+			var class_hint := str(info.get("hint_string", ""))
+			if int(info.get("hint", 0)) == PROPERTY_HINT_RESOURCE_TYPE and not class_hint.is_empty():
+				if not _object_is_class(value, class_hint):
+					return []
+			return [value]
+		_:
+			if value_type == target_type:
+				return [value]
+	return []
+
+static func _object_is_class(value: Object, class_hint: String) -> bool:
+	for class_name_hint in class_hint.split(","):
+		var wanted := class_name_hint.strip_edges()
+		if wanted.is_empty() or value.is_class(wanted):
+			return true
+		var script: Script = value.get_script()
+		while script != null:
+			if String(script.get_global_name()) == wanted:
+				return true
+			script = script.get_base_script()
+	return false
+
+# Reports, once per evaluation tree, every override key that matched no node.
+static func _warn_unmatched_overrides(overrides: Dictionary, hits: Dictionary) -> void:
+	if overrides == null or overrides.is_empty():
+		return
+	for key in overrides:
+		if not hits.has(key):
+			push_warning("Flow: override '%s' matched no node setting in this evaluation (expected \"[graph:]node_name/property\")." % str(key))
+
+# Runtime counterpart of the editor's args_port bookkeeping: remember which
+# parameter ports are actually wired so getSettingValue can read them. Only
+# connected ports past the flow inputs are restored (stale unconnected entries are
+# ignored, matching what the editor rebuilds in initFromScript).
+static func _restore_wired_param_ports(instance: FlowNodeBase, n_data: Dictionary) -> void:
+	var saved_ports = n_data.get("args_port", {})
+	if not (saved_ports is Dictionary) or saved_ports.is_empty():
+		return
+	var num_flow_ins: int = instance.getMeta().get("ins", []).size()
+	for arg_name in saved_ports:
+		var entry = saved_ports[arg_name]
+		if not (entry is Dictionary) or not entry.get("connected", false):
+			continue
+		var port := int(entry.get("port", -1))
+		if port < num_flow_ins:
+			continue
+		instance.args_ports_by_name[arg_name] = { "port": port, "connected": true }
+
+# ---------------------------------------------------------------------------
 # Resumable evaluator foundation (PARITY_ROADMAP "Async / proximity runtime
 # generation", stage 2 only — time-slicing).
 #
@@ -776,6 +1077,11 @@ static func _coerce_input_data(val, input_name: String):
 static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary, depth: int) -> Dictionary:
 	var instances = {}
 	var node_list = []
+	# Overrides / $param bindings (RUNTIME_API_P0 §4). The scope context is built
+	# lazily, only when a node actually has something to apply.
+	var owns_override_hits := not parent_ctx.has_meta(OVERRIDE_HITS_META)
+	var override_hits: Dictionary = parent_ctx.get_meta(OVERRIDE_HITS_META, {})
+	var binding_scope: FlowData.EvaluationContext = null
 	for n_data in graph.data.get("nodes", []):
 		var template = n_data.template
 		var name = n_data.name
@@ -811,8 +1117,13 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 		var saved_settings = n_data.get("settings", {})
 		dict_to_resource(saved_settings, instance.settings)
 		_stabilize_missing_seed(instance.settings, name, template, saved_settings)
+		if has_setting_bindings(instance.settings, parent_ctx):
+			if binding_scope == null:
+				binding_scope = _binding_scope_context(graph, parent_ctx, runtime_params, override_hits)
+			apply_setting_bindings(instance, graph, binding_scope, input_data_map)
 
 		instance.refreshFromSettings()
+		_restore_wired_param_ports(instance, n_data)
 
 		instances[name] = instance
 		node_list.append(instance)
@@ -841,12 +1152,14 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 	ctx.graph = graph
 	ctx.owner = parent_ctx.owner
 	ctx.eval_id = parent_ctx.eval_id
+	ctx.overrides = parent_ctx.overrides
 	ctx.gedit_nodes_by_name = instances
 	ctx.runtime_params = parent_ctx.runtime_params.duplicate(true) if parent_ctx.runtime_params else {}
 	for key in runtime_params.keys():
 		ctx.runtime_params[key] = runtime_params[key]
 	ctx.runtime_params["__eval_depth"] = depth
 	ctx.set_meta("flow_eval_depth", depth)
+	ctx.set_meta(OVERRIDE_HITS_META, override_hits)
 	_inherit_flow_variables(ctx, parent_ctx)
 	FlowVariableEval._mirror_variables_to_runtime(ctx)
 
@@ -923,6 +1236,9 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 		# _finalize_evaluation can tell _publish_runtime_params which keys are
 		# local (must not leak to the parent) vs. genuinely produced downstream.
 		"local_params": runtime_params,
+		# The outermost evaluation owns the override hit set and reports unmatched
+		# override keys once, after every nested subgraph/loop evaluation has run.
+		"owns_override_hits": owns_override_hits,
 	}
 
 
@@ -948,6 +1264,10 @@ static func _execute_single_node(node, instances: Dictionary, graph: FlowGraphRe
 		if src and src.generated_bulks.size() > 0:
 			var src_bulk = src.generated_bulks[src.generated_bulks.size() - 1]
 			if conn.from_port < src_bulk.size():
+				# Wired parameter ports sit after the flow inputs (see
+				# _restore_wired_param_ports); grow the array instead of failing.
+				if conn.to_port >= node.inputs.size():
+					node.inputs.resize(conn.to_port + 1)
 				node.inputs[conn.to_port] = src_bulk[conn.from_port]
 
 	node.preExecute(ctx)
@@ -1011,6 +1331,8 @@ static func _finalize_evaluation(state: Dictionary) -> Dictionary:
 					outputs[out_name] = node.inputs[0]
 	_publish_flow_variables(ctx, parent_ctx)
 	_publish_runtime_params(ctx, parent_ctx, local_params)
+	if state.get("owns_override_hits", false):
+		_warn_unmatched_overrides(ctx.overrides, ctx.get_meta(OVERRIDE_HITS_META, {}))
 
 	# Outputs are collected (FlowData.Data is RefCounted, so the references in
 	# `outputs` keep the data alive) — free the instanced node Controls now.

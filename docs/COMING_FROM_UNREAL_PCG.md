@@ -284,6 +284,42 @@ Nodes here with **no UE counterpart** (you get them for free): `relax` (Lloyd re
 
 ---
 
+## Overrides and bindings
+
+UE lets a node setting come from somewhere other than its details panel: an **override pin** ("Override by pin"), a **graph parameter** read with `Get Graph Parameter` or bound to the setting, or a per-component **graph parameter override** on the `UPCGComponent`. Here the same needs are covered by three mechanisms, applied in this order (highest wins):
+
+| Priority | Here | UE equivalent | Where it is set |
+|---|---|---|---|
+| 1 | **Wired parameter port** | Override pin | Show a node's parameter ports (the expand toggle on the node) and wire a one-element `Data` into one. Read at execute time by `getSettingValue`, so it beats everything below. |
+| 2 | **Per-instance override** | Graph parameter overrides on the component | `FlowGraphNode3D.overrides`, or `EvaluationContext.overrides` when you call `FlowNodeIO.evaluate_graph` yourself. |
+| 3 | **`$param` binding** | Setting bound to a graph parameter | `bindings` in a node's **Common Settings**. |
+| 4 | The value saved in the graph | The details-panel value | The node inspector. |
+
+**Overrides** are a Dictionary keyed `"<node_name>/<property>"`:
+
+```gdscript
+$Forest.overrides = {
+    "scatter/num_points": 200,                     # every graph in this evaluation
+    "style_room_default:roomflt/min_value": 2.0,   # only inside style_room_default.tres
+}
+$Forest.execute()
+```
+
+An unprefixed key applies to a node of that name in the top graph *and* in every subgraph/loop graph it runs. Prefix the key with a graph file's basename (`"<basename>:"`) to target that subgraph only. The graph resource itself is never modified, so one graph can back many differently-tuned instances. A key that matches no node setting logs one warning per evaluation.
+
+**Bindings** map a setting to a parameter by name, `"property_name" -> "param_name"` (the leading `$` is optional):
+
+```gdscript
+# in the node's Common Settings > bindings
+{ "min_value": "$room_min", "random_seed": "$room_seed" }
+```
+
+The parameter is looked up in the graph's **inputs** first (the `args` of the `FlowGraphNode3D`, or what a `subgraph`/`loop` node feeds in), then in the **runtime params**, then in **flow variables** (`set_variable`). A `Data` value contributes its first element (stream named after the parameter, a `@data.<name>` attribute, or its only stream). Ints and floats convert into each other; a value of an incompatible type is ignored with a warning. When the parameter is absent the saved value is used silently, so a bound graph still runs in the editor and without arguments. Bindings are applied in the editor too, on a scratch copy of the settings: the Data Inspector shows the bound result while the inspector keeps showing (and saving) the authored value.
+
+Compared with UE: overrides and bindings are resolved once per node per evaluation, not per point; for a per-point value keep using an attribute selector (`@last`, `density`, ...) or wire a stream into the parameter port.
+
+---
+
 ## Translated Tutorials
 
 Three canonical UE recipes, translated node-for-node. All three assume the demo project is open and you have a `FlowGraphNode3D` selected with the Data Flow panel showing.
