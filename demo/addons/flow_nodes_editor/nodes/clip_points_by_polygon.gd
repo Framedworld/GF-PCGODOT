@@ -57,7 +57,7 @@ func _collect_polygons_from_settings(ctx : FlowData.EvaluationContext) -> Array:
 	var polygons : Array = []
 	if settings.polygon_node_path == NodePath():
 		return polygons
-	var root = ctx.owner if ctx.owner else (EditorInterface.get_edited_scene_root() if Engine.is_editor_hint() else null)
+	var root = ctx.owner if ctx.owner else editor_edited_scene_root()
 	if root == null:
 		return polygons
 	var node = root.get_node_or_null(settings.polygon_node_path)

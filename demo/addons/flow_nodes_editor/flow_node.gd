@@ -48,7 +48,9 @@ signal cleaned_up
 
 ## Per-instance node setting overrides: "<node_name>/<property>" -> value, optionally
 ## prefixed with a graph basename ("my_subgraph:<node_name>/<property>") to target a
-## node inside that subgraph only. Beats $param bindings; a wired port still wins.
+## node inside that subgraph only. "<node_name>/<dict_property>/<key>" targets one entry
+## of a Dictionary setting (e.g. "expr/args/theme"). Beats $param bindings; a wired
+## port still wins.
 @export var overrides : Dictionary = {}
 
 ## Generate automatically when the node enters the running game (never in the

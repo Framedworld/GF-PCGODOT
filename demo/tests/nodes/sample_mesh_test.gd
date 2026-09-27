@@ -234,3 +234,82 @@ func test_hard_edges_coplanar_triangles_are_not_hard() -> void:
 	assert_int(edges.size()).is_equal(4)
 	remove_child(mi)
 	mi.free()
+
+# ---------------------------------------------------------------------------
+# Non-indexed surfaces. A surface built without an index buffer reports null at
+# Mesh.ARRAY_INDEX; every sampling path must fall back to the implicit
+# 0..N-1 triangle list instead of failing the typed PackedInt32Array assign.
+# ---------------------------------------------------------------------------
+
+## Unit quad on the XZ plane (facing +Y), two triangles, NO index buffer.
+func _non_indexed_quad_mesh() -> ArrayMesh:
+	var verts := PackedVector3Array([
+		Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1),
+		Vector3(1, 0, 0), Vector3(1, 0, 1), Vector3(0, 0, 1),
+	])
+	var normals := PackedVector3Array()
+	normals.resize(verts.size())
+	normals.fill(Vector3.UP)
+	var arrs := []
+	arrs.resize(Mesh.ARRAY_MAX)
+	arrs[Mesh.ARRAY_VERTEX] = verts
+	arrs[Mesh.ARRAY_NORMAL] = normals
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrs)
+	return mesh
+
+func test_non_indexed_surface_reports_null_index_buffer() -> void:
+	# Guards the premise of the tests below.
+	var mesh := _non_indexed_quad_mesh()
+	assert_that(mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX]).is_null()
+
+func test_non_indexed_surface_samples_in_every_mode() -> void:
+	var mi = MeshInstance3D.new()
+	mi.mesh = _non_indexed_quad_mesh()
+	add_child(mi)
+	var cases := [
+		[SampleMeshSettings.eMode.OnePerVertex, 4],  # 6 verts, 4 unique
+		[SampleMeshSettings.eMode.FaceCenters, 2],
+		[SampleMeshSettings.eMode.UseNumSamples, 10],
+		[SampleMeshSettings.eMode.UseDensity, 5],    # area 1.0 * density 5
+	]
+	for c in cases:
+		var node = _run_sample_mesh(mi, c[0], func(s):
+			s.num_samples = 10
+			s.density = 5.0
+		)
+		assert_str(node.err).is_empty()
+		var out = _get_output_data(node)
+		assert_object(out).override_failure_message("mode %d produced no output" % c[0]).is_not_null()
+		if out != null:
+			var positions = out.getVector3Container(FlowDataScript.AttrPosition)
+			assert_int(positions.size()).override_failure_message(
+				"mode %d: expected %d points, got %d" % [c[0], c[1], positions.size()]).is_equal(c[1])
+			var normals = out.findStream(FlowDataScript.AttrNormal).container
+			for i in range(normals.size()):
+				assert_float(normals[i].y).is_greater(0.99)
+		node.free()
+	remove_child(mi)
+	mi.free()
+
+func test_non_indexed_surface_hard_edges() -> void:
+	var mi = MeshInstance3D.new()
+	mi.mesh = _non_indexed_quad_mesh()
+	add_child(mi)
+	# 4 boundary edges; the shared diagonal is coplanar.
+	assert_int(SampleMeshNode.get_hard_edges(mi, 45.0).size()).is_equal(4)
+	var node = _run_sample_mesh(mi, SampleMeshSettings.eMode.UseNumSamples, func(s):
+		s.num_samples = 40
+		s.discard_hard_edges = true
+		s.hard_edge_distance_threshold = 0.1
+	)
+	assert_str(node.err).is_empty()
+	var out = _get_output_data(node)
+	assert_object(out).is_not_null()
+	if out != null:
+		var positions = out.getVector3Container(FlowDataScript.AttrPosition)
+		assert_int(positions.size()).is_greater(0)
+		assert_int(positions.size()).is_less(40)
+	node.free()
+	remove_child(mi)
+	mi.free()

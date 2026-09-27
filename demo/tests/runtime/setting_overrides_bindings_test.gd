@@ -403,3 +403,122 @@ func test_graph_input_default_single_sources_nodes_in_editor_path() -> void:
 	FlowNodeIO.end_scratch_setting_bindings(node, restored)
 	assert_float(node.settings.cte_float).is_equal(1.0)
 	node.free()
+
+
+
+# --- Dictionary entries ("<dict_property>/<key>") and Expression args ----------
+# An Expression node's parameters live in settings.args (a Dictionary). Bindings
+# and overrides reach one entry with "args/<key>" (overrides: "node/args/<key>");
+# on an Expression node a bare name that is an existing args key maps there too.
+
+# dst (add_attribute "val" = 1.0) -> ex (expression "e" = val * theme) -> output
+func _expression_graph(bindings: Dictionary = {}, args: Dictionary = { "theme": 1.0 }, expression: String = "val * theme") -> FlowGraphResource:
+	var ex_settings := { "expression": expression, "out_name": "e", "args": args }
+	if not bindings.is_empty():
+		ex_settings["bindings"] = bindings
+	return _graph(
+		[ _attr_node("dst", 1.0),
+		  { "name": "ex", "template": "expression", "position": Vector2.ZERO, "settings": ex_settings },
+		  _output_node("out", "result") ],
+		[ _link("dst", "ex"), _link("ex", "out") ]
+	)
+
+
+func test_expression_saved_arg_without_binding() -> void:
+	assert_float(_first(_eval(_expression_graph()), "result", "e")).is_equal(1.0)
+
+
+func test_binding_drives_expression_arg_from_graph_input() -> void:
+	var g := _expression_graph({ "args/theme": "$theme" })
+	assert_float(_first(_eval(g, { "theme": 3.0 }), "result", "e")).is_equal(3.0)
+	# Absent parameter keeps the saved arg.
+	assert_float(_first(_eval(g), "result", "e")).is_equal(1.0)
+
+
+func test_binding_drives_expression_arg_from_runtime_param_by_bare_name() -> void:
+	var g := _expression_graph({ "theme": "$theme" })
+	assert_float(_first(_eval(g, {}, {}, { "theme": 2.5 }), "result", "e")).is_equal(2.5)
+
+
+func test_expression_arg_binding_coerces_numeric() -> void:
+	# The float arg takes an int parameter as float; an int arg takes a float as int.
+	var value = _first(_eval(_expression_graph({ "args/theme": "$theme" }), {}, {}, { "theme": 4 }), "result", "e")
+	assert_int(typeof(value)).is_equal(TYPE_FLOAT)
+	assert_float(value).is_equal(4.0)
+	var gi := _expression_graph({ "args/n": "$n" }, { "n": 1 }, "n + 0")
+	value = _first(_eval(gi, {}, {}, { "n": 6.9 }), "result", "e")
+	assert_int(typeof(value)).is_equal(TYPE_INT)
+	assert_int(value).is_equal(6)
+
+
+func test_expression_arg_unassignable_binding_warns_and_keeps_saved() -> void:
+	var outputs := {}
+	var warnings := _warnings_during(func():
+		outputs.merge(_eval(_expression_graph({ "args/theme": "$theme" }), {}, {}, { "theme": "red" })))
+	assert_float(_first(outputs, "result", "e")).is_equal(1.0)
+	assert_int(_count_containing(warnings, "cannot assign String value red to setting 'args/theme'")).is_equal(1)
+
+
+func test_override_on_expression_args_key() -> void:
+	var overrides := { "ex/args/theme": 5.0 }
+	var warnings := _warnings_during(func():
+		assert_float(_first(_eval(_expression_graph(), {}, overrides), "result", "e")).is_equal(5.0))
+	assert_int(_count_containing(warnings, "matched no node")).is_equal(0)
+	# An override beats a binding on the same entry, whichever key form the binding uses.
+	for binding_name in ["args/theme", "theme"]:
+		var g := _expression_graph({ binding_name: "$theme" })
+		assert_float(_first(_eval(g, {}, overrides, { "theme": 2.0 }), "result", "e")).is_equal(5.0)
+
+
+func test_override_on_non_dictionary_property_path_still_unmatched() -> void:
+	var warnings := _warnings_during(func(): _eval(_expression_graph(), {}, { "ex/out_name/x": 1.0 }))
+	assert_int(_count_containing(warnings, "override 'ex/out_name/x' matched no node")).is_equal(1)
+
+
+func test_dict_entry_binding_does_not_mutate_authored_args() -> void:
+	var settings := ExpressionNodeSettings.new()
+	var authored_args := { "theme": 1.0 }
+	settings.args = authored_args
+	settings.bindings = { "args/theme": "$theme" }
+	var node := FlowNodeBase.new()
+	node.name = "ex"
+	node.settings = settings
+	var ctx = FlowDataScript.EvaluationContext.new()
+	ctx.runtime_params = { "theme": 7.0 }
+	var scratch: Resource = settings.duplicate()
+	assert_bool(FlowNodeIO.apply_setting_bindings(node, null, ctx, {}, scratch)).is_true()
+	assert_float(scratch.args["theme"]).is_equal(7.0)
+	assert_float(authored_args["theme"]).is_equal(1.0)
+	assert_float(settings.args["theme"]).is_equal(1.0)
+	node.free()
+
+
+func test_unknown_binding_name_still_warns() -> void:
+	# Non-expression node: a bare name that is no setting is still unknown.
+	var g := _bound_graph(1.0, { "theme": "$k" })
+	var warnings := _warnings_during(func(): _eval(g, {}, {}, { "k": 2.0 }))
+	assert_int(_count_containing(warnings, "binds unknown setting 'theme'")).is_equal(1)
+	# "<prop>/<key>" on a property that is not a Dictionary is unknown too.
+	g = _bound_graph(1.0, { "cte_float/x": "$k" })
+	warnings = _warnings_during(func(): _eval(g, {}, {}, { "k": 2.0 }))
+	assert_int(_count_containing(warnings, "binds unknown setting 'cte_float/x'")).is_equal(1)
+	# Expression node: a bare name that is not an args key stays unknown.
+	g = _expression_graph({ "colour": "$k" })
+	warnings = _warnings_during(func():
+		assert_float(_first(_eval(g, {}, {}, { "k": 2.0 }), "result", "e")).is_equal(1.0))
+	assert_int(_count_containing(warnings, "binds unknown setting 'colour'")).is_equal(1)
+
+
+func test_expression_arg_bindings_round_trip_through_settings_dict() -> void:
+	var settings := ExpressionNodeSettings.new()
+	settings.args = { "theme": 1.0 }
+	settings.bindings = { "args/theme": "$theme", "theme": "$other" }
+	var dict := FlowNodeIO.resource_to_dict(settings)
+	assert_dict(dict.get("bindings", {})).is_equal({ "args/theme": "$theme", "theme": "$other" })
+	assert_dict(dict.get("args", {})).is_equal({ "theme": 1.0 })
+	var restored := ExpressionNodeSettings.new()
+	FlowNodeIO.dict_to_resource(dict, restored)
+	assert_dict(restored.bindings).is_equal({ "args/theme": "$theme", "theme": "$other" })
+	assert_dict(restored.args).is_equal({ "theme": 1.0 })
+	# Unused bindings are still omitted from an Expression's dict.
+	assert_bool(FlowNodeIO.resource_to_dict(ExpressionNodeSettings.new()).has("bindings")).is_false()

@@ -37,7 +37,7 @@ func _collect_gridmaps(root : Node) -> Array:
 	return root.find_children("*", "GridMap", true, false)
 
 func computeSceneFingerprint(_ctx : FlowData.EvaluationContext) -> Variant:
-	var root = _ctx.owner if (_ctx and _ctx.owner) else (EditorInterface.get_edited_scene_root() if Engine.is_editor_hint() else null)
+	var root = _ctx.owner if (_ctx and _ctx.owner) else editor_edited_scene_root()
 	if root == null:
 		return hashSceneNodesForFingerprint(_ctx, [])
 	var grids = filterOutGeneratedNodes(_collect_gridmaps(root))
@@ -55,7 +55,7 @@ func computeSceneFingerprint(_ctx : FlowData.EvaluationContext) -> Variant:
 func execute(_ctx : FlowData.EvaluationContext):
 	# Owner-less runtime evaluation: report it, still emit an empty output.
 	reportMissingOwner(_ctx)
-	var root = _ctx.owner if (_ctx and _ctx.owner) else (EditorInterface.get_edited_scene_root() if Engine.is_editor_hint() else null)
+	var root = _ctx.owner if (_ctx and _ctx.owner) else editor_edited_scene_root()
 	if root == null:
 		set_output(0, FlowData.Data.new())
 		return

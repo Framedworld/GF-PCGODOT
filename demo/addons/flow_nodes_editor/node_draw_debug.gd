@@ -77,8 +77,11 @@ func _resolve_debug_scenario() -> RID:
 			var world_node: Node3D = editor.call("find_debug_world_node")
 			if world_node != null and world_node.is_inside_tree() and world_node.get_world_3d():
 				return world_node.get_world_3d().scenario
-	if Engine.is_editor_hint():
-		var scene_root := EditorInterface.get_edited_scene_root()
+	# Named through Engine's singleton table: exported builds lack EditorInterface
+	# and would fail to parse a direct reference, even behind is_editor_hint().
+	if Engine.is_editor_hint() and Engine.has_singleton(&"EditorInterface"):
+		var ei : Object = Engine.get_singleton(&"EditorInterface")
+		var scene_root := ei.call("get_edited_scene_root") as Node
 		if scene_root is Node3D and scene_root.is_inside_tree() and scene_root.get_world_3d():
 			return scene_root.get_world_3d().scenario
 		if scene_root != null:

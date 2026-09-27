@@ -207,6 +207,30 @@ func rasterizeCurveInXZ( curve : Curve3D, uniform_interval : float, base : int )
 	if settings.trace: print( "spline.grid: %f" % [ Time.get_ticks_usec() - time_start_grid ])
 	return new_points
 
+## The live Path3D nodes (with a Curve3D) of the input's `node` stream, in stream
+## order, or null after setError() when the stream is missing or not NodePath
+## typed. An empty stream is valid (nothing to sample). Entries that are null,
+## freed, not a Path3D, or have no curve are skipped with one warning.
+func _valid_path_nodes( in_data : FlowData.Data ):
+	var stream = in_data.streams.get( "node", null )
+	if stream == null:
+		setError( "Input has no 'node' stream" )
+		return null
+	if stream.data_type != FlowData.DataType.NodePath:
+		var type_name = FlowData.DataType.find_key( stream.data_type )
+		setError( "'node' stream must be NodePath/Node typed (got %s)" % [ type_name if type_name != null else str( stream.data_type ) ] )
+		return null
+	var valid : Array[Path3D] = []
+	var skipped := 0
+	for entry in stream.container:
+		if is_instance_valid( entry ) and entry is Path3D and entry.curve != null:
+			valid.append( entry )
+		else:
+			skipped += 1
+	if skipped > 0:
+		push_warning( "Sample Spline '%s': skipped %d 'node' entr%s that %s not a live Path3D with a Curve3D" % [ name, skipped, "y" if skipped == 1 else "ies", "is" if skipped == 1 else "are" ] )
+	return valid
+
 func execute( ctx : FlowData.EvaluationContext ):
 
 	var trace := settings.trace
@@ -214,11 +238,9 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input(0, ctx, "Input 'Splines'")
 	if in_data == null:
 		return
-	var path3d_nodes = in_data.getContainerChecked( "node", FlowData.DataType.NodePath )
+	var path3d_nodes = _valid_path_nodes( in_data )
 	if path3d_nodes == null:
-		setError( "Input are not splines")
 		return
-	#print( "path3d_nodes", path3d_nodes)
 
 	var output := FlowData.Data.new()
 	output.addCommonStreams( 0 )

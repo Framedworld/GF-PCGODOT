@@ -161,6 +161,30 @@ func get_data_summary() -> String:
 ## historical output bit for bit. preExecute (per node) and loop (per
 ## iteration, with the iteration index as node_seed) both use it; hosts that
 ## cross-check seeds should call it rather than copy the formula.
+# Editor access without naming editor-only classes. Exported builds do not have
+# EditorInterface at all, and a script that merely names it fails to PARSE there
+# (even inside an `if Engine.is_editor_hint()` block), so runtime-reachable
+# scripts reach it through Engine's singleton table instead.
+
+## The EditorInterface singleton while running inside the editor, else null.
+static func editor_interface() -> Object:
+	if Engine.is_editor_hint() and Engine.has_singleton( &"EditorInterface" ):
+		return Engine.get_singleton( &"EditorInterface" )
+	return null
+
+## Root of the scene open in the editor; null outside the editor.
+static func editor_edited_scene_root() -> Node:
+	var ei := editor_interface()
+	if ei == null:
+		return null
+	return ei.call( "get_edited_scene_root" ) as Node
+
+## Marks the scene open in the editor as unsaved; no-op outside the editor.
+static func editor_mark_scene_unsaved() -> void:
+	var ei := editor_interface()
+	if ei != null:
+		ei.call( "mark_scene_as_unsaved" )
+
 static func derive_seed( in_graph_seed : int, node_seed : int ) -> int:
 	if in_graph_seed == 0:
 		return node_seed

@@ -68,6 +68,17 @@ func execute( ctx : FlowData.EvaluationContext ):
 	if attrs_data == null:
 		return
 
+	# Empty In (e.g. a filter that kept nothing): there is nothing to match, but
+	# downstream nodes still name the Attributes table's columns, so emit the
+	# empty set carrying every table stream (typed, zero-length) and skip the
+	# match/weight validation, which needs points to be meaningful.
+	if in_data.size() == 0:
+		var empty_out : FlowData.Data = in_data.duplicate()
+		for attr_stream in attrs_data.streams.values():
+			empty_out.addStream( attr_stream.name, attr_stream.data_type )
+		set_output( 0, empty_out )
+		return
+
 	# Per-point seed consumption (UE $Seed parity): when the input carries an
 	# AttrSeed stream, each point's random pick derives from point_seed ^ node
 	# seed. When it is absent, each point's seed comes from

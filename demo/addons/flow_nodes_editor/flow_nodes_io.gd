@@ -814,7 +814,10 @@ static func has_setting_bindings(settings: Resource, ctx: FlowData.EvaluationCon
 ## Applies the context's per-instance overrides, then the node's $param bindings,
 ## to `target_settings` (default: node_instance.settings). Overrides are keyed
 ## "<node_name>/<property>", optionally prefixed "<graph basename>:" to target one
-## subgraph; a property set by an override is not rebound. Bindings resolve
+## subgraph; a property set by an override is not rebound. A setting name may also
+## address one entry of a Dictionary-typed setting as "<dict_property>/<key>"
+## (e.g. binding "args/theme", override "node/args/theme"); on an Expression node a
+## bare name that is an existing key of its `args` resolves to "args/<name>". Bindings resolve
 ## "property" -> "param" against input_data_map, then ctx.runtime_params, then
 ## ctx.variables (a FlowData.Data value yields its first element), then the default
 ## of `graph`'s declared input of that name (graph.in_params). A missing
@@ -840,31 +843,33 @@ static func apply_setting_bindings(node_instance: FlowNodeBase, graph: FlowGraph
 				continue
 			if not target.scope.is_empty() and target.scope != graph_name:
 				continue
-			if not _is_bindable_setting(settings, target.prop):
+			var override_target := _resolve_setting_target(settings, target.prop)
+			if override_target.is_empty():
 				continue
 			if hits is Dictionary:
 				hits[key] = true
-			if _assign_setting(settings, target.prop, ctx.overrides[key], node_name, "override '%s'" % key):
+			if _assign_setting_target(settings, override_target, ctx.overrides[key], node_name, "override '%s'" % key):
 				changed = true
-				overridden[target.prop] = true
+				overridden[override_target.id] = true
 
 	if "bindings" in settings:
 		var bindings = settings.get("bindings")
 		if bindings is Dictionary and not bindings.is_empty():
 			for prop in bindings:
 				var prop_name := str(prop)
-				if overridden.has(prop_name):
-					continue
 				var param_name := str(bindings[prop]).strip_edges().trim_prefix("$")
 				if prop_name.is_empty() or param_name.is_empty():
 					continue
-				if not _is_bindable_setting(settings, prop_name):
+				var binding_target := _resolve_setting_target(settings, prop_name)
+				if binding_target.is_empty():
 					push_warning("Flow: node '%s' binds unknown setting '%s' to '$%s'; ignored." % [node_name, prop_name, param_name])
+					continue
+				if overridden.has(binding_target.id):
 					continue
 				var resolved := _resolve_binding_param(param_name, ctx, input_data_map, graph)
 				if resolved.is_empty():
 					continue
-				if _assign_setting(settings, prop_name, resolved[0], node_name, "binding '$%s'" % param_name):
+				if _assign_setting_target(settings, binding_target, resolved[0], node_name, "binding '$%s'" % param_name):
 					changed = true
 	return changed
 
@@ -905,6 +910,61 @@ static func _is_bindable_setting(settings: Resource, prop: String) -> bool:
 		return false
 	return prop in settings
 
+## Resolves a binding/override setting name to what it writes:
+##   "<property>"              -> { prop, id }            a plain setting property
+##   "<dict_property>/<key>"   -> { prop, key, id }       one entry of a Dictionary setting
+##   "<name>" on an Expression -> { prop: "args", key, id } when <name> is an existing args key
+## `id` is the canonical "<prop>" / "<prop>/<key>" form (an override on an id stops a
+## binding on the same id). Returns {} when the name matches none of these.
+static func _resolve_setting_target(settings: Resource, name: String) -> Dictionary:
+	if name.is_empty():
+		return {}
+	if _is_bindable_setting(settings, name):
+		return { "prop": name, "id": name }
+	var slash := name.find("/")
+	if slash > 0 and slash < name.length() - 1:
+		var dict_prop := name.substr(0, slash)
+		var key := name.substr(slash + 1)
+		if _is_bindable_setting(settings, dict_prop) and settings.get(dict_prop) is Dictionary:
+			return { "prop": dict_prop, "key": key, "id": name }
+		return {}
+	if settings is ExpressionNodeSettings:
+		var args = settings.get("args")
+		if args is Dictionary and _dict_key_matching(args, name) != null:
+			return { "prop": "args", "key": name, "id": "args/" + name }
+	return {}
+
+# The key of `dict` whose string form is `key` (String or StringName keys), or null.
+static func _dict_key_matching(dict: Dictionary, key: String):
+	if dict.has(key):
+		return key
+	for k in dict:
+		if str(k) == key:
+			return k
+	return null
+
+# Writes `value` into the setting described by a _resolve_setting_target() result.
+# A Dictionary entry is coerced to the type of the entry it replaces (any value when
+# the key is new) and written into a fresh copy of the Dictionary, never in place:
+# the editor's scratch settings duplicate shares its containers with the authored one.
+static func _assign_setting_target(settings: Resource, target: Dictionary, value, node_name: String, source_label: String) -> bool:
+	if not target.has("key"):
+		return _assign_setting(settings, target.prop, value, node_name, source_label)
+	var dict = settings.get(target.prop)
+	if not (dict is Dictionary):
+		return false
+	var existing_key = _dict_key_matching(dict, target.key)
+	var current = dict[existing_key] if existing_key != null else null
+	var coerced := _coerce_setting_value(value, { "type": typeof(current) }, current)
+	if coerced.is_empty():
+		push_warning("Flow: %s cannot assign %s value %s to setting '%s' (%s) of node '%s'; keeping the saved value." % [
+			source_label, type_string(typeof(value)), str(value), target.id, type_string(typeof(current)), node_name])
+		return false
+	var updated: Dictionary = dict.duplicate()
+	updated[existing_key if existing_key != null else target.key] = coerced[0]
+	settings.set(target.prop, updated)
+	return true
+
 static func _parse_override_key(key: String) -> Dictionary:
 	var scope := ""
 	var rest := key
@@ -912,10 +972,12 @@ static func _parse_override_key(key: String) -> Dictionary:
 	if colon >= 0:
 		scope = key.substr(0, colon)
 		rest = key.substr(colon + 1)
-	var parts := rest.split("/")
-	if parts.size() != 2 or parts[0].is_empty() or parts[1].is_empty():
+	# "<node>/<property>" or "<node>/<dict_property>/<key>": the node name is up to
+	# the first "/", the rest is the setting name (see _resolve_setting_target).
+	var slash := rest.find("/")
+	if slash <= 0 or slash >= rest.length() - 1:
 		return {}
-	return { "scope": scope, "node": parts[0], "prop": parts[1] }
+	return { "scope": scope, "node": rest.substr(0, slash), "prop": rest.substr(slash + 1) }
 
 # Context the bindings of one graph level resolve against: what the child ctx
 # built later in _build_evaluation_state will hold (parent overrides, parent +
@@ -1069,7 +1131,7 @@ static func _warn_unmatched_overrides(overrides: Dictionary, hits: Dictionary) -
 		return
 	for key in overrides:
 		if not hits.has(key):
-			push_warning("Flow: override '%s' matched no node setting in this evaluation (expected \"[graph:]node_name/property\")." % str(key))
+			push_warning("Flow: override '%s' matched no node setting in this evaluation (expected \"[graph:]node_name/property\" or \"[graph:]node_name/dict_property/key\")." % str(key))
 
 # Runtime counterpart of the editor's args_port bookkeeping: remember which
 # parameter ports are actually wired so getSettingValue can read them. Only

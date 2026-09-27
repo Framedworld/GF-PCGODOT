@@ -244,6 +244,6 @@ func execute( ctx : FlowData.EvaluationContext ):
 		assignSpawnOwner( mmi, owner_of_mmis, ctx )
 	
 	if Engine.is_editor_hint():
-		EditorInterface.mark_scene_as_unsaved()
+		editor_mark_scene_unsaved()
 
 	set_output(0, in_data)

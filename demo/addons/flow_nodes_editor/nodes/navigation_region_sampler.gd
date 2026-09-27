@@ -17,7 +17,7 @@ func _init():
 
 func _scene_root(ctx : FlowData.EvaluationContext) -> Node:
 	if Engine.is_editor_hint():
-		return EditorInterface.get_edited_scene_root()
+		return editor_edited_scene_root()
 	if ctx.owner and ctx.owner.get_tree():
 		return ctx.owner.get_tree().current_scene
 	return null

@@ -24,7 +24,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	if handleMissingOwner(ctx):
 		return
 
-	var root = ctx.owner if (ctx and ctx.owner) else (EditorInterface.get_edited_scene_root() if Engine.is_editor_hint() else null)
+	var root = ctx.owner if (ctx and ctx.owner) else editor_edited_scene_root()
 	if not root:
 		setError("Cannot project points: no valid scene root context found")
 		return

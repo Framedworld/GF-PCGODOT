@@ -52,7 +52,7 @@ func execute(_ctx : FlowData.EvaluationContext):
 	if handleMissingOwner(_ctx):
 		return
 
-	var root = _ctx.owner if (_ctx and _ctx.owner) else (EditorInterface.get_edited_scene_root() if Engine.is_editor_hint() else null)
+	var root = _ctx.owner if (_ctx and _ctx.owner) else editor_edited_scene_root()
 	if root == null:
 		setError("No scene root available to query the physics world")
 		return

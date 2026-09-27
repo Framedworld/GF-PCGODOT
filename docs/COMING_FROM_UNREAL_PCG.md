@@ -296,7 +296,7 @@ UE lets a node setting come from somewhere other than its details panel: an **ov
 | 3 | **`$param` binding** | Setting bound to a graph parameter | `bindings` in a node's **Common Settings**. |
 | 4 | The value saved in the graph | The details-panel value | The node inspector. |
 
-**Overrides** are a Dictionary keyed `"<node_name>/<property>"`:
+**Overrides** are a Dictionary keyed `"<node_name>/<property>"` (or `"<node_name>/<dict_property>/<key>"`, see *Dictionary entries* below):
 
 ```gdscript
 $Forest.overrides = {
@@ -316,6 +316,20 @@ An unprefixed key applies to a node of that name in the top graph *and* in every
 ```
 
 The parameter is looked up in the graph's **inputs** first (the `args` of the `FlowGraphNode3D`, or what a `subgraph`/`loop` node feeds in), then in the **runtime params**, then in **flow variables** (`set_variable`). A `Data` value contributes its first element (stream named after the parameter, a `@data.<name>` attribute, or its only stream). Ints and floats convert into each other; a value of an incompatible type is ignored with a warning. When the parameter is absent the saved value is used silently, so a bound graph still runs in the editor and without arguments. Bindings are applied in the editor too, on a scratch copy of the settings: the Data Inspector shows the bound result while the inspector keeps showing (and saving) the authored value.
+
+**Dictionary entries.** A setting name may also address one entry of a Dictionary-typed setting as `"<dict_property>/<key>"`. The main use is an **Expression** node, whose parameters live in its `args` Dictionary:
+
+```gdscript
+# Expression node, Common Settings > bindings
+{ "args/theme": "$theme" }
+# or, on an Expression node only, the bare args key (it must already exist in args)
+{ "theme": "$theme" }
+
+# per-instance override of the same entry: "<node_name>/<dict_property>/<key>"
+$Forest.overrides = { "wall_expr/args/theme": 2 }
+```
+
+The value is coerced to the type of the entry it replaces (int and float convert into each other; an incompatible value is ignored with a warning), and the Dictionary is replaced by an updated copy, so the authored one is never changed. A bare name that is neither a setting nor (on an Expression node) an existing `args` key still logs the "binds unknown setting" warning, and a `"<property>/<key>"` whose property is not a Dictionary is unknown too.
 
 Compared with UE: overrides and bindings are resolved once per node per evaluation, not per point; for a per-point value keep using an attribute selector (`@last`, `density`, ...) or wire a stream into the parameter port.
 

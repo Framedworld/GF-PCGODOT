@@ -222,6 +222,6 @@ func execute( ctx : FlowData.EvaluationContext ):
 			assign_target.set( s.node_property, s.container[ read_idx ])
 	
 	if Engine.is_editor_hint():
-		EditorInterface.mark_scene_as_unsaved()
+		editor_mark_scene_unsaved()
 
 	set_output(0, in_data)

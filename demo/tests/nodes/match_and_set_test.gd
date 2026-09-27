@@ -445,3 +445,80 @@ func test_seed_stream_path_unchanged_by_legacy_flag() -> void:
 		expected.append(_SCORES[prng.randi_range(0, 4)])
 	assert_array(outputs[0]).is_equal(expected)
 	assert_array(outputs[1]).is_equal(expected)
+
+# ---------------------------------------------------------------------------
+# Empty In keeps the Attributes table's schema: downstream expressions name the
+# table columns, so an empty result must still carry them (typed, zero-length).
+# ---------------------------------------------------------------------------
+
+func _attribute_table() -> FlowData.Data:
+	var attrs := FlowDataScript.Data.new()
+	attrs.registerStream("cat", PackedInt32Array([1, 2]), FlowDataScript.DataType.Int)
+	attrs.registerStream("mesh_name", PackedStringArray(["a", "b"]), FlowDataScript.DataType.String)
+	attrs.registerStream("scale", PackedFloat32Array([0.5, 2.0]), FlowDataScript.DataType.Float)
+	attrs.registerStream("tint", PackedColorArray([Color.RED, Color.BLUE]), FlowDataScript.DataType.Color)
+	attrs.registerStream("weight", PackedFloat32Array([1.0, 3.0]), FlowDataScript.DataType.Float)
+	return attrs
+
+func _assert_empty_with_table_schema(node, in_data: FlowData.Data) -> void:
+	assert_str(node.err).is_empty()
+	var out = _output(node)
+	assert_object(out).is_not_null()
+	if out == null:
+		return
+	assert_int(out.size()).is_equal(0)
+	var table := _attribute_table()
+	for stream in table.streams.values():
+		var got = out.findStream(stream.name)
+		assert_object(got).override_failure_message("missing column '%s'" % stream.name).is_not_null()
+		if got != null:
+			assert_int(got.data_type).override_failure_message("column '%s' type" % stream.name).is_equal(stream.data_type)
+			assert_int(got.container.size()).is_equal(0)
+	# In's own streams are kept, and nothing else is added.
+	var expected := {}
+	for n in in_data.streams.keys():
+		expected[n] = true
+	for n in table.streams.keys():
+		expected[n] = true
+	assert_int(out.streams.size()).is_equal(expected.size())
+
+func test_empty_in_keeps_attribute_table_schema_random_pick() -> void:
+	var s = MatchAndSetSettings.new()
+	var in_data := FlowDataScript.Data.new()
+	in_data.registerStream(FlowData.AttrPosition, PackedVector3Array(), FlowDataScript.DataType.Vector)
+	var node = _run([in_data, _attribute_table()], s)
+	_assert_empty_with_table_schema(node, in_data)
+	node.free()
+
+func test_empty_in_without_streams_keeps_schema_with_match_and_weight_attrs() -> void:
+	# A stream-less empty In has no match column; that used to be an error.
+	var s = MatchAndSetSettings.new()
+	s.match_attr = "cat"
+	s.weight_attr = "weight"
+	var in_data := FlowDataScript.Data.new()
+	var node = _run([in_data, _attribute_table()], s)
+	_assert_empty_with_table_schema(node, in_data)
+	node.free()
+
+func test_empty_in_with_match_column_keeps_schema() -> void:
+	var s = MatchAndSetSettings.new()
+	s.match_attr = "cat"
+	var in_data := FlowDataScript.Data.new()
+	in_data.registerStream(FlowData.AttrPosition, PackedVector3Array(), FlowDataScript.DataType.Vector)
+	in_data.registerStream("cat", PackedInt32Array(), FlowDataScript.DataType.Int)
+	var node = _run([in_data, _attribute_table()], s)
+	_assert_empty_with_table_schema(node, in_data)
+	node.free()
+
+func test_empty_in_and_empty_table_passes_in_through() -> void:
+	var s = MatchAndSetSettings.new()
+	var in_data := FlowDataScript.Data.new()
+	in_data.registerStream(FlowData.AttrPosition, PackedVector3Array(), FlowDataScript.DataType.Vector)
+	var node = _run([in_data, FlowDataScript.Data.new()], s)
+	assert_str(node.err).is_empty()
+	var out = _output(node)
+	assert_object(out).is_not_null()
+	assert_int(out.size()).is_equal(0)
+	assert_array(out.streams.keys()).contains_exactly([FlowData.AttrPosition])
+	assert_object(out).is_not_same(in_data)
+	node.free()

@@ -52,6 +52,8 @@ enum eDebugMode {
 ## on the parameter name is optional). When the parameter is absent the saved value is
 ## kept, so the graph still runs without it (e.g. in the editor). A wired parameter port
 ## and a per-instance override (FlowGraphNode3D.overrides) both take precedence.
+## "dict_property/key" binds one entry of a Dictionary setting (e.g. "args/theme" on
+## an Expression node, where a bare existing args key such as "theme" also works).
 @export var bindings : Dictionary = {}
 
 func _init():

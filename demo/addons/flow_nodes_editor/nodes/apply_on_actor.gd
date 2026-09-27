@@ -19,7 +19,7 @@ func _scene_root(ctx : FlowData.EvaluationContext) -> Node:
 	if ctx.owner and ctx.owner.get_tree():
 		return ctx.owner.get_tree().current_scene if ctx.owner.get_tree().current_scene else ctx.owner
 	if Engine.is_editor_hint():
-		return EditorInterface.get_edited_scene_root()
+		return editor_edited_scene_root()
 	return null
 
 func _targets_from_stream(in_data : FlowData.Data) -> Array:
@@ -120,5 +120,5 @@ func execute(ctx : FlowData.EvaluationContext):
 				target.set(item.property, stream.container[read_idx])
 
 	if Engine.is_editor_hint():
-		EditorInterface.mark_scene_as_unsaved()
+		editor_mark_scene_unsaved()
 	set_output(0, in_data)
