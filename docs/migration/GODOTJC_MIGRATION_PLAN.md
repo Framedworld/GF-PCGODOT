@@ -14,6 +14,18 @@ How to read references:
   `~libflow…TMP`, and `.import` files.
 - `P0 §n` is a section of `RUNTIME_API_P0.md`. `Review §n` is `PCG_SYSTEM_REVIEW.md`.
 
+Addon state while this was written: after this plan was started, two commits landed on
+`claude/pcg-system-review-4tpca9`:
+
+- `9417d63`: overrides and `$param` bindings;
+- `10ec11b`: `flow_nodes/node_directories`, metadata-only categories, graph format v2 and
+  migrations.
+
+The plan has been cross-checked against both, and resolved feedback items are marked. The
+runtime API (`FlowNodeIO.evaluate` / `make_context`, `ctx.seed`, `effective_seed`) and the
+`Data` helpers were not yet in the checkout, so those sections follow `RUNTIME_API_P0.md`
+verbatim.
+
 Things I verified by running code rather than reading it (Godot 4.6.stable headless, on a
 scratch copy of GodotJC's `scripts/`, `resources/`, `tests/` and the addon, with autoloads
 removed; the GodotJC clone itself was not modified):
@@ -185,8 +197,13 @@ This proves the addon upgrade alone is safe before any file moves.
   still inheriting the caller's `eval_id` (today `flow_nodes_io.gd:843`), which P0 does not
   list as changing (see F7).
 - **Graph format v2**: GodotJC's graphs are hand-authored `version: 1` with partial settings
-  keys. Load them through the migration table; **do not re-save them from the dock in this
-  step** (R10).
+  keys. **Do not re-save them from the dock in this step** (R10). Instead, change
+  `"version": 1` to `"version": 2` by text edit in all five `resources/pcg/*.tres`.
+  Migration 2 changes no settings (`FlowGraphMigrations.MIGRATIONS = {2: {}}` in
+  `flow_graph_migrations.gd`). Without the bump, `FlowGraphMigrations.migrate()`
+  deep-copies every v1 graph's data on every runtime build: once per floor, plus once per
+  room for `room_interior.tres` through `jc_room_loop`. Run the golden before and after the
+  bump; both must be 0 diffs.
 - **Delete**: nothing yet.
 - **Verify**: golden 0 diffs (both layers, 144 cases); audit PASS; open
   `hotel_grounded.tres` in the dock, confirm 22 nodes appear, and close without saving. If
@@ -218,10 +235,13 @@ This proves the addon upgrade alone is safe before any file moves.
     [flow_nodes]
     node_directories=PackedStringArray("res://scripts/pcg_nodes")
     ```
-  - Add `"category": "Jerk Chicken"`, plus whichever colour key the addon documents (F11), to
-    each `meta_node` (e.g. `jc_hotel_layout.gd:21-31`). Category and colour now come from meta
-    only. Without this the nodes land in the default bucket with a hash-derived hue. There is
-    no effect on output.
+  - Add `"category": "Jerk Chicken"` to each `meta_node` (e.g. `jc_hotel_layout.gd:21-31`).
+    Since `10ec11b`, both the add-node submenu and the node colour come from
+    `meta_node.category` only. Colour is looked up in `CATEGORY_HUES`, and an unknown category
+    falls back to a hash of the template name (`node.gd` `_get_category_hue`). So
+    "Jerk Chicken" gives the nodes their own submenu but one hue per node. Using `"Generator"`
+    gives one hue but merges them into the stock submenu. Prefer "Jerk Chicken" and see F11.
+    There is no effect on output.
   - `README.md:62`: new path.
 - **Delete**: every `jc_*` file under `addons/flow_nodes_editor/nodes/`. After this commit the
   addon folder is a pristine upstream copy and future upgrades are a plain directory replace.
@@ -423,7 +443,10 @@ wrapper.
       }
       ```
     - `_overrides_for(theme, plan)` expands `theme.pcg_overrides`: keys containing `/` pass
-      through, other keys go through `FANOUT`. Prefix every key with `hotel_floor:` (R8).
+      through, other keys go through `FANOUT`. Prefix every key with `hotel_floor:`. This is
+      not required for warnings (R8), but it keeps a future room-subgraph node named
+      `skin` or `layout` from being hit by accident. Since `9417d63`, a prefix matches the
+      basename of whichever graph is being built, the root included.
     - `:22` becomes `DEFAULT_GRAPH_PATH := "res://resources/pcg/hotel_floor.tres"`.
     - `:62` drops `CACHE_MODE_IGNORE`. Graphs *"stay immutable and cacheable"* (Review §3).
   - `resources/floors/{grounded,basement,ethereal,mental}.tres`: set `graph_path` to
@@ -613,10 +636,10 @@ Each step updates the docs it invalidates. In addition, the following is **alrea
 | R4 | **Latent bug N3**: routes truncated to 1 point by `@data.` | Present today / medium (design intent not realised) | Fix in V2. F1 asks the addon to warn |
 | R5 | **Native library**: GodotJC calls no native class. `grep GDKdTree\|GDRTree\|GDStreamUtils` finds nothing in `scripts/` or the jc nodes, the graphs use only jc, `input` and `output` nodes, and the review's native-only node list (`distance`, `difference`, …) is unused. The engine still loads `bin/flow.gdextension` at startup, and upstream's copy lists a `linux.x86_64` `.so` that is not committed, which means an error line on Linux | Certain on Linux / cosmetic | Vendor `bin/` as released; ignore the log line or wait for F13. Windows binaries are present |
 | R6 | **load() hang** (`flow_dungeon.gd:15-17`). P0 **does not remove the cause**: `evaluate_graph` still `load()`s each node script (`flow_nodes_io.gd:785`) and instantiates `@tool` `GraphNode` Controls. The fix is the P1 `FlowElement` split (Review §3: "no more `@tool` class-web hangs at runtime") | Medium / high (editor hang) | Keep the `class_name` references (`FlowNodeIO`, `FlowData`, `FlowGraphResource`) in FlowDungeon and the path preloads in nodes (`jc_hotel_layout.gd:10-12`). Never add a game-side `load("res://scripts/pcg_nodes/…")`; after A2 the addon resolves node scripts. The nodes' own `load()` calls on archetype `.tres` data (`jc_hotel_layout.gd:240`, `jc_room_interior.gd:1031-1045`) are data, not the hang. Re-test in-editor play after A2 |
-| R7 | **class_name resolution in headless runs**: `.godot/` is gitignored, so a fresh clone has no class cache. The moved settings declare `class_name` (e.g. `JCHotelLayoutSettings`), so a stale cache points at old paths. `--script` mode does not run editor plugins, so node directories must be read by `evaluate_graph` itself | Medium / medium. A failure shows as the **silent fallback** (G1) | CI order: `--import`, then audit, then golden. A2 verification from a fresh clone. The golden `used_flow` key and the audit `used_flow` checks catch the fallback |
-| R8 | **Override warning spam**: `jc_room_loop` evaluates `room_interior.tres` once per room with the parent ctx (`jc_room_loop.gd:128`), so unprefixed `layout/…` keys match nothing there | Medium / low (log noise, hidden real warnings) | Prefix keys with `hotel_floor:`; F4 asks for tree-scoped warnings |
-| R9 | **Override value types**: an int setting given a float from a `.tres` Dictionary (`24.0`) may fail `set()`. P0 specifies numeric coercion for bindings only | Medium / medium (silently keeps the saved value) | Author ints as ints. The D golden catches it. F4 asks for the same coercion as bindings |
-| R10 | **Graph format v2**: re-saving hand-authored v1 graphs from the dock rewrites every key, adds noise, and could drop unknown keys | Medium / medium | Do not re-save during A. Re-save `hotel_floor.tres` deliberately after D and run the golden |
+| R7 | **class_name resolution in headless runs**: `.godot/` is gitignored, so a fresh clone has no class cache. The moved settings declare `class_name` (e.g. `JCHotelLayoutSettings`), so a stale cache points at old paths. `--script` mode does not run editor plugins. The registry re-reads `flow_nodes/node_directories` on every lookup, so that part is covered (F15, `10ec11b`) | Medium / medium. A failure shows as the **silent fallback** (G1) | CI order: `--import`, then audit, then golden. A2 verification from a fresh clone. The golden `used_flow` key and the audit `used_flow` checks catch the fallback |
+| R8 | **Override warning spam**: `jc_room_loop` evaluates `room_interior.tres` once per room with the parent ctx (`jc_room_loop.gd:128`), where `layout/…` keys match nothing | **Resolved in `9417d63`** | Unmatched keys are collected in a hits map shared through the ctx meta `flow_override_hits`. Nested `evaluate_graph` calls inherit it and do not own it, and the root warns once per evaluation tree (`_warn_unmatched_overrides`). Still check the log once in D |
+| R9 | **Override value types**: an int setting given a float from a `.tres` Dictionary (`24.0`) | Low since `9417d63` | Overrides and bindings share `_assign_setting` → `_coerce_setting_value`, and failure keeps the saved value with a warning. Author ints as ints anyway; the D golden catches any drift |
+| R10 | **Graph format v2**: re-saving hand-authored v1 graphs from the dock rewrites every key and adds noise. Leaving them v1 costs a deep copy per runtime build | Medium / low | Text-bump `"version"` to 2 in A1 (migration 2 is empty). Only re-save through the dock deliberately, after D, followed by the golden |
 | R11 | **Cross-platform float determinism**: `sin`, `cos` and libm can differ between MSVC (Windows dev) and glibc (Linux CI) | Medium / low | Capture and compare on the same OS and engine build; keep per-platform baselines if CI runs Linux |
 | R12 | **Engine version**: GodotJC targets 4.7 (`project.godot:16`); the prototype ran on 4.6 | Low | Capture on the team's 4.7 binary |
 | R13 | **Export filters**: nodes outside the addon folder must be exported, and `export_presets.cfg` is gitignored | Low / high | Exported smoke test in A2 |
@@ -702,20 +725,26 @@ where cheap.
    for seeds, `runtime_params` and input Data (`room_interior.tres` needs `RoomCells`). It
    needs a project-local output path, a non-zero exit code on diff, and a documented rule that
    baseline and compare must share an engine build and OS.
-4. **F4 – Overrides:**
-   - (a) apply the same numeric coercion as bindings;
-   - (b) scope the "matches no node" warning to the **whole evaluation tree**, not each nested
-     `evaluate_graph`, because custom loop nodes re-evaluate subgraphs with the parent context;
-   - (c) confirm that a basename prefix also targets the **root** graph, not only subgraphs.
+4. **F4 – Overrides: resolved in `9417d63`; keep the tests.**
+   - (a) Overrides use the same coercion as bindings (`_assign_setting` →
+     `_coerce_setting_value`).
+   - (b) The unmatched-key warning is scoped to the evaluation tree through the
+     `flow_override_hits` ctx meta.
+   - (c) A `graph:` prefix matches the basename of whichever graph is being built, the root
+     included.
+   - Remaining ask: add a test in which a **custom node** calls `evaluate_graph` on a subgraph
+     with its own ctx (the `jc_room_loop` pattern), and assert there is exactly one warning
+     per tree.
 5. **F5 – `FlowNodeIO.evaluate()` has no `overrides` argument.** Add
    `overrides : Dictionary = {}`, or let `make_context` take it, so owner-less callers do not
    need the two-step `make_context` + `evaluate_graph` form.
 6. **F6 – `make_context(owner : Node3D)` vs `EvaluationContext.owner : FlowGraphNode3D`.** A
    caller passing its own `Node3D` host would hit a type error. Pick one type.
-7. **F7 – Pin `eval_id` inheritance.** State that `_build_evaluation_state` keeps copying the
-   parent's `eval_id` verbatim (today `flow_nodes_io.gd:843`), and that only
-   `make_context` / `generate` assign the counter. Legacy callers that hand-build contexts stay
-   byte-identical until they migrate. Add this to the evaluator tests.
+7. **F7 – Pin `eval_id` inheritance.** `_build_evaluation_state` still copies the parent's
+   `eval_id` verbatim; `9417d63` kept `ctx.eval_id = parent_ctx.eval_id` (`91471c1`:
+   `flow_nodes_io.gd:843`). Make it contractual, with only `make_context` / `generate`
+   assigning the counter, so legacy callers that hand-build contexts stay byte-identical until
+   they migrate. Add this to the evaluator tests.
 8. **F8 – A graph-less `FlowGraphNode3D` should be silent.** With `generate_on_ready` and a
    null graph, `generate()` should return `{}` without warning. Today every GodotJC floor logs
    "no graph resource assigned" (`flow_node.gd:113-116`).
@@ -728,8 +757,10 @@ where cheap.
       the iteration context. Keyed seeding survives adding or removing a partition and matches
       GodotJC's rid-keyed `room_seed`;
     - (c) inject `@data.*` table attributes (F1) as per-iteration params.
-11. **F11 – Document the exact `meta_node` keys** for category and colour (and aliases) now
-    that editor tables are gone. The jc nodes carry none today.
+11. **F11 – Colour for project categories.** Since `10ec11b`, colour comes from `category`
+    through a fixed `CATEGORY_HUES` table. A project category ("Jerk Chicken", Black Lantern's
+    "Black Lantern") falls back to a per-template hash, so each project node gets a different
+    hue. Add an optional `meta_node.hue`, or a `flow_nodes/category_hues` project setting.
 12. **F12 – Expose the seed formula** as a static, e.g. `FlowNodeBase.derive_seed(graph_seed,
     node_seed)`. Tests and games that cross-check (GodotJC's audit) should not copy
     `hash([a, b]) & 0x7fffffff`.
@@ -739,9 +770,10 @@ where cheap.
     GodotJC's 16 named outputs rely on. Keep it, cover it in the evaluator tests, and make sure
     graph-format v2 migrations do not require `out_params` or rewrite hand-authored `version: 1`
     graphs in a way that changes evaluation.
-15. **F15 – The registry must read `flow_nodes/node_directories` inside `evaluate_graph`**, not
-    only at plugin load. Headless `--script` runs and exported games never load the editor
-    plugin, and a resolution failure makes games fall back silently.
+15. **F15 – Resolved in `10ec11b`.** `FlowNodeRegistry.get_node_directories()` re-syncs
+    `flow_nodes/node_directories` on every lookup, so headless `--script` runs and exported
+    games resolve project nodes without the editor plugin. Remaining ask: a test that runs
+    `evaluate_graph` headless with a template that lives only in a project directory.
 
 ---
 
