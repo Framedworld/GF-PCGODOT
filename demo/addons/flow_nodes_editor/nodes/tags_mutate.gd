@@ -6,6 +6,7 @@ const TagsMutateSettings = preload("res://addons/flow_nodes_editor/nodes/tags_mu
 func _init():
 	meta_node = {
 		"title" : "Tags",
+		"category" : "Metadata",
 		"settings" : TagsMutateSettings,
 		"ins" : [{ "label": "In" }],
 		"outs" : [{ "label" : "Out" }],

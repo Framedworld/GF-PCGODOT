@@ -184,7 +184,7 @@ static func nodes_as_dict( nodes, frames, editor : Control ):
 
 	var data := {
 		"type" : "flow_graph_nodes",
-		"version" : 1,
+		"version" : FlowGraphMigrations.CURRENT_VERSION,
 		"min_pos" : min_pos,
 		"nodes" : nodes_clean,
 		"links" : links,
@@ -235,6 +235,9 @@ static func create_nodes_from_dict( dict, editor : Control, paste_offset = null)
 	if dict.get( "type", null) != "flow_graph_nodes":
 		push_error( "Invalid dict to paste nodes from" )
 		return []
+	# Clipboard JSON (and resources loaded outside loadFromResource) may predate the
+	# current graph format. No-op when already current.
+	dict = FlowGraphMigrations.migrate(dict)
 	var new_nodes = []
 	var old_to_new_names = {}
 	var variable_name_remaps := {}
@@ -305,6 +308,7 @@ static func create_nodes_from_dict_with_progress(dict, editor: Control, paste_of
 	if dict.get("type", null) != "flow_graph_nodes":
 		push_error("Invalid dict to paste nodes from")
 		return []
+	dict = FlowGraphMigrations.migrate(dict)
 
 	var source_nodes: Array = dict.get("nodes", [])
 	if source_nodes.size() <= FAST_GRAPH_LOAD_NODE_THRESHOLD:
@@ -464,10 +468,25 @@ static func saveToResource( editor : Control ):
 	current_resource.view_offset = gedit.scroll_offset
 	current_resource.new_name_counter = editor.new_name_counter
 
+## Editor load: upgrades an old graph resource in memory to the current format and
+## marks it dirty, so the next save writes the current version. Returns true when the
+## resource data changed.
+static func migrate_resource_for_editor(editor: Control, resource: FlowGraphResource) -> bool:
+	if resource == null or resource.data.is_empty():
+		return false
+	var migrated: Dictionary = FlowGraphMigrations.migrate(resource.data)
+	if is_same(migrated, resource.data):
+		return false
+	resource.data = migrated
+	if editor != null and editor.has_method("queueSave"):
+		editor.queueSave()
+	return true
+
 static func loadFromResource( editor : Control ):
 	var current_resource = editor.current_resource
 	if current_resource == null:
 		return
+	migrate_resource_for_editor(editor, current_resource)
 
 	# Register the input_* and output_* nodes before trying to load the nodes
 	for input in current_resource.in_params:
@@ -495,6 +514,7 @@ static func loadFromResourceWithProgress(editor: Control, progress_callback: Cal
 	if editor.has_method("_should_use_fast_graph_load") and editor._should_use_fast_graph_load(current_resource):
 		loadFromResource(editor)
 		return
+	migrate_resource_for_editor(editor, current_resource)
 
 	await _call_load_progress(progress_callback, "Registering Parameters...", 45.0)
 	for input in current_resource.in_params:
@@ -590,7 +610,7 @@ static func _is_topo_final_root(node: FlowNodeBase) -> bool:
 static func _needs_input_order_stabilization(node: FlowNodeBase) -> bool:
 	if node.node_template == "subgraph":
 		return true
-	# MapGen finals (scene_3d_plan, layer subgraph feeds, etc.) can be scheduled too early
+	# Final nodes that also consume other nodes' outputs can be scheduled too early
 	# when multiple finals are merged; only adjust nodes that still have in-graph wires.
 	if node.getMeta().get("is_final", false):
 		for conn in node.deps:
@@ -1082,7 +1102,10 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 	var owns_override_hits := not parent_ctx.has_meta(OVERRIDE_HITS_META)
 	var override_hits: Dictionary = parent_ctx.get_meta(OVERRIDE_HITS_META, {})
 	var binding_scope: FlowData.EvaluationContext = null
-	for n_data in graph.data.get("nodes", []):
+	# Upgrade old graph data to the current format before instantiating nodes. Returns
+	# the resource's own dictionary when already current; never writes back.
+	var graph_data: Dictionary = FlowGraphMigrations.migrate(graph.data)
+	for n_data in graph_data.get("nodes", []):
 		var template = n_data.template
 		var name = n_data.name
 		var script_path = FlowNodeRegistry.get_node_script_path(template)
@@ -1129,7 +1152,7 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 		node_list.append(instance)
 
 	# Build connections (deps and dependants)
-	for conn in graph.data.get("links", []):
+	for conn in graph_data.get("links", []):
 		var src_node = instances.get(conn.from_node)
 		var dst_node = instances.get(conn.to_node)
 		if src_node and dst_node:
@@ -1137,15 +1160,6 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 			dst_node.deps.append(conn)
 	_add_virtual_variable_dependencies(node_list)
 	var ordered_nodes: Array = build_execution_order(node_list, instances)
-	if OS.get_environment("MAPGEN_DEBUG_ORDER") == "1":
-		for ordered_node in ordered_nodes:
-			if (
-				"assemble_map_plan" in ordered_node.node_template
-				or ordered_node.node_template == "set_variable"
-				or ordered_node.node_template == "get_variable"
-				or "pcg_map_plan" in ordered_node.name
-			):
-				print("eval_order: %s (%s)" % [ordered_node.name, ordered_node.node_template])
 
 	# Construct EvaluationContext for subgraph
 	var ctx = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()

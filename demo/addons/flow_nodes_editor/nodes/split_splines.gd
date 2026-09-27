@@ -6,6 +6,7 @@ const SplitSplinesSettings = preload("res://addons/flow_nodes_editor/nodes/split
 func _init():
 	meta_node = {
 		"title" : "Split Splines",
+		"category" : "Spatial",
 		"settings" : SplitSplinesSettings,
 		"ins" : [{ "label" : "Splines", "data_type" : FlowData.DataType.NodePath }],
 		"outs" : [{ "label" : "Segments" }],

@@ -4,6 +4,7 @@ extends FlowNodeBase
 func _init():
 	meta_node = {
 		"title" : "Output",
+		"category" : "Output",
 		"settings" : OutputNodeSettings,
 		"ins" : [{ "label" : "In", "data_type" : FlowData.DataType.Float }],
 		"outs" : [],

@@ -1,4 +1,85 @@
-# TODO
+# Flow Nodes Editor — developer notes
+
+## Project node directories
+
+Stock nodes live in `nodes/`. Project nodes should live outside the addon so the
+addon folder can be replaced on upgrade. `FlowNodeRegistry` resolves a template
+`foo` to the first `<dir>/foo.gd` found in:
+
+1. `res://addons/flow_nodes_editor/nodes` (stock; cannot be shadowed),
+2. the project setting `flow_nodes/node_directories` (a `PackedStringArray` of
+   `res://` directories, shown under **Project Settings → Flow Nodes**; the plugin
+   registers it with its empty default when enabled, so `project.godot` only changes
+   once you add a directory),
+3. directories added at runtime with `FlowNodeRegistry.register_node_directory()`.
+
+The setting is re-read whenever it changes, so the add-node menu refreshes after an
+edit in Project Settings, and exported games need no startup code. Node category,
+colour and search terms come only from the node's `meta_node` (`"category"`,
+`"aliases"`); there are no per-project tables in the addon.
+
+## Graph format versions and migrations
+
+`FlowGraphResource.data` carries `"version"` (`FlowGraphMigrations.CURRENT_VERSION`,
+currently `2`; data without the key counts as `1`). `FlowGraphMigrations.migrate(data)`
+upgrades older data and is called in exactly these places:
+
+| Where | What happens to the resource |
+|---|---|
+| `FlowNodeIO.loadFromResource` / `loadFromResourceWithProgress` (editor load) | `resource.data` is replaced by the upgraded copy and the graph is marked dirty, so the next save writes the current version |
+| `FlowNodeIO._build_evaluation_state` (runtime) | nothing — the upgraded copy is used for this evaluation only |
+| `FlowNodeIO.create_nodes_from_dict` (clipboard paste) | pasted JSON is upgraded before nodes are created |
+
+`migrate()` returns the same dictionary when there is nothing to do, so current
+graphs pay no copy. It also replaces templates listed in
+`FlowNodeRegistry.template_aliases` (old name → new name) when the old script no
+longer exists.
+
+### How to add a migration
+
+Do this whenever you rename or remove a settings property of a stock node, or change
+what a stored value means.
+
+1. Bump `CURRENT_VERSION` in `flow_graph_migrations.gd` (for example `2` → `3`).
+2. Add an entry for the new version to `MIGRATIONS`, keyed by the node template's
+   **current** name:
+
+   ```gdscript
+   static var MIGRATIONS : Dictionary = {
+       2: {},
+       3: {
+           # rename a settings key; the value is kept
+           "distance": { "in_nameA": "source_attribute" },
+           # transform a value: called when the old key is present; mutate the
+           # dictionary in place or return a replacement
+           "grid": { "count": _split_grid_count },
+           # "*" as the template applies to every node, "*" as the key always runs
+           "*": { "legacy_debug": "debug_enabled" },
+       },
+   }
+
+   static func _split_grid_count(settings: Dictionary) -> Dictionary:
+       settings["x"] = settings["count"]
+       settings["z"] = settings["count"]
+       settings.erase("count")
+       return settings
+   ```
+
+   A rename never overwrites a value already stored under the new key. Migrations
+   run in version order, so a graph saved at version 1 receives every step.
+3. If a template was renamed, keep the old graphs loading by adding
+   `"old_template": "new_template"` to `FlowNodeRegistry.STOCK_TEMPLATE_ALIASES`
+   (projects add their own to `FlowNodeRegistry.template_aliases`).
+4. Add a test in `demo/tests/flow_nodes_editor/FlowGraphMigrationsTest.gd`: a
+   dictionary at the previous version migrates and evaluates, and one at the new
+   version is returned untouched.
+5. List the change in `docs/DEPRECATIONS.md`.
+
+Never edit `.tres` graphs by hand to "migrate" them; open and save them in the editor
+(or run `FlowGraphMigrations.migrate` over `resource.data` in a tool script and save
+with `ResourceSaver`).
+
+## TODO
 
 - [ ] Demos
 	- [X] Wall of rocks, picking a random point on the top

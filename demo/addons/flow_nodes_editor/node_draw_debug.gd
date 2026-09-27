@@ -128,10 +128,7 @@ func _debug_modulation_stream(out_data: FlowData.Data):
 		"weight",
 		"noise",
 		"value",
-		"center_bias",
-		"distance_to_door",
 		"type",
-		"is_protected",
 	]
 	for preferred_name in preferred_names:
 		var preferred_stream = out_data.findStream(preferred_name)
@@ -206,12 +203,7 @@ func _is_debug_bookkeeping_stream(stream_name: String) -> bool:
 		String(FlowData.AttrPosition),
 		String(FlowData.AttrRotation),
 		String(FlowData.AttrSize),
-		"grid_cell",
-		"cell_x",
-		"cell_y",
-		"room_id",
 		"roomid",
-		"door_id",
 		"index",
 		"source_index",
 		"parent_index",

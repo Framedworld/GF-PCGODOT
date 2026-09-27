@@ -183,45 +183,37 @@ func get_deterministic_color() -> Color:
 	# We want premium colors, so let's set saturation to around 0.5 and value/brightness to 0.75
 	return Color.from_hsv(hue, 0.5, 0.75)
 
-## Returns a hue value (0-1) based on the node's functional category.
-## Matches Unreal PCG's visual language: generators=green, filters=red, etc.
+## Hue (0-1) per node category, matching Unreal PCG's visual language
+## (generators/samplers green, filters red, ...). Keys are normalised category names
+## (lower case, no spaces/underscores/dashes, trailing "s" dropped), so "Control Flow",
+## "control_flow" and "ControlFlow" all match.
+const CATEGORY_HUES := {
+	"sampler": 0.33, "generator": 0.33,
+	"spatial": 0.48,
+	"filter": 0.0,
+	"density": 0.91, "math": 0.91,
+	"metadata": 0.78, "attribute": 0.78,
+	"spawner": 0.58, "transform": 0.58,
+	"controlflow": 0.17, "utility": 0.17, "debug": 0.17,
+	"input": 0.08, "output": 0.08,
+}
+
+static func normalize_category(category: String) -> String:
+	var key := category.strip_edges().to_lower()
+	for separator in [" ", "_", "-"]:
+		key = key.replace(separator, "")
+	if key.length() > 1 and key.ends_with("s"):
+		key = key.trim_suffix("s")
+	return key
+
+## Returns a hue value (0-1) from the node's `category` metadata (see CATEGORY_HUES).
+## Nodes without a known category fall back to a stable hash of their template name.
 func _get_category_hue() -> float:
-	var t := node_template
-	# Input/Output — warm orange
-	if t.begins_with("input") or t.begins_with("output"):
-		return 0.08
-	# Filters — red/coral
-	if t.begins_with("filter") or t == "attribute_filter_range" or t == "select" or t == "select_multi" or t == "select_points" or t == "self_pruning" or t == "partition" or t == "branch" or t == "switch":
-		return 0.0
-	# Generators/Sources — green
-	if t.begins_with("grid") or t.begins_with("sample") or t.begins_with("points_from") or t.begins_with("point_from") or t.begins_with("scan") or t.begins_with("noise") or t.begins_with("load") or t.begins_with("create") or t.begins_with("dungeon"):
-		return 0.33
-	# Transforms — blue
-	if t == "transform" or t == "transform_points" or t == "point_offsets" or t == "snap_to_grid" or t == "copy" or t == "copy_points" or t == "duplicate_point" or t.begins_with("spawn") or t == "apply_on_actor" or t == "relax" or t.begins_with("build_rotation"):
-		return 0.58
-	# Attributes — purple
-	if t.begins_with("attribute") or t.begins_with("add_attribute") or t == "remove_attribute" or t.begins_with("add_tag") or t.begins_with("delete_tag") or t.begins_with("replace_tag") or t.begins_with("tags_mutate") or t == "random_color" or t.begins_with("data_table"):
-		return 0.78
-	# Math/Logic — pink
-	if t == "math_op" or t == "expression" or t.begins_with("compose_vector") or t.begins_with("decompose_vector") or t.begins_with("make_vector") or t == "remap" or t.begins_with("density") or t.begins_with("distance") or t == "boolean" or t == "reduce" or t.begins_with("curve_remap"):
-		return 0.91
-	# Spatial/Physics — teal
-	if t.begins_with("physics") or t.begins_with("ray_cast") or t.begins_with("navigation") or t.begins_with("clip") or t.begins_with("bounds") or t.begins_with("difference") or t.begins_with("intersection") or t == "union" or t.begins_with("polygon"):
-		return 0.48
-	# Merge/Combine — cyan
-	if t == "merge" or t == "merge_points" or t == "combine_points" or t == "sequence_sample":
-		return 0.53
-	# Subgraph — bright cyan
-	if t == "subgraph":
-		return 0.53
-	# BL project-specific — indigo
-	if t.begins_with("bl_"):
-		return 0.72
-	# Debug/Utility — neutral
-	if t == "debug" or t == "print_string" or t == "sanity_check" or t == "get_points_count" or t == "get_data_count" or t == "get_entries_count" or t == "get_loop_index" or t == "loop" or t == "mutate_seed":
-		return 0.17
-	# Fallback: hash-based
-	return float(t.hash() % 360) / 360.0
+	var category := String(getMeta().get("category", ""))
+	var key := normalize_category(category)
+	if CATEGORY_HUES.has(key):
+		return CATEGORY_HUES[key]
+	return float(node_template.hash() % 360) / 360.0
 
 func _clear_graph_node_stylebox_overrides():
 	remove_theme_stylebox_override("panel")

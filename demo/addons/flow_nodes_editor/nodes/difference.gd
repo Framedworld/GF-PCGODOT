@@ -7,6 +7,7 @@ const BoundsOverlap = preload("res://addons/flow_nodes_editor/bounds_overlap_uti
 func _init():
 	meta_node = {
 		"title" : "Difference",
+		"category" : "Spatial",
 		"settings" : DifferenceNodeSettings,
 		"ins" : [{ "label": "In A" }, { "label": "In B" }],
 		"outs" : [{ "label" : "Out" }],

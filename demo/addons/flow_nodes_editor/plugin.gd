@@ -188,8 +188,13 @@ func _ensure_graph_dock() -> void:
 	elif not _graph_dock_is_on_bottom_panel():
 		_schedule_place_graph_dock_after_shader()
 
+func _enable_plugin() -> void:
+	FlowNodeRegistry.ensure_project_setting()
+
 func _enter_tree():
 	print("Data Flow plugin enabled")
+	# Property info is not persisted, so register the setting every editor session.
+	FlowNodeRegistry.ensure_project_setting()
 	_dock_layout_watch_started_ms = Time.get_ticks_msec()
 	_ensure_graph_dock()
 	selection = EditorInterface.get_selection()

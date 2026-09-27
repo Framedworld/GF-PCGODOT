@@ -6,6 +6,7 @@ var _connected_graph: FlowGraphResource = null
 func _init():
 	meta_node = {
 		"title" : "Loop",
+		"category" : "ControlFlow",
 		"settings" : LoopNodeSettings,
 		"ins" : [{ "label" : "Stream", "data_type" : FlowData.DataType.Invalid }],
 		"outs" : [{ "label" : "Out", "data_type" : FlowData.DataType.Invalid }],

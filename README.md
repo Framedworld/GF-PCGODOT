@@ -58,12 +58,35 @@ To drive a node setting from a graph input, runtime param or flow variable, add
 parameter port beats an override, which beats a binding, which beats the saved
 value. See [Overrides and bindings](docs/COMING_FROM_UNREAL_PCG.md#overrides-and-bindings).
 
-External addons can provide their own Flow node directories by calling
-`FlowNodeRegistry.register_node_directory("res://addons/your_addon_name/nodes")`
-from an editor plugin. Use namespaced node script filenames such as
-`youraddon.example_node.gd` to avoid template collisions, and set
-`"category": "Your Addon/Examples"` in node metadata to control where the node
-appears in the add-node menu.
+### Your own nodes
+
+Keep project nodes **outside** the addon folder so the addon can be upgraded by
+replacing its directory. List your node directories in
+**Project Settings → Flow Nodes → Node Directories** (`flow_nodes/node_directories`;
+the plugin registers it when enabled). The editor's add-node menu and runtime
+`FlowNodeIO.evaluate_graph()` both resolve templates from those directories; nothing
+needs to be registered by hand:
+
+```ini
+# project.godot
+[flow_nodes]
+node_directories=PackedStringArray("res://game/pcg_nodes")
+```
+
+A node is `<dir>/<template>.gd` extending `FlowNodeBase`. Its `meta_node` drives
+everything the editor shows: `"title"`, `"tooltip"`, `"aliases"` (search), and
+`"category"` (add-node submenu and node colour; `Sampler`/`Generator`, `Spatial`,
+`Filter`, `Density`/`Math`, `Metadata`/`Attribute`, `Spawner`/`Transform`,
+`ControlFlow`/`Utility`/`Debug`, `Input`/`Output` get their UE-style colour; any
+other category gets a stable per-template colour). Prefix template names with your
+project (`mygame_room_loop.gd`) to avoid collisions; stock templates always win.
+
+Addons that ship nodes can still call
+`FlowNodeRegistry.register_node_directory("res://addons/your_addon/nodes")` from their
+plugin; it merges with the project setting. Renamed templates can stay loadable
+through `FlowNodeRegistry.template_aliases`, and saved graphs are upgraded by
+`FlowGraphMigrations` — see [Deprecations](docs/DEPRECATIONS.md) and the
+[addon README](demo/addons/flow_nodes_editor/README.md).
 
 ---
 
@@ -118,6 +141,7 @@ appears in the add-node menu.
 * **[Coming From Unreal PCG](docs/COMING_FROM_UNREAL_PCG.md)** — orientation, hotkeys, concept dictionary, the full UE→PCGODOT node dictionary, translated tutorials.
 * **[Parity Roadmap](docs/PARITY_ROADMAP.md)** — honest list of UE PCG features not covered yet, with planned designs.
 * **[Node Library Reference](demo/addons/flow_nodes_editor/doc/nodes_reference.md)** — every node, by category, linked to source.
+* **[Deprecations](docs/DEPRECATIONS.md)** — removed or renamed scripts, templates and semantics, and the deprecation policy.
 
 ---
 

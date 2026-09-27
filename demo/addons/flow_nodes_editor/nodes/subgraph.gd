@@ -7,6 +7,7 @@ var _last_input_data_map: Dictionary = {}
 func _init():
 	meta_node = {
 		"title" : "Subgraph",
+		"category" : "ControlFlow",
 		"settings" : SubgraphNodeSettings,
 		"ins" : [],
 		"outs" : [],
