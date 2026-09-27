@@ -67,9 +67,14 @@ element (`loop.gd:153-157` admits this). UE separates `UPCGSettings` (data),
 
 Consequences already observed in the games:
 
-- The leak that upstream fixed with `_free_node_instances` is still live in Black
-  Lantern's vendored copy: up to 77 orphaned Controls per room styling, times ~20
-  rooms, times every runtime restyle.
+- The leak that upstream fixed with `_free_node_instances` was live in the Black
+  Lantern snapshot reviewed here (June 10); the team's current working tree carries
+  the same fix. Even with the fix, the cost of instantiating Controls remains: the
+  Black Lantern team measured (headless, Godot 4.7.1) 6 to 12 ms to instance a
+  20 to 47 node subgraph, and 0.2 to 0.5 ms per trivial node (filter, add_attribute,
+  expression over 10 to 300 points). Their per-room "dress pass" calls the same kit
+  subgraph about four times per room across about twenty rooms, so per-stop style
+  time rose from about 1.0 s to 1.8 to 2.1 s purely from re-instancing.
 - GodotJC hit an editor hang from a bare `load()` of a node script at play time and
   now preloads by path to dodge `@tool` class-web resolution (`flow_dungeon.gd:15-17`,
   `jc_hotel_layout.gd:10-11`).
@@ -131,7 +136,9 @@ The editor has per-node `dirty` flags, dependant expansion and scene fingerprint
 The runtime has none: every `evaluate_graph` re-parses settings, re-instantiates every
 node, re-sorts, re-runs. UE caches element outputs keyed by a CRC of settings + inputs,
 which is what makes its runtime regeneration and loops affordable. `loop.gd`'s comment
-names the missing piece exactly: parse once, execute many.
+names the missing piece exactly: parse once, execute many. The Black Lantern
+measurements above show the cache must be shared across repeated `subgraph` calls
+within one evaluation and across rooms, not only across `loop` iterations.
 
 ### 2.6 Spawners and generated content
 
@@ -187,7 +194,32 @@ what the games depend on: `loop`, `subgraph`, `spawn_meshes`, `spawn_nodes`,
 Black Lantern found and locally patched a diamond-ordering bug in the evaluator;
 upstream fixed it differently (`_stabilize_consumer_input_order`). Neither has a test.
 
-### 2.11 Platform
+### 2.11 Node-level defects reported from production (Black Lantern, 2026-09)
+
+Verified against upstream HEAD unless noted. Fixes are part of the current round.
+
+- `load_pcg_data_asset` runs Vector3 string parsing on every value of every column
+  even after the column is known not to be a vector; a 333 by 16 JSON costs 15 to
+  18 ms per load, nothing is cached, and `asset_path` is read directly from settings
+  so it cannot be wired or bound.
+- `sample_mesh` area-weighted normals use `(b-a) x (c-a)`; with Godot's clockwise
+  front faces this can point into the mesh (reported: a table underside faces up).
+- `merge` registers a bulk's new streams after appending that bulk's other streams,
+  so the stream-length invariant warns on every merge of differing column sets.
+- `match_and_set` uses the node-global RNG when no `seed` stream exists, so every
+  room picks the same variants; it also compares keys as strings, so a JSON `3.0`
+  never matches key `3`.
+- `copy` in SourceToTargets mode emits only source streams (UE's Copy Points has
+  attribute inheritance options).
+- `sample_points` emits only the common streams and drops the parent point's
+  attributes.
+- `expression` retypes an existing stream when the result type differs.
+- `point_offsets` writes three bookkeeping columns by default; `add_attribute` with
+  no input yields a one-point Data (useful as a schema row, but undocumented).
+- Setting-wire ports are positional, so graph generators had to instance node
+  scripts to compute port indices. Name-based bindings remove that.
+
+### 2.12 Platform
 
 The committed `flow.gdextension` ships Windows editor/templates and macOS debug only.
 No Linux binary, no macOS release. Both games note this in their docs and Black
