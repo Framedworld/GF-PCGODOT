@@ -1,7 +1,47 @@
 # Black Lantern Tactics: compatibility run of the PCGODOT addon at `897d7a2`
 
+> **Revision (`d83aaff`, 2026-09-27).** The run below first compared the addon at `897d7a2`. On that commit,
+> `legacy_scale_from_extent` did not restore the road, because it still wrote `bounds_min`/`bounds_max`.
+> Upstream `d83aaff` fixes the bridge: with the flag on, the six size→bounds generators write **no** bounds
+> streams. The addon in `bl_upstream` was re-synced to `d83aaff` and the flag was set on the six road samplers.
+> The results:
+>
+> - **Road: 7/7 pieces identical to the vendored addon** at seeds 11 and 21, in both in-process repeats, with 0
+>   errors and 0 warnings.
+> - **Rooms: `style_snapshot` 177/177 identical** to the vendored addon.
+> - **Control:** `d83aaff` with the flag **off** still differs exactly as `897d7a2` did (seed 11: 1/3 identical,
+>   the same props removed). The flag is what restores the road, and the default behaviour did not change.
+>
+> §4.1, §4.2 and §8 are updated. The bisection on `897d7a2` is kept in §4.2 as the history before the fix. §3,
+> §5 and §6 were measured on `897d7a2`. `d83aaff` changes only the six generators and their tests, and the
+> re-run added no errors.
+>
+> Commands (scratch paths as in §1):
+>
+> ```bash
+> UP=/home/user/GF-PCGODOT/demo/addons/flow_nodes_editor          # at d83aaff
+> (cd $UP && tar cf - --exclude='*.uid' --exclude='*.os' .) | (cd $S/bl_upstream/addons/flow_nodes_editor && tar xf -)
+> # keeps nodes/bl_*, project_points*, every game .uid, bin/libflow.linux...so and its gdextension line;
+> # every non-uid framework file now equals d83aaff (0 mismatches)
+> python3 set_flag.py $S/bl_upstream "graphs/road/**/*.tres" sample_spline legacy_scale_from_extent true
+> #   sg_road_clearings 1, sg_road_guardrails 3, sg_road_placement 1, sg_road_poles 1 = 6 nodes
+> #   (the road graphs are hand-authored; no generator to re-run. The kit generator does not touch them.)
+> cd $S/bl_upstream && godot47 --headless --path . --import
+> godot47 --headless --path . res://tools/bl_snapshot.tscn -- --out=$S/dig_upstream_d83_road.json --configs=road --seeds=11,21 --repeat=2
+> python3 road_cmp.py $S/dig_vendored_road.json $S/dig_upstream_d83_road.json     # edges identical 7/7
+> python3 cmp_dig.py  $S/dig_vendored_road.json $S/dig_upstream_d83_road.json     # 14/14 (2 reps), 0 errors
+> godot47 --headless --path . tools/graph_gen/style_snapshot.tscn -- --out=res://output/snap_upstream_d83.json
+> python3 cmp_snap.py $S/bl_vendored/output/snap_vendored_run1.json output/snap_upstream_d83.json   # 177 unchanged
+> ```
+>
+> The flag edit as a patch (6 added lines, one per node): `"legacy_scale_from_extent": true,` as the first entry
+> of each `sample_spline` node's `settings` dict. Only the four road subgraphs use any of the six generators. Two
+> copies under `output/company_task03/` (`f3_d21_graph_before_scenery.tres`, `flow_road_family/baseline-assembly.tres`)
+> also contain `sample_spline`, but they are old artefacts and are not loaded by the game.
+
 **Question.** Does the `flow_nodes_editor` addon on GF-PCGODOT branch `claude/pcg-system-review-4tpca9` (head
-`897d7a2`) change what Black Lantern Tactics generates, compared with the copy the game vendors today?
+`897d7a2`, re-checked at `d83aaff`) change what Black Lantern Tactics generates, compared with the copy the game
+vendors today?
 
 **Answer.**
 
@@ -10,12 +50,14 @@
   `seed = hash(position)` workaround hides upstream's one change to room randomness (`match_and_set` seeding,
   `c981656`). A bisection shows the change is live and that `legacy_global_rng` restores the old picks
   exactly (§4.3).
-- **Overworld road: changed.** Upstream places slightly fewer road props: 3 to 12 fewer poles per edge and 1 to
-  10 fewer trees, bushes or rocks per edge (1–3 of any one kind). Six of the seven road pieces measured differ. The cause is `03c2826`:
-  `sample_spline` now writes `bounds_min`/`bounds_max`. `legacy_scale_from_extent` does **not** restore the old
-  output, which contradicts both `DEPRECATIONS.md` and
-  [BLACK_LANTERN_MIGRATION_PLAN.md](BLACK_LANTERN_MIGRATION_PLAN.md) §1.4 C1. Stripping the new bounds on two
-  samplers (`pole_samples`, `forest_samples`) restores the road exactly (§4.2).
+- **Overworld road: changed by default; restored by the legacy flag on `d83aaff`.** With default settings,
+  upstream places slightly fewer road props: 3 to 12 fewer poles per edge and 1 to 10 fewer trees, bushes or
+  rocks per edge (1–3 of any one kind). Six of the seven road pieces measured differ. The cause is `03c2826`:
+  `sample_spline` now writes `bounds_min`/`bounds_max`.
+  - On `897d7a2`, `legacy_scale_from_extent` did **not** restore the old output.
+  - On **`d83aaff`**, the flag on the six road samplers restores **7/7 pieces byte-identically** (§4.2). This is
+    what [BLACK_LANTERN_MIGRATION_PLAN.md](BLACK_LANTERN_MIGRATION_PLAN.md) §1.4 C1 prescribes, so no game-side
+    bounds stripping is needed.
 - **Errors.** The swap adds no parse or runtime errors. The full `HeadlessSuite` battery (which boots a real
   mission), `StopSiteRegression` and `OverworldRoadRegression` give identical results on both copies. No
   upstream-only `FlowNodeIO.last_errors` or `push_error` appeared (§3, §5).
@@ -23,7 +65,7 @@
   of that gain (≈ 25 ms per room). Without the cache, upstream would be about 3 % slower than the vendored
   copy (§6).
 
-Run on 2026-09-27. Nothing was committed to either repository. All work was done in scratch worktrees.
+Run on 2026-09-27. The runs committed nothing to either repository. All work was done in scratch worktrees.
 
 ---
 
@@ -143,21 +185,36 @@ node setting` returns 0 hits.
 | Where | Seed | What differs (vendored → upstream) | Upstream change responsible | Legacy flag restores it? | Is the new behaviour correct? |
 |---|---|---|---|---|---|
 | All 7 stops (177 rooms), hotel (2 floors), `pcg_master` floor | 11, 21 | **Nothing.** Room hash, props, cover, doors, tickets, `style_graph_path`, `room_records`, `fear_rooms` and floor cells are all identical, with and without the kit regeneration. | — (the `c981656` seeding change is live but hidden, see §4.3) | — | — |
-| road, approach | 11 | identical (858) | — | — | — |
-| road, `supply_food->escape_run@root` | 11 | 13725 → 13716: **pole 54→51**, bush_06 280→279, pine_a 4033→4030, pine_b 4125→4124, rock 809→808 (removals only) | `03c2826` `sample_spline` records extent as `bounds_min/max` | **No** (`legacy_scale_from_extent` tried: no effect) | Poles: **no**. Trees: debatable. See §4.2. |
-| road, `supply_food->info_records@root` | 11 | 13531 → 13521: **pole 55→48**, bush_06 260→258, pine_c 2985→2984 | same | No | same |
-| road, approach | 21 | 818 → 817: pine_b 265→264 | same | No | same |
-| road, `supply_food->escape_run@root` | 21 | 13469 → 13461: **pole 53→50**, pine_a −1, pine_b −2, pine_c −1, rock −1 | same | No | same |
-| road, `supply_food->info_records@root` | 21 | 27941 → 27919: **pole 113→101**, bush_06 −1, bush_07 −1, pine_a −2, pine_b −1, pine_c −2, rock −3 | same | No | same |
-| road, `supply_food->sabotage_altar@root` | 21 | 13865 → 13853: **pole 53→49**, bush_06 −2, bush_07 −2, pine_a −1, pine_b −1, pine_c −2 | same | No | same |
+| road, approach | 11 | identical (858) | — | — (identical with the flag too) | — |
+| road, `supply_food->escape_run@root` | 11 | 13725 → 13716: **pole 54→51**, bush_06 280→279, pine_a 4033→4030, pine_b 4125→4124, rock 809→808 (removals only) | `03c2826` `sample_spline` records extent as `bounds_min/max` | **Yes on `d83aaff`**: `legacy_scale_from_extent = true` on the 6 road `sample_spline` nodes gives 13725 → 13725, byte-identical. (On `897d7a2`: no, no effect.) | Poles: **no**. Trees: debatable. See §4.2. |
+| road, `supply_food->info_records@root` | 11 | 13531 → 13521: **pole 55→48**, bush_06 260→258, pine_c 2985→2984 | same | **Yes on `d83aaff`** (13531, identical) | same |
+| road, approach | 21 | 818 → 817: pine_b 265→264 | same | **Yes on `d83aaff`** (818, identical) | same |
+| road, `supply_food->escape_run@root` | 21 | 13469 → 13461: **pole 53→50**, pine_a −1, pine_b −2, pine_c −1, rock −1 | same | **Yes on `d83aaff`** (13469, identical) | same |
+| road, `supply_food->info_records@root` | 21 | 27941 → 27919: **pole 113→101**, bush_06 −1, bush_07 −1, pine_a −2, pine_b −1, pine_c −2, rock −3 | same | **Yes on `d83aaff`** (27941, identical) | same |
+| road, `supply_food->sabotage_altar@root` | 21 | 13865 → 13853: **pole 53→49**, bush_06 −2, bush_07 −2, pine_a −1, pine_b −1, pine_c −2 | same | **Yes on `d83aaff`** (13865, identical) | same |
 
-Road timing is unchanged (§6). Every road difference is a pure removal: nothing is added or moved.
+The "what differs" column is upstream with default settings (`897d7a2`; `d83aaff` with the flag off gives the same
+removals, checked at seed 11). "Yes on `d83aaff`" means the whole piece is identical to the vendored addon: its sorted
+list of kind | position to 1 mm | yaw | scale and its per-kind counts. This held in both in-process repeats. Road
+timing is unchanged (§6). Every default-setting road difference is a pure removal: nothing is added or moved.
 
 ### 4.2 Road: the bisection
 
-Every run used seed 11 unless noted, with `bl_snapshot --configs=road` against the vendored baseline.
+**Result on `d83aaff` (after the fix).** `bl_snapshot --configs=road` against the vendored baseline:
 
-| Experiment in `bl_upstream` | Road pieces identical to vendored |
+| Experiment in `bl_upstream` (addon at `d83aaff`) | Seeds | Road pieces identical to vendored |
+|---|---|---|
+| `legacy_scale_from_extent = true` on the 6 road `sample_spline` nodes (`clearing_samples`; `rail_right_bends_modules`, `rail_right_bends`, `rail_left_bends`; `forest_samples`; `pole_samples`) | 11, 21 (× 2 in-process repeats) | **7/7 each time (14/14)**, 0 errors, 0 warnings, `last_errors` empty |
+| Control: flag off (graphs as committed) | 11 | 1/3, the same 9 + 10 props removed as on `897d7a2` |
+
+With the flag on, `d83aaff` writes no bounds streams from these samplers. `point_offsets` therefore has no anchor
+bounds to copy, and the `difference` keep-outs fall back to `size`, which is the extent again, just as before
+`03c2826`. That is the whole mechanism below, undone at its source. The rooms were re-checked on the same copy:
+`style_snapshot` gives 177/177 identical.
+
+**History: the bisection on `897d7a2`, before the fix.** Every run used seed 11 unless noted.
+
+| Experiment in `bl_upstream` (addon at `897d7a2`) | Road pieces identical to vendored |
 |---|---|
 | Upstream as is | 1/3 |
 | R1: `"legacy_scale_from_extent": true` on all 6 road `sample_spline` nodes (`set_flag.py`) | **1/3, no change** |
@@ -167,8 +224,8 @@ Every run used seed 11 unless noted, with `bl_snapshot --configs=road` against t
 | R4c: bounds skipped on `pole_samples` and `forest_samples` | **3/3** |
 
 **Mechanism.** Since `03c2826`, `sample_spline` writes the sampling extent (`Vector3.ONE * uniform_interval`) as
-symmetric `bounds_min/bounds_max`. It does this **whether or not `legacy_scale_from_extent` is set**; the flag only
-decides whether `size` is also reset to one.
+symmetric `bounds_min/bounds_max`. Up to `897d7a2` it did this **whether or not `legacy_scale_from_extent` was set**,
+and the flag only decided whether `size` was also reset to one. From `d83aaff`, the flag skips the bounds too.
 
 - **Poles.** In `sg_road_poles`, `pole_samples` (40 m interval) → `pole_offset` (`point_offsets`,
   `inherit_anchor_size = false`) → … → `pole_socket_keepout` (`difference`, A = poles, B = sockets).
@@ -188,14 +245,14 @@ inconsistent and is worth an upstream fix. For the trees, the new cube is a defe
 the graph was tuned against. Neither case is a game bug that the old behaviour was hiding.
 
 **What this means for the migration plan.** [BLACK_LANTERN_MIGRATION_PLAN.md](BLACK_LANTERN_MIGRATION_PLAN.md) §1.4
-C1 says "set `legacy_scale_from_extent: true` on the 6 nodes … to keep the current look". **R1 shows this does not
-keep it.** Two fixes keep the look, and either is enough:
+C1 says "set `legacy_scale_from_extent: true` on the 6 nodes … to keep the current look".
 
-- **(a) Game side.** Add a `remove_attribute` for `bounds_min,bounds_max` right after `pole_samples` and
-  `forest_samples` (or after all six samplers). This is equivalent to R4a/R4c, which restore the output exactly.
-- **(b) Upstream.** Make `legacy_scale_from_extent` also skip `setSymmetricBounds`, since the flag's documented
-  promise is the old output, and correct the `DEPRECATIONS.md` row. Separately, `point_offsets` should not copy
-  anchor bounds unchanged when `inherit_anchor_size` is false.
+- **On `d83aaff` this is correct:** the road is byte-identical at both seeds. No game-side bounds stripping is needed.
+- **On `897d7a2` it was not** (R1). At the time, this report proposed either stripping the bounds game-side
+  (equivalent to R4a/R4c) or fixing the bridge upstream. The upstream fix landed as `d83aaff`, which implements
+  R4a behind the flag, so the game-side option is withdrawn.
+- The separate `point_offsets` point still stands: it copies anchor bounds unchanged when `inherit_anchor_size`
+  is false. It only matters for graphs that adopt the new bounds semantics, so it is kept in §8 for later.
 
 ### 4.3 Rooms: why nothing changed, and proof that the check would have seen it (bisection-lite)
 
@@ -352,10 +409,12 @@ Road time is dominated by realisation in game code, not by the graph. The dressi
 
 1. Take the addon. Room output is byte-identical, and the kit regeneration (bindings, the `normals as sampled` bake)
    is output-neutral.
-2. **For the road, do not rely on `legacy_scale_from_extent`.** To keep today's road, strip
-   `bounds_min,bounds_max` after `pole_samples` (`sg_road_poles`) and `forest_samples` (`sg_road_placement`), or
-   after all six samplers. Then rerun the road digest and expect 7/7 identical. Otherwise, accept 3–12 fewer poles
-   and up to 10 fewer trees, bushes and rocks per edge. The 12-pole drop on `info_records@21` is the most visible.
+2. **For the road, sync to `d83aaff` or later and set `"legacy_scale_from_extent": true` on the six road
+   samplers.** These are `sg_road_clearings` ×1, `sg_road_guardrails` ×3, `sg_road_placement` ×1 and
+   `sg_road_poles` ×1. No game-side bounds stripping is needed. Measured: 7/7 road pieces byte-identical at seeds 11
+   and 21. On `897d7a2` the flag is not enough, so do not re-baseline onto that commit with the flag alone. Without
+   the flag, expect 3–12 fewer poles and up to 10 fewer trees, bushes and rocks per edge. The 12-pole drop on
+   `info_records@21` is the most visible.
 3. Keep the `seed = hash(position)` Expression nodes (S3). Delete `bake_surfaces.gd` `_ensure_indexed` (S5).
 4. Attach an error log (`FlowNodeIO.start_error_log(ctx)`) in the three `evaluate_graph` call sites if you want
    `last_errors`.
@@ -363,9 +422,10 @@ Road time is dominated by realisation in game code, not by the graph. The dressi
 
 **For GF-PCGODOT (this branch):**
 
-1. Make `legacy_scale_from_extent` also skip `setSymmetricBounds` in `sample_spline` and the other size→bounds
-   generators, or document that it does not restore bounds consumers (`difference`, `self_pruning`, overlap
-   queries). The `DEPRECATIONS.md` row currently promises "the old look".
+1. **Done in `d83aaff`:** `legacy_scale_from_extent` now also skips `setSymmetricBounds` in all six size→bounds
+   generators (`sample_spline`, `sample_points`, `split_splines`, `subdivide_segment`,
+   `create_surface_from_polygon`, `create_surface_from_spline`). The `DEPRECATIONS.md` row is corrected. It was
+   verified here against Black Lantern: road 7/7 identical under the flag, and rooms 177/177.
 2. `point_offsets` with `inherit_anchor_size = false` should not copy the anchor's `bounds_min/max` unchanged, since
    it already resets `size`.
 3. Break the `node.gd` ↔ `connectors_row.tscn` ↔ `connectors_row.gd` preload cycle (§3).
