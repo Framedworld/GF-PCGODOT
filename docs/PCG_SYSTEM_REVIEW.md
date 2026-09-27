@@ -6,7 +6,7 @@ Unreal's PCG framework and against how the two production consumers actually dri
 | Project | Vendored version | Graphs | How it calls the addon |
 |---|---|---|---|
 | **GodotJC** (`Framedworld/GodotJC`) | == upstream HEAD, plus 7 `jc_*` nodes | 4 theme graphs (22 nodes each, 6 `jc_*` + 16 `output`) + 1 room subgraph | `FlowNodeIO.evaluate_graph()` directly from `scripts/systems/flow_dungeon.gd` |
-| **Black Lantern Tactics** | ~2 weeks older than upstream, locally patched, plus 24 `bl_*` nodes | 1 master graph (5 `bl_*` + outputs), 17 style graphs (17–77 nodes, mostly stock), 3 subgraphs | `FlowNodeIO.evaluate_graph()` directly from `DungeonLevelBuilder.gd` and `BLRoomStyleRuntime.gd` |
+| **Black Lantern Tactics** | byte-identical to upstream `58a9d3c` (~2 weeks older than HEAD) plus 23 `bl_*` nodes and a 16-line dock-sizing patch | 1 master graph (5 `bl_*` + outputs), 17 style graphs (17–77 nodes, mostly stock), 3 subgraphs | `FlowNodeIO.evaluate_graph()` directly from `DungeonLevelBuilder.gd` and `BLRoomStyleRuntime.gd` |
 
 The short version: the data model and node vocabulary are in good shape and genuinely
 UE-shaped. The **runtime/integration layer is not**, and both games route around it
@@ -165,9 +165,12 @@ within one evaluation and across rooms, not only across `loop` iterations.
 - No deprecation path: Black Lantern's tools reference `gdr_tree_gd.gd`,
   `DataType.Vector3`, and `grid_points` / `bl_debug_points` templates that no longer
   exist.
-- Semantics diverged silently between vendored and upstream copies (`distance.gd`
-  null-B is "empty" in the game, "error" upstream; `attribute_filter_range` string
-  handling). Nothing would tell a game that re-baselining changed its output.
+- Semantics changed between the upstream commit a game vendored and upstream HEAD
+  (`distance.gd` null-B was "empty" at `58a9d3c`, "error" now; `attribute_filter_range`
+  string handling; `noise` value mapping; per-point seeding). Nothing would tell a game
+  that re-baselining changed its output. Black Lantern's copy turned out not to be
+  locally patched at all: it is that older upstream commit verbatim, which makes the
+  point sharper, since a plain upgrade would silently change 14 of its 16 style graphs.
 
 ### 2.8 Serialization
 
@@ -191,8 +194,9 @@ by duck typing (`plugin_node.call("setResourceToEdit", ...)`).
 what the games depend on: `loop`, `subgraph`, `spawn_meshes`, `spawn_nodes`,
 `spawn_scenes`, `apply_on_actor`, `debug`, and there is no evaluator-level test
 (`evaluate_graph` ordering, diamonds, variable publishing, output collection, freeing).
-Black Lantern found and locally patched a diamond-ordering bug in the evaluator;
-upstream fixed it differently (`_stabilize_consumer_input_order`). Neither has a test.
+The diamond-ordering fix in Black Lantern's copy is upstream commit `58a9d3c`'s
+post-order sort; upstream later added `_stabilize_consumer_input_order` on top. Neither
+had a test before this round.
 
 ### 2.11 Node-level defects reported from production (Black Lantern, 2026-09)
 
