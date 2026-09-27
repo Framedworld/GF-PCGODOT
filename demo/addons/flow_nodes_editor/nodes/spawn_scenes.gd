@@ -138,7 +138,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 
 	var transforms = in_data.getTransformsStream()
 	if transforms == null:
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			set_output(0, in_data)
 			return
 		setError("Missing required streams %s/%s" % [ FlowData.AttrPosition, FlowData.AttrRotation ])

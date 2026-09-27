@@ -6,7 +6,7 @@ class_name FlowEditor
 
 var current_resource: FlowGraphResource
 var resource_owner : FlowGraphNode3D
-var ctx := FlowData.EvaluationContext.new()
+var ctx := _new_preview_context()
 var regen_pending := false
 var regen_running := false
 var regen_requested_while_running := false
@@ -463,6 +463,14 @@ func _is_same_graph_resource(a: FlowGraphResource, b: FlowGraphResource) -> bool
 	var a_path := String(a.resource_path)
 	var b_path := String(b.resource_path)
 	return not a_path.is_empty() and a_path == b_path
+
+## The editor's single evaluation context. Marked as a preview, so an owner-less
+## graph (opened on its own, not from a FlowGraphNode3D) stays quiet about
+## missing inputs; see FlowNodeBase.is_ownerless_preview.
+static func _new_preview_context() -> FlowData.EvaluationContext:
+	var preview_ctx := FlowData.EvaluationContext.new()
+	preview_ctx.preview = true
+	return preview_ctx
 
 func _refresh_active_graph_context() -> void:
 	if current_resource == null:

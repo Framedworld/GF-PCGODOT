@@ -183,12 +183,12 @@ func test_missing_attribute_error() -> void:
 func test_wrong_attribute_type_error() -> void:
 	var s = BuildRotationFromUpSettings.new()
 	s.use_constant = false
-	s.up_vector_attribute = "normal"
+	s.up_vector_attribute = "up_f"
 	s.axis = "z"
 
 	var in_data := _make_point_data(2)
 	var float_vals := PackedFloat32Array([1.0, 2.0])
-	in_data.registerStream("normal", float_vals, FlowDataScript.DataType.Float)
+	in_data.registerStream("up_f", float_vals, FlowDataScript.DataType.Float)
 
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()

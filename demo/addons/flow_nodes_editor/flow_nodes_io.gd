@@ -765,6 +765,9 @@ static func _coerce_input_data(val, input_name: String):
 	if data_type == FlowData.DataType.Invalid:
 		push_warning("evaluate_graph: input '%s' got unsupported runtime value of type %s — expected FlowData.Data or float/int/bool/String/Vector3/Color" % [input_name, type_string(typeof(val))])
 		return null
+	# An input named like a canonical attribute (density, seed, ...) takes that
+	# attribute's numeric type, so `{"density": 1}` still registers as Float.
+	data_type = FlowData.canonical_numeric_type(input_name, data_type)
 	var data = load("res://addons/flow_nodes_editor/flow_data.gd").Data.new()
 	var container = data.addStream(input_name, data_type)
 	if container == null:
@@ -813,7 +816,8 @@ static func has_setting_bindings(settings: Resource, ctx: FlowData.EvaluationCon
 ## "<node_name>/<property>", optionally prefixed "<graph basename>:" to target one
 ## subgraph; a property set by an override is not rebound. Bindings resolve
 ## "property" -> "param" against input_data_map, then ctx.runtime_params, then
-## ctx.variables (a FlowData.Data value yields its first element). A missing
+## ctx.variables (a FlowData.Data value yields its first element), then the default
+## of `graph`'s declared input of that name (graph.in_params). A missing
 ## parameter keeps the saved value silently; a value that cannot be assigned to the
 ## property keeps it with a warning. Does not call refreshFromSettings.
 ## Returns true when at least one setting was written.
@@ -857,7 +861,7 @@ static func apply_setting_bindings(node_instance: FlowNodeBase, graph: FlowGraph
 				if not _is_bindable_setting(settings, prop_name):
 					push_warning("Flow: node '%s' binds unknown setting '%s' to '$%s'; ignored." % [node_name, prop_name, param_name])
 					continue
-				var resolved := _resolve_binding_param(param_name, ctx, input_data_map)
+				var resolved := _resolve_binding_param(param_name, ctx, input_data_map, graph)
 				if resolved.is_empty():
 					continue
 				if _assign_setting(settings, prop_name, resolved[0], node_name, "binding '$%s'" % param_name):
@@ -928,7 +932,11 @@ static func _binding_scope_context(graph: FlowGraphResource, parent_ctx: FlowDat
 	return scope
 
 # Returns [value] when `param_name` resolves, [] when it is absent everywhere.
-static func _resolve_binding_param(param_name: String, ctx: FlowData.EvaluationContext, input_data_map: Dictionary) -> Array:
+# Sources, first hit wins: input_data_map, ctx.runtime_params, ctx.variables, then
+# the default of the graph's own declared input (`graph.in_params`) of that name,
+# so one declared graph input can single-source a knob in dock previews (which
+# feed no inputs) as well as at runtime.
+static func _resolve_binding_param(param_name: String, ctx: FlowData.EvaluationContext, input_data_map: Dictionary, graph: FlowGraphResource = null) -> Array:
 	for source in [input_data_map, ctx.runtime_params, ctx.variables]:
 		if source == null or not source.has(param_name):
 			continue
@@ -937,6 +945,13 @@ static func _resolve_binding_param(param_name: String, ctx: FlowData.EvaluationC
 			value = _first_value_of(value, param_name)
 		if value != null:
 			return [value]
+	if graph != null:
+		for param in graph.in_params:
+			if param != null and param.name == param_name:
+				var default_value = param.get_default_value()
+				if default_value != null:
+					return [default_value]
+				break
 	return []
 
 # Element 0 of stream `name` (or of the per-data attribute `name` / "@data.<name>").
@@ -1180,6 +1195,7 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 	ctx.seed = parent_ctx.seed
 	ctx.component_id = parent_ctx.component_id
 	ctx.overrides = parent_ctx.overrides
+	ctx.preview = parent_ctx.preview
 	ctx.gedit_nodes_by_name = instances
 	ctx.runtime_params = parent_ctx.runtime_params.duplicate(true) if parent_ctx.runtime_params else {}
 	for key in runtime_params.keys():
@@ -1188,6 +1204,11 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 	ctx.runtime_params["__eval_depth"] = depth
 	ctx.set_meta("flow_eval_depth", depth)
 	ctx.set_meta(OVERRIDE_HITS_META, override_hits)
+	# Nested evaluations share the root's error log. A custom node that builds its
+	# own context still reports into the synchronous evaluation around it.
+	var error_log = parent_ctx.get_meta(FlowNodeBase.ERROR_LOG_META) if parent_ctx.has_meta(FlowNodeBase.ERROR_LOG_META) else _sync_error_log
+	if error_log is Array:
+		ctx.set_meta(FlowNodeBase.ERROR_LOG_META, error_log)
 	_inherit_flow_variables(ctx, parent_ctx)
 	FlowVariableEval._mirror_variables_to_runtime(ctx)
 
@@ -1221,7 +1242,10 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 					if main_stream_name == "" or not val.hasStream(main_stream_name):
 						main_stream_name = val.streams.keys()[val.streams.size() - 1]
 					var main_stream = val.streams[main_stream_name]
-					target_data.registerStream(specific_input_name, main_stream.container, main_stream.data_type)
+					# A canonical attribute name (density, seed, ...) only aliases a
+					# main stream of that attribute's type.
+					if FlowData.canonical_type_error(specific_input_name, main_stream.data_type) == "":
+						target_data.registerStream(specific_input_name, main_stream.container, main_stream.data_type)
 				# Carry per-data domain attributes, tags and kind across the subgraph boundary.
 				target_data.data_attrs = val.data_attrs.duplicate()
 				target_data.tags = val.tags.duplicate()
@@ -1243,7 +1267,8 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 							if main_stream_name == "" or not val.hasStream(main_stream_name):
 								main_stream_name = val.streams.keys()[val.streams.size() - 1]
 							var main_stream = val.streams[main_stream_name]
-							target_data.registerStream(param.name, main_stream.container, main_stream.data_type)
+							if FlowData.canonical_type_error(param.name, main_stream.data_type) == "":
+								target_data.registerStream(param.name, main_stream.container, main_stream.data_type)
 						target_data.data_attrs = val.data_attrs.duplicate()
 						target_data.tags = val.tags.duplicate()
 						target_data.kind = val.kind
@@ -1398,19 +1423,55 @@ static func make_context(owner : Node3D = null, seed : int = 0, params : Diction
 	return ctx
 
 
+## Errors raised (FlowNodeBase.setError) during the most recent top-level
+## FlowNodeIO.evaluate() or FlowGraphNode3D.generate()/generate_async(), in the
+## order they were raised, nested subgraph and loop evaluations included:
+## [{ "node": <node name>, "template": <template>, "message": <text> }, ...].
+## Reset at the start of every top-level evaluation; empty when nothing failed.
+static var last_errors : Array = []
+
+# Error log of the synchronous top-level evaluation in progress (null otherwise).
+static var _sync_error_log = null
+
+## Runs `graph` from the root context `ctx` (depth 0) and collects every node
+## error into `ctx`'s error log. Sets last_errors and returns
+## { "outputs": Dictionary, "errors": Array }. Used by evaluate() and
+## FlowGraphNode3D.generate(). A nested call (a node that calls evaluate())
+## also reports its errors to the evaluation around it.
+static func evaluate_collecting_errors(graph : FlowGraphResource, input_data_map : Dictionary, ctx : FlowData.EvaluationContext) -> Dictionary:
+	var error_log := start_error_log(ctx)
+	var outer = _sync_error_log
+	_sync_error_log = error_log
+	var outputs := evaluate_graph(graph, input_data_map, ctx, {}, 0)
+	_sync_error_log = outer
+	if outer is Array:
+		outer.append_array(error_log)
+	last_errors = error_log
+	return { "outputs": outputs, "errors": error_log }
+
+## Attaches a fresh error log to the root context `ctx`, resets last_errors to
+## it and returns it. The async path (FlowGraphNode3D.generate_async) calls this
+## before begin_evaluation().
+static func start_error_log(ctx : FlowData.EvaluationContext) -> Array:
+	var error_log : Array = []
+	ctx.set_meta(FlowNodeBase.ERROR_LOG_META, error_log)
+	last_errors = error_log
+	return error_log
+
 ## One-call evaluation: builds a context with make_context() and runs
 ## evaluate_graph(). `inputs` maps graph input names to FlowData.Data or plain
 ## values (float/int/bool/String/Vector3/Color). Returns the graph outputs,
 ## name -> FlowData.Data. With `owner == null`, owner-dependent nodes
 ## (spawners, scene scanners, apply_on_actor) report an error and pass their
-## input through.
+## input through. The run's node errors are in FlowNodeIO.last_errors.
 static func evaluate(graph : FlowGraphResource, inputs : Dictionary = {}, seed : int = 0,
 		params : Dictionary = {}, owner : Node3D = null, overrides : Dictionary = {}) -> Dictionary:
 	if graph == null:
+		last_errors = []
 		push_warning("FlowNodeIO.evaluate: graph is null")
 		return {}
 	var ctx := make_context(owner, seed, params, overrides)
-	return evaluate_graph(graph, inputs.duplicate() if inputs else {}, ctx, {}, 0)
+	return evaluate_collecting_errors(graph, inputs.duplicate() if inputs else {}, ctx).outputs
 
 
 ## Synchronous graph evaluation — the default, unchanged runtime path.

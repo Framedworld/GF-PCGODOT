@@ -30,7 +30,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		return
 	var sA = in_dataA.findStream( settings.in_nameA )
 	if sA == null:
-		if ctx.owner == null and Engine.is_editor_hint():
+		if is_ownerless_preview(ctx):
 			var empty_data = FlowData.Data.new()
 			set_output(0, empty_data)
 			return
@@ -54,7 +54,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			sB = newFloatStream( in_dataA.size(), "Constant %s" % settings.in_nameB, v )
 		else:
 			if not is_single_arg:
-				if ctx.owner == null and Engine.is_editor_hint():
+				if is_ownerless_preview(ctx):
 					var empty_data = FlowData.Data.new()
 					set_output(0, empty_data)
 					return
@@ -74,14 +74,14 @@ func execute( ctx : FlowData.EvaluationContext ):
 			elif sB.data_type == FlowData.DataType.Color:
 				sB = newStream( num_elemsA, sA.name + " as color", sB.container[0], FlowData.DataType.Color )
 			else:
-				if ctx.owner == null and Engine.is_editor_hint():
+				if is_ownerless_preview(ctx):
 					var empty_data = FlowData.Data.new()
 					set_output(0, empty_data)
 					return
 				setError( "Num elements from A and B do not match (%d vs %d). But In B data type must be a float, Vector3, or Color" % [num_elemsA, num_elemsB])
 				return
 		else:
-			if ctx.owner == null and Engine.is_editor_hint():
+			if is_ownerless_preview(ctx):
 				var empty_data = FlowData.Data.new()
 				set_output(0, empty_data)
 				return
@@ -361,7 +361,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			out_container = outC
 	
 		else:
-			if ctx.owner == null and Engine.is_editor_hint():
+			if is_ownerless_preview(ctx):
 				var empty_data = FlowData.Data.new()
 				set_output(0, empty_data)
 				return

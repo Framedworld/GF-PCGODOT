@@ -24,7 +24,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		else:
 			var stream = in_data.findStream(settings.attribute_name)
 			if stream == null:
-				if ctx.owner == null and Engine.is_editor_hint():
+				if is_ownerless_preview(ctx):
 					var empty_data = FlowData.Data.new()
 					set_output(0, empty_data)
 					set_output(1, empty_data)

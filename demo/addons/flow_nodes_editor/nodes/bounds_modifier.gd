@@ -30,14 +30,14 @@ func execute( ctx : FlowData.EvaluationContext ):
 
 	# Legacy default: collapse |max-min| into the symmetric `size` stream.
 	if not out_data.hasStream(FlowData.AttrSize):
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		setError("Input must provide a size stream")
 		return
 	var ssizes = out_data.cloneStream(FlowData.AttrSize)
 	if ssizes == null:
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		setError("Input must provide a size stream")
@@ -65,7 +65,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 func _write_per_point_bounds(out_data : FlowData.Data, ctx : FlowData.EvaluationContext, mode : int, b_min : Vector3, b_max : Vector3) -> void:
 	var n := out_data.size()
 	if n == 0:
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		set_output(0, out_data)

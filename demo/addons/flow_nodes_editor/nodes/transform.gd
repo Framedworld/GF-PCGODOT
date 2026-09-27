@@ -14,14 +14,14 @@ func _init():
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = get_input(0)
 	if in_data == null:
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		setError("Input 'In' is not connected")
 		return null
 	var out_data : FlowData.Data = in_data.duplicate()
 	if not out_data.hasStream(FlowData.AttrPosition) or not out_data.hasStream(FlowData.AttrRotation) or not out_data.hasStream(FlowData.AttrSize):
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		setError("Input must provide position, rotation, and size streams")
@@ -30,7 +30,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var srot = out_data.cloneStream( FlowData.AttrRotation )
 	var ssizes = out_data.cloneStream( FlowData.AttrSize )
 	if spos == null or srot == null or ssizes == null:
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		setError("Input must provide position, rotation, and size streams")

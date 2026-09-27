@@ -193,10 +193,10 @@ func test_missing_stream_sets_error() -> void:
 
 func test_non_float_stream_sets_error() -> void:
 	var s := RemapSettings.new()
-	s.in_name = "density"
+	s.in_name = "weight"
 	s.out_name = "out"
 	s.remap_curve = _make_linear_curve()
-	var d = _make_data("density", PackedInt32Array([0, 1, 2]), FlowDataScript.DataType.Int)
+	var d = _make_data("weight", PackedInt32Array([0, 1, 2]), FlowDataScript.DataType.Int)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
 	node.free()

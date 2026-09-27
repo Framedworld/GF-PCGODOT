@@ -357,3 +357,49 @@ func test_editor_uses_scratch_binding_helpers() -> void:
 	var source := FileAccess.get_file_as_string("res://addons/flow_nodes_editor/flow_editor.gd")
 	assert_str(source).contains("FlowNodeIO.begin_scratch_setting_bindings( node, current_resource, ctx, {} )")
 	assert_str(source).contains("FlowNodeIO.end_scratch_setting_bindings( node, authored_settings )")
+
+
+# --- graph input (in_params) default as the last binding source -----------------
+
+func _declare_input(graph: FlowGraphResource, param_name: String, value: float) -> FlowGraphResource:
+	var param := GraphInputParameter.new()
+	param.name = param_name
+	param.data_type = FLOAT
+	param.cte_float = value
+	var params: Array[GraphInputParameter] = [param]
+	graph.in_params = params
+	return graph
+
+
+func test_binding_falls_back_to_graph_input_default() -> void:
+	var g := _declare_input(_bound_graph(), "k", 3.25)
+	var warnings := _warnings_during(func():
+		assert_float(_first(_eval(g), "result")).is_equal(3.25))
+	assert_int(_count_containing(warnings, "binding")).is_equal(0)
+
+
+func test_graph_input_default_is_lowest_binding_source() -> void:
+	var g := _declare_input(_bound_graph(), "k", 3.25)
+	var variables := { "k": _scalar("k", 3.0, FLOAT) }
+	assert_float(_first(_eval(g, {}, {}, {}, variables), "result")).is_equal(3.0)
+	assert_float(_first(_eval(g, {}, {}, { "k": 2.0 }), "result")).is_equal(2.0)
+	assert_float(_first(_eval(g, { "k": 4.0 }), "result")).is_equal(4.0)
+	assert_float(_first(_eval(g, {}, { "dst/cte_float": 9.0 }), "result")).is_equal(9.0)
+
+
+func test_graph_input_default_of_other_name_is_ignored() -> void:
+	var g := _declare_input(_bound_graph(), "other", 3.25)
+	assert_float(_first(_eval(g), "result")).is_equal(1.0)
+
+
+func test_graph_input_default_single_sources_nodes_in_editor_path() -> void:
+	# Dock previews feed no inputs; the declared input's default drives the knob.
+	var g := _declare_input(FlowGraphResource.new(), "k", 6.5)
+	var node := _editor_like_node({ "cte_float": "$k" })
+	var ctx = FlowDataScript.EvaluationContext.new()
+	var restored := FlowNodeIO.begin_scratch_setting_bindings(node, g, ctx, {})
+	assert_object(restored).is_not_null()
+	assert_float(node.settings.cte_float).is_equal(6.5)
+	FlowNodeIO.end_scratch_setting_bindings(node, restored)
+	assert_float(node.settings.cte_float).is_equal(1.0)
+	node.free()

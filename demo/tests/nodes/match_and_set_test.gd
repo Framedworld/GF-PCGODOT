@@ -322,3 +322,126 @@ func test_numeric_key_empty_string_key_is_not_a_fallback() -> void:
 		{"values": PackedStringArray(["", "3"]), "type": FlowDataScript.DataType.String})
 	assert_array(Array(_output(node).findStream("color").container)).is_equal(["", "blue"])
 	node.free()
+
+# ---------------------------------------------------------------------------
+# RNG source without a `seed` stream. Default: per-point seed from
+# FlowData.resolve_seed (position hash), stable under reordering.
+# legacy_global_rng = true: the node-global RNG in point order (old output).
+# ---------------------------------------------------------------------------
+
+const _RNG_POSITIONS := [Vector3(0, 0, 0), Vector3(1.5, 0, 2), Vector3(-3, 1, 4), Vector3(7, 0, -2), Vector3(2, 2, 2), Vector3(9, 0, 1), Vector3(-5, 0, -5), Vector3(4, 3, 0)]
+const _SCORES := [10.0, 20.0, 30.0, 40.0, 50.0]
+
+func _run_random_pick(positions: Array, legacy: bool, seed_value := 99) -> MatchAndSetNode:
+	var s = MatchAndSetSettings.new()
+	s.match_attr = ""
+	s.weight_attr = ""
+	s.random_seed = seed_value
+	s.legacy_global_rng = legacy
+	var in_data := FlowDataScript.Data.new()
+	in_data.registerStream(FlowData.AttrPosition, PackedVector3Array(positions), FlowDataScript.DataType.Vector)
+	var attrs_data := FlowDataScript.Data.new()
+	attrs_data.registerStream("score", PackedFloat32Array(_SCORES), FlowDataScript.DataType.Float)
+	return _run([in_data, attrs_data], s)
+
+func test_legacy_global_rng_defaults_off() -> void:
+	assert_bool(MatchAndSetSettings.new().legacy_global_rng).is_false()
+
+func test_no_seed_stream_uses_position_hashed_seed() -> void:
+	var node = _run_random_pick(_RNG_POSITIONS, false)
+	assert_str(node.err).is_empty()
+	var scores = _output(node).findStream("score").container
+	var expected := []
+	var prng := RandomNumberGenerator.new()
+	var positions := PackedVector3Array(_RNG_POSITIONS)
+	for i in positions.size():
+		prng.seed = FlowData.resolve_seed(null, positions, i, 99)
+		expected.append(_SCORES[prng.randi_range(0, 4)])
+	assert_array(Array(scores)).is_equal(expected)
+	node.free()
+
+func test_no_seed_stream_pick_is_stable_under_reordering() -> void:
+	var node_a = _run_random_pick(_RNG_POSITIONS, false)
+	var reversed := _RNG_POSITIONS.duplicate()
+	reversed.reverse()
+	var node_b = _run_random_pick(reversed, false)
+	var a = _output(node_a).findStream("score").container
+	var b = _output(node_b).findStream("score").container
+	for i in _RNG_POSITIONS.size():
+		assert_float(b[_RNG_POSITIONS.size() - 1 - i]).is_equal(a[i])
+	node_a.free()
+	node_b.free()
+
+func test_legacy_global_rng_draws_node_rng_in_point_order() -> void:
+	var node = _run_random_pick(_RNG_POSITIONS, true)
+	assert_str(node.err).is_empty()
+	var scores = _output(node).findStream("score").container
+	var expected := []
+	var global_rng := RandomNumberGenerator.new()
+	global_rng.seed = 99
+	for i in _RNG_POSITIONS.size():
+		expected.append(_SCORES[global_rng.randi_range(0, 4)])
+	assert_array(Array(scores)).is_equal(expected)
+	node.free()
+
+func test_legacy_global_rng_lut_path_draws_node_rng_in_point_order() -> void:
+	var s = MatchAndSetSettings.new()
+	s.match_attr = "cat"
+	s.random_seed = 7
+	s.legacy_global_rng = true
+	var in_data := FlowDataScript.Data.new()
+	in_data.registerStream("cat", PackedInt32Array([2, 2, 2, 2, 2, 2]), FlowDataScript.DataType.Int)
+	in_data.registerStream(FlowData.AttrPosition, PackedVector3Array(_RNG_POSITIONS.slice(0, 6)), FlowDataScript.DataType.Vector)
+	var attrs_data := FlowDataScript.Data.new()
+	attrs_data.registerStream("cat", PackedInt32Array([2, 2, 2]), FlowDataScript.DataType.Int)
+	attrs_data.registerStream("score", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
+	var node = _run([in_data, attrs_data], s)
+	var expected := []
+	var global_rng := RandomNumberGenerator.new()
+	global_rng.seed = 7
+	for i in 6:
+		expected.append([1.0, 2.0, 3.0][global_rng.randi_range(0, 2)])
+	assert_array(Array(_output(node).findStream("score").container)).is_equal(expected)
+	node.free()
+
+func test_lut_path_without_seed_stream_uses_position_hashed_seed() -> void:
+	var s = MatchAndSetSettings.new()
+	s.match_attr = "cat"
+	s.random_seed = 7
+	var positions := PackedVector3Array(_RNG_POSITIONS.slice(0, 6))
+	var in_data := FlowDataScript.Data.new()
+	in_data.registerStream("cat", PackedInt32Array([2, 2, 2, 2, 2, 2]), FlowDataScript.DataType.Int)
+	in_data.registerStream(FlowData.AttrPosition, positions, FlowDataScript.DataType.Vector)
+	var attrs_data := FlowDataScript.Data.new()
+	attrs_data.registerStream("cat", PackedInt32Array([2, 2, 2]), FlowDataScript.DataType.Int)
+	attrs_data.registerStream("score", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
+	var node = _run([in_data, attrs_data], s)
+	var expected := []
+	var prng := RandomNumberGenerator.new()
+	for i in 6:
+		prng.seed = FlowData.resolve_seed(null, positions, i, 7)
+		expected.append([1.0, 2.0, 3.0][prng.randi_range(0, 2)])
+	assert_array(Array(_output(node).findStream("score").container)).is_equal(expected)
+	node.free()
+
+func test_seed_stream_path_unchanged_by_legacy_flag() -> void:
+	var outputs := []
+	for legacy in [false, true]:
+		var s = MatchAndSetSettings.new()
+		s.random_seed = 5
+		s.legacy_global_rng = legacy
+		var in_data := FlowDataScript.Data.new()
+		in_data.registerStream(FlowData.AttrPosition, PackedVector3Array(_RNG_POSITIONS), FlowDataScript.DataType.Vector)
+		in_data.registerStream(FlowData.AttrSeed, PackedInt32Array([11, 22, 33, 44, 55, 66, 77, 88]), FlowDataScript.DataType.Int)
+		var attrs_data := FlowDataScript.Data.new()
+		attrs_data.registerStream("score", PackedFloat32Array(_SCORES), FlowDataScript.DataType.Float)
+		var node = _run([in_data, attrs_data], s)
+		outputs.append(Array(_output(node).findStream("score").container))
+		node.free()
+	var expected := []
+	var prng := RandomNumberGenerator.new()
+	for sd in [11, 22, 33, 44, 55, 66, 77, 88]:
+		prng.seed = (sd ^ 5) & 0x7fffffff
+		expected.append(_SCORES[prng.randi_range(0, 4)])
+	assert_array(outputs[0]).is_equal(expected)
+	assert_array(outputs[1]).is_equal(expected)

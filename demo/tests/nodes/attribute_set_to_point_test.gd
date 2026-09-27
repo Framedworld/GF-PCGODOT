@@ -146,7 +146,9 @@ func test_wrong_stream_type_error() -> void:
 	s.use_defaults_when_missing = false
 
 	var d = FlowDataScript.Data.new()
-	d.registerStream("position", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
+	# The canonical schema refuses a Float "position" through registerStream; build
+	# the mistyped stream by hand to keep exercising the node's own type check.
+	d.streams["position"] = { "container": PackedFloat32Array([1.0, 2.0, 3.0]), "name": "position", "data_type": FlowDataScript.DataType.Float }
 	d.registerStream("rotation", PackedVector3Array([Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]), FlowDataScript.DataType.Vector)
 	d.registerStream("size", PackedVector3Array([Vector3.ONE, Vector3.ONE, Vector3.ONE]), FlowDataScript.DataType.Vector)
 

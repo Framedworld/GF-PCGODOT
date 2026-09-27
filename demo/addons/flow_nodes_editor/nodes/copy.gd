@@ -203,7 +203,7 @@ func execute(ctx : FlowData.EvaluationContext):
 	if settings.mode == CopyNodeSettings.eMode.SourceToTargets:
 		var targets_data : FlowData.Data = get_optional_input(1)
 		if targets_data == null:
-			if Engine.is_editor_hint() and ctx.owner == null:
+			if is_ownerless_preview(ctx):
 				set_output(0, FlowData.Data.new())
 				return
 			setError("Targets input is required for SourceToTargets mode")

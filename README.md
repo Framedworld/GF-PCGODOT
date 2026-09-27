@@ -93,8 +93,16 @@ everything the editor shows: `"title"`, `"tooltip"`, `"aliases"` (search), and
 `"category"` (add-node submenu and node colour; `Sampler`/`Generator`, `Spatial`,
 `Filter`, `Density`/`Math`, `Metadata`/`Attribute`, `Spawner`/`Transform`,
 `ControlFlow`/`Utility`/`Debug`, `Input`/`Output` get their UE-style colour; any
-other category gets a stable per-template colour). Prefix template names with your
-project (`mygame_room_loop.gd`) to avoid collisions; stock templates always win.
+other category gets a stable per-template colour). To give a project category one
+colour, set `"hue"` (a float, 0..1) or `"color"` (a `Color`) in the `meta_node` of
+each of its nodes; `color` wins over `hue`, and both win over the category table:
+
+```gdscript
+meta_node = { "title": "Room Loop", "category": "My Game", "hue": 0.62, ... }
+```
+
+Prefix template names with your project (`mygame_room_loop.gd`) to avoid
+collisions; stock templates always win.
 
 Addons that ship nodes can still call
 `FlowNodeRegistry.register_node_directory("res://addons/your_addon/nodes")` from their

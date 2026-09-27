@@ -46,6 +46,20 @@ static func _numeric_lut_key( value, numeric_keys : Array, memo : Dictionary ):
 	memo[ value_str ] = resolved
 	return resolved
 
+## RNG for point `idx`. With a seed stream: (point seed ^ node seed), as
+## before. Without one: FlowData.resolve_seed (position hash, then index),
+## unless `legacy_global_rng` asks for the node-global rng in draw order.
+func _point_rng( idx : int, seed_container, positions, node_seed : int, legacy_global_rng : bool, point_rng : RandomNumberGenerator ) -> RandomNumberGenerator:
+	if seed_container != null:
+		if idx < seed_container.size():
+			point_rng.seed = (int(seed_container[idx]) ^ node_seed) & 0x7fffffff
+			return point_rng
+		return rng
+	if legacy_global_rng:
+		return rng
+	point_rng.seed = FlowData.resolve_seed( null, positions, idx, node_seed )
+	return point_rng
+
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input(0, ctx, "Input 'In'")
 	if in_data == null:
@@ -56,11 +70,18 @@ func execute( ctx : FlowData.EvaluationContext ):
 
 	# Per-point seed consumption (UE $Seed parity): when the input carries an
 	# AttrSeed stream, each point's random pick derives from point_seed ^ node
-	# seed; when absent, the node-level rng behavior is kept unchanged.
+	# seed. When it is absent, each point's seed comes from
+	# FlowData.resolve_seed (position hash, then index), like the other
+	# stochastic nodes. `legacy_global_rng` restores the old behaviour: points
+	# without a seed stream draw from the node-global rng in index order.
 	var seed_stream = in_data.streams.get(FlowData.AttrSeed, null)
 	var seed_container = seed_stream.container if seed_stream != null else null
 	var node_seed : int = effective_seed()
 	var point_rng := RandomNumberGenerator.new()
+	var legacy_global_rng : bool = getSettingValue( ctx, "legacy_global_rng" )
+	var positions = null
+	if seed_container == null and not legacy_global_rng:
+		positions = in_data.getContainerChecked( FlowData.AttrPosition, FlowData.DataType.Vector )
 
 	var using_lut := false
 	var lut := {}
@@ -112,10 +133,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var num_new_streams := out_containers.size()
 	if using_lut:
 		for idx in range( out_data.size() ):
-			var prng : RandomNumberGenerator = rng
-			if seed_container != null and idx < seed_container.size():
-				point_rng.seed = (int(seed_container[idx]) ^ node_seed) & 0x7fffffff
-				prng = point_rng
+			var prng : RandomNumberGenerator = _point_rng( idx, seed_container, positions, node_seed, legacy_global_rng, point_rng )
 			var in_lut_value : String = str(input_lut_container[ idx ])
 			if not lut.has( in_lut_value ) and not numeric_keys.is_empty():
 				var numeric_key = _numeric_lut_key( input_lut_container[ idx ], numeric_keys, numeric_memo )
@@ -171,10 +189,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 					total_weight += w
 			
 			for idx in range( out_data.size() ):
-				var prng : RandomNumberGenerator = rng
-				if seed_container != null and idx < seed_container.size():
-					point_rng.seed = (int(seed_container[idx]) ^ node_seed) & 0x7fffffff
-					prng = point_rng
+				var prng : RandomNumberGenerator = _point_rng( idx, seed_container, positions, node_seed, legacy_global_rng, point_rng )
 				var attr_idx : int = -1
 				if has_weights && total_weight > 0.0:
 					var r := prng.randf() * total_weight

@@ -139,11 +139,11 @@ func test_stream_not_found_error() -> void:
 
 func test_wrong_type_error() -> void:
 	var s = DecomposeVectorSettings.new()
-	s.in_attribute = "position"
+	s.in_attribute = "vec"
 	s.x_attribute = "x"
 	s.y_attribute = "y"
 	s.z_attribute = "z"
-	var node = _run([_make_data("position", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)], s)
+	var node = _run([_make_data("vec", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)], s)
 	assert_str(node.err).is_not_empty()
 	node.free()
 

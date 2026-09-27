@@ -199,3 +199,82 @@ func test_search_popup_prefers_meta_category() -> void:
 	assert_str(popup._get_category_for_template("my_project_node", { "category": "My Game" })).is_equal("My Game")
 	assert_str(popup._get_category_for_template("my_project_node", {})).is_equal("Utility")
 	popup.free()
+
+# ---------------------------------------------------------------------------
+# Project category colour: meta_node.hue / meta_node.color
+
+func _ext_instance(template: String) -> FlowNodeBase:
+	FlowNodeRegistry.register_node_directory(EXT_DIR)
+	var path := FlowNodeRegistry.get_node_script_path(template)
+	assert_str(path).is_equal(EXT_DIR + "/" + template + ".gd")
+	var node: FlowNodeBase = load(path).new()
+	node.node_template = template
+	return node
+
+func test_fixture_node_with_meta_hue_gets_that_hue() -> void:
+	var node := _ext_instance("ext_fixture_hued")
+	assert_float(node._get_category_hue()).is_equal_approx(0.62, 0.00001)
+	assert_object(node._get_meta_node_color()).is_null()
+	node.free()
+
+func test_meta_hue_is_shared_across_project_category_and_clamped() -> void:
+	var a = FlowNodeBaseScript.new()
+	a.node_template = "mygame_a"
+	a.meta_node = { "category": "My Game", "hue": 0.4 }
+	var b = FlowNodeBaseScript.new()
+	b.node_template = "mygame_b"
+	b.meta_node = { "category": "My Game", "hue": 0.4 }
+	# Without the hue the two templates hash to different colours.
+	assert_float(a._get_category_hue()).is_equal(b._get_category_hue())
+	a.meta_node = { "category": "Filter", "hue": 1.7 }
+	assert_float(a._get_category_hue()).is_equal(1.0)
+	a.meta_node = { "category": "Filter", "hue": 1 }
+	assert_float(a._get_category_hue()).is_equal(1.0)
+	# A non-numeric hue is ignored: the category table applies.
+	a.meta_node = { "category": "Filter", "hue": "red" }
+	assert_float(a._get_category_hue()).is_equal(FlowNodeBaseScript.CATEGORY_HUES["filter"])
+	a.free()
+	b.free()
+
+func test_fixture_node_with_meta_color_uses_its_hue_and_colour() -> void:
+	var node := _ext_instance("ext_fixture_colored")
+	var expected := Color(0.9, 0.3, 0.1)
+	assert_object(node._get_meta_node_color()).is_equal(expected)
+	assert_float(node._get_category_hue()).is_equal_approx(expected.h, 0.00001)
+	node.free()
+
+func _color_nodes_editor() -> Control:
+	var script := GDScript.new()
+	script.source_code = "extends Control\nvar color_nodes := true\nvar resource_owner = null\n"
+	script.reload()
+	var editor: Control = script.new()
+	return editor
+
+# update_node_style tints the title bar from meta_node.color (or the hue) when
+# the editor colours nodes. getEditor() is GraphEdit -> 3 Control ancestors up.
+func _styled_titlebar(node: FlowNodeBase) -> StyleBox:
+	var editor := _color_nodes_editor()
+	var c1 := Control.new()
+	var c2 := Control.new()
+	var gedit := GraphEdit.new()
+	editor.add_child(c1)
+	c1.add_child(c2)
+	c2.add_child(gedit)
+	gedit.add_child(node)
+	add_child(editor)
+	node.update_node_style()
+	var sb := node.get_theme_stylebox("titlebar")
+	editor.queue_free()
+	return sb
+
+func test_update_node_style_uses_meta_color() -> void:
+	var node := _ext_instance("ext_fixture_colored")
+	var sb := _styled_titlebar(node)
+	assert_bool(sb is StyleBoxFlat).is_true()
+	assert_object((sb as StyleBoxFlat).bg_color).is_equal(Color(0.9, 0.3, 0.1).darkened(0.62))
+
+func test_update_node_style_uses_meta_hue() -> void:
+	var node := _ext_instance("ext_fixture_hued")
+	var sb := _styled_titlebar(node)
+	assert_bool(sb is StyleBoxFlat).is_true()
+	assert_object((sb as StyleBoxFlat).bg_color).is_equal(Color.from_hsv(0.62, 0.35, 0.24, 1.0))

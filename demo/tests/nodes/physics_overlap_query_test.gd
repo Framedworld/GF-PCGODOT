@@ -134,11 +134,12 @@ func test_missing_position_stream_sets_error() -> void:
 	node.free()
 
 func test_wrong_stream_type_sets_error() -> void:
-	# Register "position" as Float instead of Vector — should fail type check.
+	# A Float position attribute instead of a Vector — should fail type check.
+	# (Not "position" itself: that canonical name only registers as Vector.)
 	var s = _default_settings()
-	s.position_attribute = "position"
+	s.position_attribute = "pos_f"
 	var d = FlowDataScript.Data.new()
-	d.registerStream("position", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
+	d.registerStream("pos_f", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
 	var node = _run_no_scene([d], s)
 	assert_str(node.err).is_not_empty()
 	node.free()

@@ -149,8 +149,10 @@ func execute( ctx : FlowData.EvaluationContext ):
 			if main_stream_name == "" or not in_data.hasStream(main_stream_name):
 				main_stream_name = in_data.streams.keys()[in_data.streams.size() - 1]
 				
-			if in_data.streams.size() > 0 and not target_data.hasStream(settings.name):
-				var main_stream = in_data.streams[main_stream_name]
+			var main_stream = in_data.streams[main_stream_name]
+			# A port named like a canonical attribute (density, seed, ...) only
+			# aliases a main stream of that attribute's type.
+			if not target_data.hasStream(settings.name) and FlowData.canonical_type_error(settings.name, main_stream.data_type) == "":
 				# Register the named output with the main stream's ACTUAL data_type, not
 				# the port's declared settings.data_type. Forcing a declared type onto a
 				# container of a different type (e.g. a Float main stream exposed through a

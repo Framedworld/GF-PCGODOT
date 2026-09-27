@@ -58,6 +58,46 @@ const AttrBoundsMin : StringName = &"bounds_min"	# Vector, per-point local-space
 const AttrBoundsMax : StringName = &"bounds_max"	# Vector, per-point local-space max corner of the bounds box
 const AttrSteepness : StringName = &"steepness"		# Float, 0..1, hardness of the point volume edge (UE $Steepness; 1 = binary box)
 
+## Canonical point attributes and the only DataType each may be registered with.
+## Data.registerStream refuses (push_error + returns the error string) a
+## registration of one of these names with any other type, so a graph that
+## writes, say, a Float `rotation` fails loudly instead of breaking orientation.
+const CANONICAL_ATTRIBUTE_TYPES := {
+	&"position": DataType.Vector,
+	&"rotation": DataType.Vector,		# Euler angles in degrees
+	&"size": DataType.Vector,
+	&"rotation_quat": DataType.Quaternion,
+	&"density": DataType.Float,
+	&"seed": DataType.Int,
+	&"normal": DataType.Vector,
+	&"bounds_min": DataType.Vector,
+	&"bounds_max": DataType.Vector,
+	&"steepness": DataType.Float,
+}
+
+## Error message for registering canonical attribute `name` as `data_type`, or ""
+## when `name` is not canonical or the type is the canonical one.
+static func canonical_type_error( name : String, data_type : DataType ) -> String:
+	var expected = CANONICAL_ATTRIBUTE_TYPES.get( StringName( name ), null )
+	if expected == null or expected == data_type:
+		return ""
+	return "Attribute '%s' is canonical and must be %s, not %s; registration refused. Write the value to another attribute name." % [
+		name, DataType.find_key( expected ), _data_type_label( data_type ) ]
+
+## `data_type`, or the canonical type of attribute `name` when both are numeric
+## (Int <-> Float), so an inferred `{"density": 1}` or `seed = 5.0` registers.
+static func canonical_numeric_type( name : String, data_type : DataType ) -> DataType:
+	var expected = CANONICAL_ATTRIBUTE_TYPES.get( StringName( name ), null )
+	if expected == DataType.Float and data_type == DataType.Int:
+		return DataType.Float
+	if expected == DataType.Int and data_type == DataType.Float:
+		return DataType.Int
+	return data_type
+
+static func _data_type_label( data_type : DataType ) -> String:
+	var key = DataType.find_key( data_type )
+	return String( key ) if key != null else str( data_type )
+
 # Per-evaluation state shared by every node of one graph evaluation. Build one
 # with FlowNodeIO.make_context(); nested subgraph/loop evaluations derive a
 # child context from it (see FlowNodeIO._build_evaluation_state).
@@ -84,6 +124,12 @@ class EvaluationContext:
 	var variables : Dictionary = {}
 	## Per-instance node setting overrides, "node_name/property" -> value.
 	var overrides : Dictionary = {}
+	## True only for the editor dock's live preview (flow_editor.gd sets it);
+	## nested subgraph/loop evaluations inherit it. In a preview with no owner
+	## (a graph opened on its own) nodes stay silent about missing inputs and
+	## the missing owner and emit empty Data (FlowNodeBase.is_ownerless_preview).
+	## Runtime callers, @tool scripts included, leave it false and get real errors.
+	var preview : bool = false
 
 ## Deterministic per-point seed (UE $Seed parity): hashes the position
 ## quantized per component at *1000 (the same quantization mutate_seed.gd
@@ -314,7 +360,7 @@ class Data:
 	static func scalar( name : String, value, data_type : DataType = DataType.Invalid ) -> Data:
 		var data := Data.new()
 		if data_type == DataType.Invalid:
-			data_type = _inferValueType( value )
+			data_type = FlowData.canonical_numeric_type( name, _inferValueType( value ) )
 		if data_type == DataType.Invalid:
 			push_warning( "Data.scalar('%s'): unsupported value type %s" % [ name, type_string( typeof( value ) ) ] )
 			return data
@@ -386,6 +432,23 @@ class Data:
 		var stream = _findStreamQuiet( name )
 		if stream != null and stream.container.size() > 0:
 			return _readElement( stream, 0 )
+		if not name.begins_with( DataAttrPrefix ) and data_attrs.has( name ):
+			return get_data_attr( name, default )
+		return default
+
+	## Value of stream `name` for point `i`, honouring broadcast: a one-element
+	## stream (and a per-data attribute, "@data.<name>" or a plain name with no
+	## stream) applies to every point (FlowData.bcast_idx). Returns `default`
+	## when the name resolves to nothing or `i` is outside the stream. Bool
+	## streams come back as bool, like first(). Same selectors as first().
+	func value_at( name : String, i : int, default = null ):
+		var stream = _findStreamQuiet( name )
+		if stream != null and stream.container.size() > 0:
+			var count : int = stream.container.size()
+			var idx := FlowData.bcast_idx( count, i )
+			if i < 0 or idx >= count:
+				return default
+			return _readElement( stream, idx )
 		if not name.begins_with( DataAttrPrefix ) and data_attrs.has( name ):
 			return get_data_attr( name, default )
 		return default
@@ -628,6 +691,12 @@ class Data:
 			if data_type == FlowData.DataType.Invalid:
 				print( "Invalid data type ", name, " Container:", container)
 				return "Invalid container type"
+
+			# Canonical attributes have one fixed type (CANONICAL_ATTRIBUTE_TYPES).
+			var canonical_error := FlowData.canonical_type_error( name, data_type )
+			if canonical_error != "":
+				push_error( "registerStream: " + canonical_error )
+				return canonical_error
 
 			if streams.has(name) and streams[name].data_type != data_type:
 				push_warning("Stream name conflict: '%s' already exists with data_type %d, overwriting with data_type %d" % [name, streams[name].data_type, data_type])

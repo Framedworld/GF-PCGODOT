@@ -17,7 +17,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	if in_data == null:
 		# require_input already emitted/handled output 0; keep the remaining
 		# outputs populated in the silent editor-preview path
-		if ctx and ctx.owner == null and Engine.is_editor_hint():
+		if is_ownerless_preview(ctx):
 			for i in range(1, 4):
 				set_output(i, FlowData.Data.new())
 		return

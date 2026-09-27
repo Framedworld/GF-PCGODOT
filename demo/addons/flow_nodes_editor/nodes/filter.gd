@@ -70,7 +70,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		return
 	var sA = in_dataA.findStream( settings.in_nameA )
 	if sA == null:
-		if ctx.owner == null and Engine.is_editor_hint():
+		if is_ownerless_preview(ctx):
 			var empty_out = FlowData.Data.new()
 			set_output( 0, empty_out )
 			set_output( 1, empty_out )
@@ -101,7 +101,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			sB = newFloatStream( in_dataA.size(), "Constant %s" % settings.in_nameB, 0.0 )
 		else:
 			if requires_two_operands:
-				if ctx.owner == null and Engine.is_editor_hint():
+				if is_ownerless_preview(ctx):
 					var empty_out = FlowData.Data.new()
 					set_output( 0, empty_out )
 					set_output( 1, empty_out )
@@ -116,7 +116,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			sB = newStream( num_elemsA, sB.name, sB.container[0], sB.data_type )
 			num_elemsB = num_elemsA
 		else:
-			if ctx.owner == null and Engine.is_editor_hint():
+			if is_ownerless_preview(ctx):
 				var empty_out = FlowData.Data.new()
 				set_output( 0, empty_out )
 				set_output( 1, empty_out )
@@ -153,7 +153,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 					else:
 						indices_false.append(i)
 	else:
-		if ctx.owner == null and Engine.is_editor_hint():
+		if is_ownerless_preview(ctx):
 			var empty_out = FlowData.Data.new()
 			set_output( 0, empty_out )
 			set_output( 1, empty_out )

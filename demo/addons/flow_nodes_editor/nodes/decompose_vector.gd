@@ -16,7 +16,7 @@ func _init():
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = get_input(0)
 	if in_data == null:
-		if ctx.owner == null and Engine.is_editor_hint():
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		setError("Input 'In' is not connected")
@@ -27,7 +27,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	
 	var s_in = in_data.findStream(settings.in_attribute)
 	if s_in == null:
-		if ctx.owner == null and Engine.is_editor_hint():
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		setError("Input attribute %s not found" % settings.in_attribute)

@@ -190,3 +190,59 @@ func get_data_attr(name : String, default = null)
   error instead of crashing; `output` preserves tags/data_attrs/kind.
 - Overrides/bindings: override beats binding beats saved value, wired port beats all;
   subgraph-prefixed override targets only that subgraph; missing param keeps saved value.
+
+---
+
+## Implemented: deviations from this contract
+
+The implementation round follows the contract above except where listed here.
+Callers should code against this section where the two differ.
+
+- **`owner` is typed `Node3D`**, not `FlowGraphNode3D`: `EvaluationContext.owner`,
+  `make_context(owner)` and `evaluate(..., owner)` all take any `Node3D` as spawn
+  parent and scene anchor. Component features (`args`, `overrides`,
+  `transient_output`) are read only when the owner has them.
+- **`make_context` and `evaluate` also take `overrides`** as a last argument
+  (`make_context(owner, seed, params, overrides)`,
+  `evaluate(graph, inputs, seed, params, owner, overrides)`), merged over the
+  owner's own `overrides`. The seed formula is exposed as
+  `FlowNodeBase.derive_seed(graph_seed, node_seed)`.
+- **Scene-source nodes emit an empty output when owner-less**, not a pass-through
+  (they have no input to pass). `scan_meshes`, `scan_nodes`, `scan_splines`,
+  `navigation_region_sampler`, `points_from_gridmap` and `points_from_tilemap` report
+  the §3 error through `FlowNodeBase.reportMissingOwner`; the scanners and
+  `navigation_region_sampler` then emit their usual streams with zero points (an
+  empty schema, so downstream nodes still find their columns), the gridmap and
+  tilemap sources an empty Data. Nodes with an input to pass through (spawners,
+  `create_spline`, `apply_on_actor`, `projection`, `point_from_player_pawn`, physics
+  and ray queries) use `handleMissingOwner` and pass input 0 through as §3 says.
+- **Stale component ids are removable on cleanup.** Besides the legacy String form,
+  a `flow_owner` meta whose `component` is 0 or names an instance that no longer
+  exists (content saved into the scene by an earlier session) counts as this
+  component's content, in `removeInstanced*` for the spawning node and in
+  `FlowGraphNode3D.cleanup()` for the component's own subtree.
+- **`copy` keeps `SourceOnly` as its default** `attribute_inheritance` (SourceToTargets
+  mode), so existing graphs produce the same streams; `SourceFirst`, `TargetFirst`
+  and `TargetOnly` are opt-in.
+- **Bindings have a fourth source (§4).** When the parameter is absent from
+  `input_data_map`, `runtime_params` and `variables`, a binding takes the default of
+  the graph's own declared input of that name (`graph.in_params`), so one declared
+  graph input can single-source a knob in dock previews as well as at runtime.
+  Absent everywhere, the saved value is kept silently as before.
+- **Preview is explicit.** `EvaluationContext.preview : bool = false` is set only by
+  the editor dock's context (`flow_editor.gd` `_new_preview_context`) and is
+  inherited by nested evaluations. `require_input`, `reportMissingOwner` and the
+  stock nodes stay silent (emitting empty Data) only when
+  `FlowNodeBase.is_ownerless_preview(ctx)` holds: preview set and no owner. Any other
+  owner-less evaluation, including `@tool` scripts in the editor, gets the
+  documented errors.
+- **Node errors reach runtime callers.** Every `setError` raised during
+  `FlowNodeIO.evaluate()` or `FlowGraphNode3D.generate()` / `generate_async()`,
+  nested subgraph and loop evaluations included, is recorded as
+  `{ "node", "template", "message" }` in the static `FlowNodeIO.last_errors`
+  (reset per top-level evaluation) and in `FlowGraphNode3D.last_errors`, which is
+  set before `generated` is emitted. The `generated(outputs)` signal is unchanged,
+  so existing one-argument handlers keep working. A context built by hand and passed
+  to `evaluate_graph` collects nothing unless `FlowNodeIO.start_error_log(ctx)` was
+  called on it, or the call happens inside a synchronous `evaluate()` / `generate()`
+  (a custom node running its own subgraph evaluation reports into that run).

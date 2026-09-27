@@ -62,6 +62,14 @@ var dependants : Array[ Dictionary ]	# Array of graphEdit connections where I'm 
 var eval_id : int = 0
 var err : String
 
+## EvaluationContext meta holding the Array that collects setError() calls for
+## runtime callers (FlowNodeIO.last_errors, FlowGraphNode3D.last_errors). Set by
+## FlowNodeIO.evaluate() / FlowGraphNode3D.generate(), shared by nested
+## subgraph and loop evaluations. Editor contexts never carry it.
+const ERROR_LOG_META := &"flow_error_log"
+# The evaluation's error log while this node runs (null outside such evaluations).
+var _error_log = null
+
 # Render
 var draw_debug : NodeDrawDebug
 var ui_scale = 1.0
@@ -171,6 +179,15 @@ func effective_seed() -> int:
 
 const OWNER_REQUIRED_ERROR := "%s needs an owner node; generate through a FlowGraphNode3D or pass owner to FlowNodeIO.evaluate"
 
+## True for the editor dock's preview of a graph that has no owner node
+## (EvaluationContext.preview set by the editor, owner null). Nodes then emit
+## empty Data instead of reporting missing inputs, so a half-wired graph does
+## not spam errors while it is being edited. Every other evaluation, including
+## @tool scripts that call FlowNodeIO.evaluate() without an owner, is not a
+## preview and reports real errors.
+static func is_ownerless_preview( ctx ) -> bool:
+	return ctx != null and ctx.preview and ctx.owner == null
+
 ## Owner-less runtime guard (docs/RUNTIME_API_P0.md §3) for nodes that need a
 ## scene (spawners, scene scanners, apply_on_actor, physics/ray queries).
 ## When the evaluation has no owner outside the editor, reports the documented
@@ -185,12 +202,12 @@ func handleMissingOwner( ctx ) -> bool:
 	return true
 
 ## Reports the documented owner-less error and returns true when the evaluation
-## has no owner outside the editor; emits nothing. Source nodes (scene
+## has no owner and is not an editor preview; emits nothing. Source nodes (scene
 ## scanners) use it directly and keep producing their empty-schema output.
 func reportMissingOwner( ctx ) -> bool:
 	if ctx != null and ctx.owner != null and is_instance_valid( ctx.owner ):
 		return false
-	if Engine.is_editor_hint():
+	if is_ownerless_preview( ctx ):
 		return false
 	var label := str( meta_node.get( "title", "" ) )
 	if label == "":
@@ -266,6 +283,8 @@ static func assignSpawnOwner( spawned : Node, scene_owner : Node, ctx ) -> void:
 func preExecute( ctx : FlowData.EvaluationContext ):
 	eval_id = ctx.eval_id
 	graph_seed = ctx.seed
+	# get_meta with a null default still errors on a missing key: check first.
+	_error_log = ctx.get_meta( ERROR_LOG_META ) if ctx != null and ctx.has_meta( ERROR_LOG_META ) else null
 	setError("")
 	if settings != null and "random_seed" in settings:
 		rng.seed = effective_seed()
@@ -326,10 +345,28 @@ static func normalize_category(category: String) -> String:
 		key = key.trim_suffix("s")
 	return key
 
-## Returns a hue value (0-1) from the node's `category` metadata (see CATEGORY_HUES).
-## Nodes without a known category fall back to a stable hash of their template name.
+## Optional project colour for the node's category: `meta_node.color` (a Color).
+## Returns null when the node does not declare one. Give every node of a project
+## category the same `color` (or `hue`) so the category reads as one colour.
+func _get_meta_node_color():
+	var color = getMeta().get("color", null)
+	if color is Color:
+		return color
+	return null
+
+## Returns a hue value (0-1) for the node's title bar, first match wins:
+## `meta_node.color` (its hue), `meta_node.hue` (a float, clamped to 0..1),
+## the `category` metadata (see CATEGORY_HUES), then a stable hash of the
+## template name for nodes without a known category.
 func _get_category_hue() -> float:
-	var category := String(getMeta().get("category", ""))
+	var meta := getMeta()
+	var meta_color = _get_meta_node_color()
+	if meta_color is Color:
+		return meta_color.h
+	var meta_hue = meta.get("hue", null)
+	if typeof(meta_hue) == TYPE_FLOAT or typeof(meta_hue) == TYPE_INT:
+		return clampf(float(meta_hue), 0.0, 1.0)
+	var category := String(meta.get("category", ""))
 	var key := normalize_category(category)
 	if CATEGORY_HUES.has(key):
 		return CATEGORY_HUES[key]
@@ -386,6 +423,16 @@ func update_node_style():
 			add_theme_stylebox_override("titlebar", sb_title)
 
 		var sb_title_selected = _make_tinted_graph_node_stylebox("titlebar_selected", color.darkened(0.48))
+		if sb_title_selected:
+			add_theme_stylebox_override("titlebar_selected", sb_title_selected)
+	elif is_colored and _get_meta_node_color() is Color:
+		# Project category colour from meta_node.color, tinted like custom colours.
+		var meta_color : Color = _get_meta_node_color()
+		var sb_title = _make_tinted_graph_node_stylebox("titlebar", meta_color.darkened(0.62))
+		if sb_title:
+			add_theme_stylebox_override("titlebar", sb_title)
+
+		var sb_title_selected = _make_tinted_graph_node_stylebox("titlebar_selected", meta_color.darkened(0.48))
 		if sb_title_selected:
 			add_theme_stylebox_override("titlebar_selected", sb_title_selected)
 	elif is_colored:
@@ -473,6 +520,9 @@ func setError( new_err : String ):
 	if new_err:
 		push_error( "Node.Err %s : %s" % [ name, new_err ])
 		editor_state_changed.emit()
+		# Runtime callers read these back (FlowNodeIO.last_errors).
+		if _error_log is Array:
+			_error_log.append( { "node": String( name ), "template": node_template, "message": new_err } )
 	err = new_err
 	redrawUI()
 
@@ -1142,14 +1192,15 @@ func get_optional_input( idx : int ):
 ## Input guard (PARITY_PLAN #4): returns the FlowData.Data connected at `port`,
 ## or null after handling the error path. Handles every failure shape an input
 ## read can produce: null (not connected), [] (out-of-range port) and any other
-## non-Data value. In editor preview (ctx.owner == null and the editor hint is
-## set) it emits an empty Data on output 0 and stays silent so disconnected
-## graphs don't spam errors; otherwise it reports "<error_label> not connected".
+## non-Data value. In an owner-less editor preview (is_ownerless_preview: the
+## editor set ctx.preview and there is no owner) it emits an empty Data on
+## output 0 and stays silent so disconnected graphs don't spam errors;
+## otherwise it reports "<error_label> not connected".
 func require_input( port : int, ctx, error_label := "Input" ) -> FlowData.Data:
 	var raw = inputs[ port ] if port >= 0 and port < inputs.size() else null
 	if raw is FlowData.Data:
 		return raw
-	if ctx and ctx.owner == null and Engine.is_editor_hint():
+	if is_ownerless_preview( ctx ):
 		set_output( 0, FlowData.Data.new() )
 		return null
 	setError( "%s not connected" % error_label )

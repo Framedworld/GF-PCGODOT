@@ -67,7 +67,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	if quats.is_empty():
 		# _read_quats only returns empty after calling setError (num_elems == 0 is
 		# handled above). Stay graceful in the editor preview, surface otherwise.
-		if ctx.owner == null and Engine.is_editor_hint():
+		if is_ownerless_preview(ctx):
 			set_output( 0, FlowData.Data.new() )
 		return
 

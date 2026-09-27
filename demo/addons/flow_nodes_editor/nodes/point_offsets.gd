@@ -49,7 +49,7 @@ func execute(ctx : FlowData.EvaluationContext):
 
 	var transforms := in_data.getTransformsStream()
 	if transforms == null:
-		if ctx.owner == null and Engine.is_editor_hint():
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		setError("Anchors must provide position, rotation, and size streams")

@@ -74,6 +74,13 @@ signal cleaned_up
 ## Outputs of the most recent generation (output name -> FlowData.Data).
 var last_outputs : Dictionary = {}
 
+## Node errors raised during the most recent generation, nested subgraph and
+## loop evaluations included: [{ "node", "template", "message" }, ...]. Set
+## before `generated` is emitted, so a handler can read it. Empty on success.
+var last_errors : Array = []
+# Error log of the async evaluation in flight.
+var _async_errors : Array = []
+
 # Active resumable evaluation while async generation is in flight (null otherwise).
 var _async_eval = null
 # True while a synchronous generate() is running.
@@ -186,9 +193,10 @@ func generate( inputs : Dictionary = {}, extra_params : Dictionary = {} ) -> Dic
 	_generating_sync = true
 	# Root evaluation starts the recursion guard at depth 0; nested
 	# subgraph/loop nodes call evaluate_graph with depth + 1.
-	var outputs : Dictionary = FlowNodeIOClass.evaluate_graph( graph, _merged_inputs( inputs ), ctx, {}, 0 )
+	var result : Dictionary = FlowNodeIOClass.evaluate_collecting_errors( graph, _merged_inputs( inputs ), ctx )
+	var outputs : Dictionary = result.outputs
 	_generating_sync = false
-	_on_generation_finished( outputs )
+	_on_generation_finished( outputs, result.errors )
 	return outputs
 
 ## Time-sliced generation: the node-execution phase is spread across frames
@@ -202,11 +210,13 @@ func generate_async( inputs : Dictionary = {}, extra_params : Dictionary = {} ) 
 	_finish_async_now( false )
 	var ctx := _make_context( extra_params )
 	var input_map := _merged_inputs( inputs )
+	_async_errors = FlowNodeIOClass.start_error_log( ctx )
 	_async_eval = FlowNodeIOClass.begin_evaluation( graph, input_map, ctx, {}, 0 )
 	# begin_evaluation returns null only on the recursion guard (depth 0 here),
 	# but stay defensive: fall back to synchronous so generation still happens.
 	if _async_eval == null:
-		_on_generation_finished( FlowNodeIOClass.evaluate_graph( graph, input_map, ctx, {}, 0 ) )
+		var result : Dictionary = FlowNodeIOClass.evaluate_collecting_errors( graph, input_map, ctx )
+		_on_generation_finished( result.outputs, result.errors )
 		return
 	set_process(true)
 
@@ -263,8 +273,9 @@ func _collect_owned( node : Node, my_id : int, own_subtree : bool, doomed : Arra
 				continue
 		_collect_owned( child, my_id, own_subtree, doomed )
 
-func _on_generation_finished( outputs : Dictionary ) -> void:
+func _on_generation_finished( outputs : Dictionary, errors : Array = [] ) -> void:
 	last_outputs = outputs if outputs != null else {}
+	last_errors = errors.duplicate() if errors != null else []
 	generated.emit( last_outputs )
 
 # Run an in-flight async evaluation to completion now.
@@ -277,7 +288,7 @@ func _finish_async_now( emit_generated : bool ) -> void:
 	if not evaluation.is_done():
 		evaluation.run_to_completion()
 	if emit_generated:
-		_on_generation_finished( evaluation.outputs )
+		_on_generation_finished( evaluation.outputs, _async_errors )
 
 func _process(_delta: float) -> void:
 	if _async_eval == null:
@@ -289,7 +300,7 @@ func _process(_delta: float) -> void:
 		var evaluation = _async_eval
 		_async_eval = null
 		set_process(false)
-		_on_generation_finished( evaluation.outputs )
+		_on_generation_finished( evaluation.outputs, _async_errors )
 
 func _exit_tree() -> void:
 	# Ensure an in-flight async evaluation is finalized (instances freed) if the

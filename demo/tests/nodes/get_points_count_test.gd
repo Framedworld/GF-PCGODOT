@@ -35,7 +35,8 @@ func _output(node: GetPointsCountNode) -> FlowData.Data:
 	return bulk[0]
 
 func test_float_stream_returns_correct_count() -> void:
-	var input = _make_data("position", PackedFloat32Array([1.0, 2.0, 3.0, 4.0, 5.0]), FlowDataScript.DataType.Float)
+	# Not "position": canonical attributes only register with their own type.
+	var input = _make_data("value", PackedFloat32Array([1.0, 2.0, 3.0, 4.0, 5.0]), FlowDataScript.DataType.Float)
 	var node = _run(input)
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -80,7 +81,7 @@ func test_color_stream_returns_correct_count() -> void:
 	node.free()
 
 func test_single_element_input() -> void:
-	var input = _make_data("position", PackedFloat32Array([42.0]), FlowDataScript.DataType.Float)
+	var input = _make_data("value", PackedFloat32Array([42.0]), FlowDataScript.DataType.Float)
 	var node = _run(input)
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -93,7 +94,7 @@ func test_single_element_input() -> void:
 func test_large_array_count() -> void:
 	var values = PackedFloat32Array()
 	values.resize(1000)
-	var input = _make_data("position", values, FlowDataScript.DataType.Float)
+	var input = _make_data("value", values, FlowDataScript.DataType.Float)
 	var node = _run(input)
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -104,7 +105,7 @@ func test_large_array_count() -> void:
 	node.free()
 
 func test_custom_output_stream_name() -> void:
-	var input = _make_data("position", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
+	var input = _make_data("value", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
 	var node = _run(input, "my_count")
 	assert_str(node.err).is_empty()
 	var out = _output(node)

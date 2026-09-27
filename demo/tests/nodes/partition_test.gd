@@ -126,7 +126,7 @@ func test_partition_all_same_value() -> void:
 	node.free()
 
 func test_partition_missing_attribute_error() -> void:
-	var data = _make_data("position", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
+	var data = _make_data("value", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var s = _default_settings("nonexistent_attr")
 	var node = _run(data, s)
 	assert_str(node.err).is_not_empty()
