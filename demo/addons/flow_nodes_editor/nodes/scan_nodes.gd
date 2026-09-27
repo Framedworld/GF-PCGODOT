@@ -216,7 +216,11 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var output := FlowData.Data.new()
 
 	var filter_by_class_name = getSettingValue( ctx, "filter_by_class_name" )
-	var nodes = _collect_scene_nodes( ctx, filter_by_class_name )
+	# Never scan content a flow graph generated (flow_owner meta): the editor
+	# removes it before every regen, but at runtime a second component's scan
+	# would otherwise pick up the first one's spawned nodes, and their
+	# auto-generated names make the result non-deterministic.
+	var nodes = filterOutGeneratedNodes( _collect_scene_nodes( ctx, filter_by_class_name ) )
 
 	var nsamples = nodes.size()
 	output.addCommonStreams( nsamples )

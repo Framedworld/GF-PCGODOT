@@ -163,6 +163,18 @@ The C++ source lives under `demo/addons/flow_nodes_editor/native/src/`. Note tha
 
 ---
 
+## Testing & CI
+
+The GdUnit4 suites live in `demo/tests` (`nodes/` per-node semantics, `evaluator/` graph-level behaviour of `FlowNodeIO.evaluate_graph`, `golden/` whole-graph regression). From `demo/`:
+
+```bash
+godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -a res://tests
+```
+
+CI runs the same `res://tests` tree in the `gdunit_validate` job with the freshly built Linux GDExtension. The **golden-output harness** (`demo/tests/golden`) evaluates every graph in `demo/graphs`, `demo/demos` (including the graphs embedded in demo scenes) and the root sample graphs, and compares a per-node hash of every output stream, the spawned-node count and the node errors against the checked-in `baseline.json`; a failure names the graph, node, port and stream that drifted. After an intended output change, regenerate it with `FLOW_GOLDEN_UPDATE=1` and review the diff. Game projects can vendor the harness and point it at their own graphs with `FLOW_GOLDEN_GRAPH_DIRS` / `FLOW_GOLDEN_BASELINE` to check a re-baseline of the addon before and after; see [demo/tests/golden/README.md](demo/tests/golden/README.md).
+
+---
+
 ## License & Attributions
 
 Licensed under the **Apache License 2.0** — see [LICENSE](LICENSE).

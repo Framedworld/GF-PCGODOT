@@ -1462,3 +1462,173 @@ class GraphEvaluation:
 		while not _finalized:
 			step(1.0e12)
 		return outputs
+
+
+# ---------------------------------------------------------------------------
+# Golden-output snapshot (used by tests/golden; see tests/golden/README.md).
+#
+# Self-contained on purpose: it only drives the evaluator phases above and
+# never changes their behaviour. evaluate_graph_snapshot() runs exactly what
+# evaluate_graph() runs (same build, same ordered execution, same finalize and
+# instance freeing) but, before the node instances are freed, records a
+# summary of every node's generated bulks. A regression can then be pinned to
+# the first node whose output drifted instead of only to the graph outputs.
+# ---------------------------------------------------------------------------
+
+## Float quantization for snapshot hashes: values are rounded to 1/1000 before
+## hashing so last-bit float noise (different CPUs, compilers, engine minor
+## versions) does not register as a regression.
+const SNAPSHOT_FLOAT_QUANTUM := 1000.0
+
+## Evaluates `graph` like evaluate_graph() and returns
+##   { node_name: [ bulk_0 [ port_0 summary, port_1 summary, ... ], bulk_1 [...] ] }
+## for EVERY node instanced from the graph (a node that did not execute maps to
+## []; an unset port maps to null). Summaries come from snapshot_summarize_data().
+## When `outputs_out` is a Dictionary it receives the graph outputs that
+## evaluate_graph() would have returned.
+static func evaluate_graph_snapshot(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary = {}, depth: int = 0, outputs_out = null) -> Dictionary:
+	if depth > 20:
+		push_error("PCG graph evaluation exceeded maximum recursion depth (20). Check for circular subgraph references.")
+		return {}
+	var state := _build_evaluation_state(graph, input_data_map, parent_ctx, runtime_params, depth)
+	if state.is_empty():
+		return {}
+	var graph_res: FlowGraphResource = state["graph"]
+	var instances: Dictionary = state["instances"]
+	var ctx: FlowData.EvaluationContext = state["ctx"]
+	for node in state["ordered_nodes"]:
+		_execute_single_node(node, instances, graph_res, ctx)
+	var snapshot := {}
+	for node in state["node_list"]:
+		var bulks := []
+		for bulk in node.generated_bulks:
+			var ports := []
+			for port_data in bulk:
+				if port_data is FlowData.Data:
+					ports.append(snapshot_summarize_data(port_data))
+				else:
+					ports.append(null)
+			bulks.append(ports)
+		snapshot[str(node.name)] = bulks
+	var outputs := _finalize_evaluation(state)
+	if outputs_out is Dictionary:
+		outputs_out.clear()
+		for key in outputs:
+			outputs_out[key] = outputs[key]
+	return snapshot
+
+## Stable, JSON-friendly summary of a Data: point count, kind, sorted tags,
+## per-data attributes and, per stream (sorted by name): name, data_type,
+## element count and a content hash.
+static func snapshot_summarize_data(data: FlowData.Data) -> Dictionary:
+	var names := []
+	for stream_name in data.streams.keys():
+		names.append(str(stream_name))
+	names.sort()
+	var streams := []
+	for stream_name in names:
+		var stream = data.streams[stream_name]
+		streams.append({
+			"name": stream_name,
+			"data_type": int(stream.data_type),
+			"count": stream.container.size(),
+			"hash": snapshot_hash_container(stream.container),
+		})
+	var tags := []
+	for tag in data.tags:
+		tags.append(str(tag))
+	tags.sort()
+	var attr_names := []
+	for attr_name in data.data_attrs.keys():
+		attr_names.append(str(attr_name))
+	attr_names.sort()
+	var attrs := {}
+	for attr_name in attr_names:
+		var record = data.data_attrs[attr_name]
+		var value = record.get("value", null) if record is Dictionary else record
+		var data_type = int(record.get("data_type", -1)) if record is Dictionary else -1
+		attrs[attr_name] = { "data_type": data_type, "hash": snapshot_hash_container([value]) }
+	return {
+		"size": data.size(),
+		"kind": int(data.kind),
+		"tags": tags,
+		"data_attrs": attrs,
+		"streams": streams,
+	}
+
+## Content hash (16 hex chars of SHA-256) of a stream container. Integer, bool
+## and string containers hash their exact contents; float-based containers are
+## quantized with SNAPSHOT_FLOAT_QUANTUM first; Resource/Node arrays hash only
+## resource_path (or class) per element, never object identity.
+static func snapshot_hash_container(container) -> String:
+	var hctx := HashingContext.new()
+	hctx.start(HashingContext.HASH_SHA256)
+	var bytes := PackedByteArray()
+	if container is PackedByteArray:
+		bytes = container
+	elif container is PackedInt32Array or container is PackedInt64Array:
+		bytes = container.to_byte_array()
+	elif container is PackedStringArray:
+		bytes = ("\u001f".join(container)).to_utf8_buffer()
+	elif container is PackedFloat32Array or container is PackedFloat64Array:
+		var q := PackedInt64Array()
+		q.resize(container.size())
+		for i in range(container.size()):
+			q[i] = _snapshot_quantize(container[i])
+		bytes = q.to_byte_array()
+	elif container is PackedVector2Array or container is PackedVector3Array or container is PackedVector4Array or container is PackedColorArray:
+		var comps := 2
+		if container is PackedVector3Array:
+			comps = 3
+		elif container is PackedVector4Array or container is PackedColorArray:
+			comps = 4
+		var q := PackedInt64Array()
+		q.resize(container.size() * comps)
+		var k := 0
+		for i in range(container.size()):
+			var v = container[i]
+			for c in range(comps):
+				q[k] = _snapshot_quantize(v[c])
+				k += 1
+		bytes = q.to_byte_array()
+	elif container is Array:
+		var tokens := PackedStringArray()
+		for value in container:
+			tokens.append(_snapshot_value_token(value))
+		bytes = ("\u001f".join(tokens)).to_utf8_buffer()
+	else:
+		bytes = _snapshot_value_token(container).to_utf8_buffer()
+	if bytes.size() > 0:
+		hctx.update(bytes)
+	return hctx.finish().hex_encode().substr(0, 16)
+
+static func _snapshot_quantize(v: float) -> int:
+	if is_nan(v):
+		return -9223372036854775807
+	if is_inf(v):
+		return 9223372036854775807 if v > 0.0 else -9223372036854775806
+	return int(round(v * SNAPSHOT_FLOAT_QUANTUM))
+
+static func _snapshot_value_token(value) -> String:
+	if typeof(value) == TYPE_NIL:
+		return "null"
+	if typeof(value) == TYPE_OBJECT:
+		if not is_instance_valid(value):
+			return "null"
+		if value is Resource and not value.resource_path.is_empty():
+			return value.resource_path
+		return "<%s>" % value.get_class()
+	match typeof(value):
+		TYPE_FLOAT:
+			return str(_snapshot_quantize(value))
+		TYPE_VECTOR2, TYPE_VECTOR3, TYPE_VECTOR4, TYPE_COLOR, TYPE_QUATERNION:
+			var parts := PackedStringArray()
+			var n := 4
+			if typeof(value) == TYPE_VECTOR2:
+				n = 2
+			elif typeof(value) == TYPE_VECTOR3:
+				n = 3
+			for c in range(n):
+				parts.append(str(_snapshot_quantize(value[c])))
+			return ",".join(parts)
+	return var_to_str(value)
