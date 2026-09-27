@@ -295,3 +295,53 @@ func test_extra_streams_copied_to_output() -> void:
 	assert_float(density_stream.container[2]).is_equal_approx(0.8, 0.001)
 	assert_float(density_stream.container[3]).is_equal_approx(0.8, 0.001)
 	node.free()
+
+# ---------------------------------------------------------------------------
+# Bookkeeping columns: parent_index / offset_index / offset_label are written
+# by default; an empty (or blank) attribute name disables each one.
+# ---------------------------------------------------------------------------
+
+func _run_two_offsets(configure: Callable) -> PointOffsetsNode:
+	var s = PointOffsetsSettings.new()
+	var o: Array[Vector3] = [Vector3(1, 0, 0), Vector3(-1, 0, 0)]
+	s.offsets = o
+	configure.call(s)
+	return _run([_make_anchor_data(PackedVector3Array([Vector3.ZERO, Vector3(5, 0, 0)]))], s)
+
+func test_bookkeeping_columns_written_by_default() -> void:
+	var node = _run_two_offsets(func(_s): pass)
+	var out = _output(node)
+	assert_array(Array(out.findStream("parent_index").container)).is_equal([0, 0, 1, 1])
+	assert_array(Array(out.findStream("offset_index").container)).is_equal([0, 1, 0, 1])
+	assert_array(Array(out.findStream("offset_label").container)).is_equal(["0", "1", "0", "1"])
+	node.free()
+
+func test_empty_attribute_name_disables_each_column_independently() -> void:
+	var columns := {
+		"parent_index_attribute": "parent_index",
+		"offset_index_attribute": "offset_index",
+		"label_attribute": "offset_label",
+	}
+	for disabled in columns:
+		for blank in ["", "   "]:
+			var node = _run_two_offsets(func(s): s.set(disabled, blank))
+			var out = _output(node)
+			assert_str(node.err).is_empty()
+			for setting in columns:
+				assert_bool(out.hasStream(columns[setting])) \
+					.override_failure_message("%s='%s' -> %s" % [disabled, blank, columns[setting]]) \
+					.is_equal(setting != disabled)
+			# No stray empty-named stream either.
+			assert_bool(out.hasStream("")).is_false()
+			assert_int(out.numFields()).is_equal(5)
+			node.free()
+
+func test_all_bookkeeping_columns_disabled_leaves_only_input_streams() -> void:
+	var node = _run_two_offsets(func(s):
+		s.parent_index_attribute = ""
+		s.offset_index_attribute = ""
+		s.label_attribute = ""
+	)
+	var out = _output(node)
+	assert_array(out.streams.keys()).is_equal(["position", "rotation", "size"])
+	node.free()

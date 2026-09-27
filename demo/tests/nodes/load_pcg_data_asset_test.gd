@@ -9,6 +9,14 @@ const LoadPcgDataAssetSettings = preload("res://addons/flow_nodes_editor/nodes/l
 # Helpers
 # ---------------------------------------------------------------------------
 
+func before_test() -> void:
+	# The parsed-JSON cache is static (shared by every node instance); start
+	# each test from a cold cache so tests stay independent.
+	LoadPcgDataAssetNode.clear_cache()
+
+func after() -> void:
+	LoadPcgDataAssetNode.clear_cache()
+
 func _make_settings() -> LoadPcgDataAssetSettings:
 	var s = LoadPcgDataAssetSettings.new()
 	s.asset_path = ""
@@ -460,3 +468,131 @@ func test_streams_to_data_skips_non_array_entries() -> void:
 	assert_bool(out.hasStream("v")).is_true()
 	assert_bool(out.hasStream("meta")).is_false()
 	node.free()
+
+# ---------------------------------------------------------------------------
+# Inference short-circuit + parsed-JSON cache
+# ---------------------------------------------------------------------------
+
+## Reference copy of the pre-short-circuit inference (every candidate probed for
+## every value). The optimised node must agree with it on every column.
+func _reference_infer(node, values : Array) -> int:
+	var can_bool := true
+	var can_int := true
+	var can_float := true
+	var can_vector := true
+	for value in values:
+		if value == null:
+			continue
+		var t := typeof(value)
+		if t != TYPE_BOOL: can_bool = false
+		if t != TYPE_INT: can_int = false
+		if t != TYPE_INT and t != TYPE_FLOAT: can_float = false
+		if not node._as_vector3(value).ok: can_vector = false
+	if can_bool: return FlowData.DataType.Bool
+	if can_int: return FlowData.DataType.Int
+	if can_float: return FlowData.DataType.Float
+	if can_vector: return FlowData.DataType.Vector
+	return FlowData.DataType.String
+
+func test_infer_variant_type_mixed_columns_unchanged() -> void:
+	var node = LoadPcgDataAssetNode.new()
+	node.name = "helper_test"
+	var columns := {
+		"bools": [true, null, false],
+		"ints": [1, 2, null, 3],
+		"floats": [1.0, 2, 3.5],
+		"vec_strings": ["1 2 3", "(4, 5, 6)", null, "7;8;9"],
+		"vec_mixed": [Vector3.ONE, [1, 2, 3], {"x": 1, "y": 2, "z": 3}, "1|2|3"],
+		"float_then_vec": [1.0, "1 2 3"],
+		"vec_then_float": ["1 2 3", 1.0],
+		"bool_then_int": [true, 1],
+		"strings": ["a", "b"],
+		"string_then_vec": ["a", "1 2 3", Vector3.ZERO],
+		"all_null": [null, null],
+		"empty": [],
+	}
+	var expected := {
+		"bools": FlowData.DataType.Bool,
+		"ints": FlowData.DataType.Int,
+		"floats": FlowData.DataType.Float,
+		"vec_strings": FlowData.DataType.Vector,
+		"vec_mixed": FlowData.DataType.Vector,
+		"float_then_vec": FlowData.DataType.String,
+		"vec_then_float": FlowData.DataType.String,
+		"bool_then_int": FlowData.DataType.String,
+		"strings": FlowData.DataType.String,
+		"string_then_vec": FlowData.DataType.String,
+		"all_null": FlowData.DataType.Bool,
+		"empty": FlowData.DataType.Bool,
+	}
+	for name in columns:
+		var got : int = node._infer_variant_type(columns[name])
+		assert_int(got).override_failure_message("column %s" % name).is_equal(expected[name])
+		assert_int(got).override_failure_message("column %s vs reference" % name) \
+			.is_equal(_reference_infer(node, columns[name]))
+	node.free()
+
+func test_second_load_hits_cache() -> void:
+	var json := '[{"a": 1.0, "tag": "x", "p": "1 2 3"}, {"a": 2.0, "tag": "y", "p": "4 5 6"}]'
+	var path = _write_temp_json("test_cache_hit.json", json)
+	var s = _make_settings()
+	s.asset_path = path
+	var first = _run(s)
+	assert_str(first.err).is_empty()
+	assert_int(LoadPcgDataAssetNode.parse_count).is_equal(1)
+	assert_int(LoadPcgDataAssetNode.cache_hits).is_equal(0)
+	var out1 = _output(first)
+	# Mutating the returned Data must not leak into the cache.
+	out1.findStream("a").container[0] = 99.0
+
+	var second = _run(s)
+	assert_str(second.err).is_empty()
+	assert_int(LoadPcgDataAssetNode.parse_count).is_equal(1)
+	assert_int(LoadPcgDataAssetNode.cache_hits).is_equal(1)
+	var out2 = _output(second)
+	assert_float(out2.findStream("a").container[0]).is_equal(1.0)
+	assert_int(out2.findStream("p").data_type).is_equal(FlowData.DataType.Vector)
+	assert_str(out2.findStream("tag").container[1]).is_equal("y")
+	assert_object(out2).is_not_same(out1)
+	first.free()
+	second.free()
+
+func test_settings_change_misses_cache() -> void:
+	var path = _write_temp_json("test_cache_settings.json", '[{"a": 1.0}]')
+	var s = _make_settings()
+	s.asset_path = path
+	_run(s).free()
+	s.add_source_path = true
+	var node = _run(s)
+	assert_int(LoadPcgDataAssetNode.parse_count).is_equal(2)
+	assert_bool(_output(node).hasStream("source_path")).is_true()
+	node.free()
+
+func test_modified_time_change_invalidates_cache() -> void:
+	# Same byte length on purpose, so only the mtime differs between revisions.
+	var path = _write_temp_json("test_cache_mtime.json", '[{"a": 1.0}]')
+	var s = _make_settings()
+	s.asset_path = path
+	var first = _run(s)
+	assert_float(_output(first).findStream("a").container[0]).is_equal(1.0)
+	var mtime_before := FileAccess.get_modified_time(path)
+	# mtime has one-second resolution; wait until it can differ.
+	OS.delay_msec(1100)
+	_write_temp_json("test_cache_mtime.json", '[{"a": 7.0}]')
+	assert_int(FileAccess.get_modified_time(path)).is_not_equal(mtime_before)
+	var second = _run(s)
+	assert_int(LoadPcgDataAssetNode.parse_count).is_equal(2)
+	assert_int(LoadPcgDataAssetNode.cache_hits).is_equal(0)
+	assert_float(_output(second).findStream("a").container[0]).is_equal(7.0)
+	first.free()
+	second.free()
+
+func test_clear_cache_forces_reparse() -> void:
+	var path = _write_temp_json("test_cache_clear.json", '[{"a": 1.0}]')
+	var s = _make_settings()
+	s.asset_path = path
+	_run(s).free()
+	LoadPcgDataAssetNode.clear_cache()
+	_run(s).free()
+	assert_int(LoadPcgDataAssetNode.parse_count).is_equal(1)
+	assert_int(LoadPcgDataAssetNode.cache_hits).is_equal(0)

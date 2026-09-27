@@ -177,3 +177,52 @@ func test_input_streams_are_preserved() -> void:
 	assert_object(out.findStream("density")).is_not_null()
 	assert_object(out.findStream("extra")).is_not_null()
 	node.free()
+
+# ---------------------------------------------------------------------------
+# Schema-row idiom: with nothing connected the node emits a 1-point Data that
+# holds only the new attribute. Chaining Add Attribute nodes builds a one-row
+# attribute set (a "schema row"). This is intentional; pin it.
+# ---------------------------------------------------------------------------
+
+func test_no_input_yields_single_row_schema_data() -> void:
+	var s = AddAttributeSettings.new()
+	s.name = "biome"
+	s.data_type = FlowDataScript.DataType.String
+	s.cte_string = "swamp"
+	s.domain = AddAttributeSettings.eDomain.PerPoint
+	var first = _run([null], s)
+	var row = _output(first)
+	assert_int(row.size()).is_equal(1)
+	# Only the new attribute: no transform/common streams are invented.
+	assert_array(row.streams.keys()).is_equal(["biome"])
+	assert_array(Array(row.findStream("biome").container)).is_equal(["swamp"])
+
+	# Chaining keeps it a single row with one more column.
+	var s2 = AddAttributeSettings.new()
+	s2.name = "tier"
+	s2.data_type = FlowDataScript.DataType.Int
+	s2.cte_int = 3
+	s2.domain = AddAttributeSettings.eDomain.PerPoint
+	var second = _run([row], s2)
+	var chained = _output(second)
+	assert_int(chained.size()).is_equal(1)
+	assert_array(chained.streams.keys()).is_equal(["biome", "tier"])
+	assert_array(Array(chained.findStream("tier").container)).is_equal([3])
+	first.free()
+	second.free()
+
+func test_empty_input_stays_empty_not_schema_row() -> void:
+	# Only a missing input produces the 1-row idiom; a connected but empty
+	# input keeps zero points.
+	var s = AddAttributeSettings.new()
+	s.name = "tier"
+	s.data_type = FlowDataScript.DataType.Int
+	s.cte_int = 3
+	s.domain = AddAttributeSettings.eDomain.PerPoint
+	var empty := FlowDataScript.Data.new()
+	empty.registerStream(FlowData.AttrPosition, PackedVector3Array(), FlowDataScript.DataType.Vector)
+	var node = _run([empty], s)
+	var out = _output(node)
+	assert_int(out.size()).is_equal(0)
+	assert_int(out.findStream("tier").container.size()).is_equal(0)
+	node.free()

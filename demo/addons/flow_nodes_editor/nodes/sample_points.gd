@@ -10,6 +10,31 @@ class BNSample:
 
 static var blue_noise_samples : Array[BNSample] = []
 
+## Streams the sampler generates itself; never inherited from the input points.
+const GENERATED_STREAMS := [
+	FlowData.AttrPosition, FlowData.AttrRotation, FlowData.AttrRotationQuat,
+	FlowData.AttrSize, FlowData.AttrBoundsMin, FlowData.AttrBoundsMax,
+	FlowData.AttrDensity, FlowData.AttrSeed,
+]
+
+# Parent (input point) index of every generated sample. Filled by the samplers
+# only while _track_parents is on (inherit_attributes), so the default path does
+# no extra work.
+var _track_parents : bool = false
+var _sample_parents := PackedInt32Array()
+
+## Marks every sample emitted so far beyond the recorded ones as a child of
+## input point `parent_idx`. Called at the end of each input point's iteration.
+func _record_parent( parent_idx : int, total_samples : int ) -> void:
+	if not _track_parents:
+		return
+	var from := _sample_parents.size()
+	if total_samples <= from:
+		return
+	_sample_parents.resize( total_samples )
+	for k in range( from, total_samples ):
+		_sample_parents[k] = parent_idx
+
 func _init():
 	meta_node = {
 		"title" : "Sample Points",
@@ -18,7 +43,7 @@ func _init():
 		"category" : "Sampler",
 		"ins" : [{ "label" : "In" }],
 		"outs" : [{ "label" : "Out" }],
-		"tooltip" : "Subdivides each input point into a subgrid of regular points with the specified sampling distance.\nSupports uniform grid, quasi-random (golden ratio) and blue-noise distributions.",
+		"tooltip" : "Subdivides each input point into a subgrid of regular points with the specified sampling distance.\nSupports uniform grid, quasi-random (golden ratio) and blue-noise distributions.\nEnable 'Inherit Attributes' to copy each input point's other attributes onto its samples.",
 	}
 	
 func isUniformGridParam( prop ) -> bool:
@@ -91,6 +116,7 @@ func uniformSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Transf
 					# UE parity: unit scale; the cell extent goes to bounds below.
 					ssize[idx] = cell_extent if legacy else Vector3.ONE
 					idx += 1
+		_record_parent( i, idx )
 
 	# Record each cell's extent as bounds, not scale, so spawned meshes are
 	# placed at natural size instead of stretched to the cell.
@@ -190,6 +216,7 @@ func quasiRandomSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tr
 					max_j += settings.groups[ color_idx ]
 				out_group_container[idx] = color_idx
 			idx += 1
+		_record_parent( i, idx )
 
 func precomputeBlueNoiseSamples():
 	# Normalize to RGBA8 so the 4-bytes-per-pixel layout below always holds
@@ -276,6 +303,7 @@ func blueNoiseSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tran
 		spos.resize( idx )
 		srot.resize( idx )
 		ssize.resize( idx )
+		_record_parent( i, idx )
 		
 # Sampler convention (UE parity): outputs carry a density stream (1.0) and a
 # per-point deterministic seed stream derived from the position + node seed.
@@ -287,15 +315,36 @@ func registerDensityAndSeedStreams( out_data : FlowData.Data ):
 	for i in sseed.size():
 		sseed[i] = FlowData.point_seed( spos[i], effective_seed() )
 
+## Copies every non-generated input stream onto the samples, gathering each
+## sample's value from its parent input point (see _sample_parents).
+func inheritInputAttributes( in_data : FlowData.Data, out_data : FlowData.Data ):
+	for stream_name in in_data.streams:
+		if GENERATED_STREAMS.has( StringName( stream_name ) ) or out_data.streams.has( stream_name ):
+			continue
+		var istream = in_data.streams[ stream_name ]
+		var container
+		if istream.container.size() == 1:
+			# Broadcast stays broadcast (also covers a single input point).
+			container = istream.container.duplicate()
+		else:
+			container = in_data.filteredStream( istream, _sample_parents )
+		if container == null:
+			continue
+		out_data.registerStream( stream_name, container, istream.data_type )
+
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input( 0, ctx )
 	if in_data == null:
 		return
 	var out_data := FlowData.Data.new()
 	out_data.addCommonStreams( 0 )
+	_track_parents = settings.inherit_attributes
+	_sample_parents = PackedInt32Array()
 	if in_data.size() == 0:
 		# Keep the output shape consistent with the non-empty case
 		registerDensityAndSeedStreams( out_data )
+		if _track_parents:
+			inheritInputAttributes( in_data, out_data )
 		set_output( 0, out_data )
 		return
 	var in_trs : FlowData.TransformsStream = in_data.getTransformsStream()
@@ -323,4 +372,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			quasiRandomSampling( ctx, in_trs, out_data )
 
 	registerDensityAndSeedStreams( out_data )
+	if _track_parents:
+		inheritInputAttributes( in_data, out_data )
+	_track_parents = false
 	set_output( 0, out_data )

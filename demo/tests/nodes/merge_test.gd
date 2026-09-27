@@ -243,3 +243,43 @@ func test_empty_data_bulk_produces_empty_streams_with_offsets() -> void:
 	assert_float(stream.container[2]).is_equal(5.0)
 	node.free()
 	src.free()
+
+# A later bulk introducing a stream not seen before must register it (sized to
+# the running offset) BEFORE appending that bulk's values to the other
+# streams; otherwise registerStream's length invariant fires a spurious
+# "stream 'x' has N elements but this Data holds M points" warning.
+func _merge_disjoint_columns() -> Dictionary:
+	var d1 := FlowDataScript.Data.new()
+	d1.registerStream("s1", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
+	d1.registerStream("s2", PackedInt32Array([10, 20, 30]), FlowDataScript.DataType.Int)
+	var d2 := FlowDataScript.Data.new()
+	# Existing stream first, then two new ones, so the new streams would be
+	# registered after s1 has already grown under the old ordering.
+	d2.registerStream("s1", PackedFloat32Array([4.0, 5.0]), FlowDataScript.DataType.Float)
+	d2.registerStream("s3", PackedStringArray(["a", "b"]), FlowDataScript.DataType.String)
+	d2.registerStream("s4", PackedVector3Array([Vector3.ONE, Vector3.UP]), FlowDataScript.DataType.Vector)
+	return _run_with_bulks([d1, d2])
+
+func test_new_stream_in_later_bulk_emits_no_length_warning() -> void:
+	var holder := {}
+	await assert_error(func(): holder.merge(_merge_disjoint_columns())).is_success()
+	holder.node.free()
+	holder.src.free()
+
+func test_new_stream_in_later_bulk_output_unchanged() -> void:
+	var result = _merge_disjoint_columns()
+	var node = result.node
+	assert_str(node.err).is_empty()
+	var out = _output(node)
+	assert_int(out.size()).is_equal(5)
+	for stream_name in ["s1", "s2", "s3", "s4"]:
+		assert_int(out.findStream(stream_name).container.size()).is_equal(5)
+	assert_array(Array(out.findStream("s1").container)).is_equal([1.0, 2.0, 3.0, 4.0, 5.0])
+	assert_array(Array(out.findStream("s2").container)).is_equal([10, 20, 30, 0, 0])
+	assert_array(Array(out.findStream("s3").container)).is_equal(["", "", "", "a", "b"])
+	assert_array(Array(out.findStream("s4").container)).is_equal(
+		[Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ONE, Vector3.UP])
+	# Stream order is first-seen order, as before.
+	assert_array(out.streams.keys()).is_equal(["s1", "s2", "s3", "s4"])
+	node.free()
+	result.src.free()

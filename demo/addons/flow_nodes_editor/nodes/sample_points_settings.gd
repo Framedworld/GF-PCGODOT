@@ -60,6 +60,11 @@ enum eDistribution {
 ## that extent into the `size` stream as before, so downstream spawners scale
 ## meshes by it — restores the pre-bounds look in size-as-scale graphs.
 @export var legacy_scale_from_extent : bool = false
+## If enabled, every attribute of an input point (all streams except the ones the
+## sampler writes itself: position, rotation, rotation_quat, size, bounds_min,
+## bounds_max, density, seed and the group id) is copied onto each sample
+## generated from it. Broadcast (length-1) streams stay broadcast.
+@export var inherit_attributes : bool = false
 
 func _init():
 	super._init()

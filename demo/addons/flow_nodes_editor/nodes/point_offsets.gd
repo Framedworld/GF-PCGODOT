@@ -9,7 +9,7 @@ func _init():
 		"settings" : PointOffsetsNodeSettings,
 		"ins" : [{ "label": "Anchors" }],
 		"outs" : [{ "label" : "Points" }],
-		"tooltip" : "Creates child points around each input point using local or world offsets. Useful for sockets, tabletop dressing, seating layouts, and repeated prop clusters.\nRotations/sizes/labels shorter than the offsets list clamp to their last entry.",
+		"tooltip" : "Creates child points around each input point using local or world offsets. Useful for sockets, tabletop dressing, seating layouts, and repeated prop clusters.\nRotations/sizes/labels shorter than the offsets list clamp to their last entry.\nWrites three bookkeeping columns by default: parent_index (Int, index of the anchor point),\noffset_index (Int, index into the offsets list) and offset_label (String, the offset's label or its index).\nClear an attribute name to skip writing that column.",
 		"aliases" : ["children", "sockets", "local offsets", "scatter children"],
 		"category" : "Spatial",
 	}

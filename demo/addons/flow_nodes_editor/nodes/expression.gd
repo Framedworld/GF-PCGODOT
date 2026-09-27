@@ -15,7 +15,9 @@ func _init():
 			"   and position[Index] (Index with capital I) must be used to reference the current point\n" + 
 			"   and position[Index-1] references the previous position\n" + 
 			" * Size for the total number of points\n" +  
-			" * Customize the Node Label if the expression is too long\n"
+			" * Customize the Node Label if the expression is too long\n" +
+			" * Writing a numeric result (bool/int/float) into an existing Bool/Int/Float\n" +
+			"   stream converts it to that stream's type instead of retyping the stream\n"
 			,
 	}
 	
@@ -86,6 +88,20 @@ func _translate_ue_attribute_names( expr : String, names : Array ) -> String:
 	out += expr.substr( last )
 	return out
 
+const _NUMERIC_TYPES := [ FlowData.DataType.Bool, FlowData.DataType.Int, FlowData.DataType.Float ]
+
+## When the output stream already exists as Bool/Int/Float and the result is
+## numeric too, keep the existing stream's type (the result is converted into
+## it by writeValue) instead of retyping the stream with a conflict warning.
+## Any other combination keeps the result's own type.
+func _output_type_for_result( result_type : FlowData.DataType ) -> FlowData.DataType:
+	if not _NUMERIC_TYPES.has( result_type ):
+		return result_type
+	var existing = _out_data.streams.get( settings.out_name, null )
+	if existing != null and _NUMERIC_TYPES.has( existing.data_type ):
+		return existing.data_type
+	return result_type
+
 func evaluateAndSaveResult( idx : int, values : Array ):
 
 	var result = _expression.execute(values)
@@ -93,7 +109,16 @@ func evaluateAndSaveResult( idx : int, values : Array ):
 		if _container == null:
 			var flow_data_type = getFlowDataTypeFromGdScriptType( typeof( result ))
 			if flow_data_type != FlowData.DataType.Invalid:
-				var stream = newStream( _in_size, settings.out_name, result, flow_data_type )
+				var result_type = flow_data_type
+				flow_data_type = _output_type_for_result( flow_data_type )
+				var init_value = result
+				if flow_data_type != result_type:
+					# Coerced numeric: pre-convert the fill value for the typed container.
+					match flow_data_type:
+						FlowData.DataType.Bool: init_value = 1 if bool( result ) else 0
+						FlowData.DataType.Int: init_value = int( result )
+						FlowData.DataType.Float: init_value = float( result )
+				var stream = newStream( _in_size, settings.out_name, init_value, flow_data_type )
 				if settings.trace:
 					print( "Created container of type %d %s" % [ flow_data_type, stream ])
 				_container = stream.container

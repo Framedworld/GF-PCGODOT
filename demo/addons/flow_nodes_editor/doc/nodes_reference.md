@@ -27,7 +27,7 @@ A complete reference of all available nodes in the PCGODOT framework, grouped by
 
 | Node | Script File | Description |
 | --- | --- | --- |
-| **Add Attribute** | [add_attribute.gd](../nodes/add_attribute.gd) | Add a new constant stream to the input set If the input is not given a single entry with the constant value is created. |
+| **Add Attribute** | [add_attribute.gd](../nodes/add_attribute.gd) | Add a new constant stream to the input set If the input is not given a single entry with the constant value is created (intentional schema-row idiom: chained Add Attribute nodes build a one-row attribute set). |
 | **Add Tags** | [add_tags.gd](../nodes/add_tags.gd) | Adds one or more tags to FlowData. |
 | **Attribute Filter Range** | [attribute_filter_range.gd](../nodes/attribute_filter_range.gd) | Splits points by whether an attribute value falls inside a numeric range. |
 | **Attribute Rename** | [attribute_rename.gd](../nodes/attribute_rename.gd) | Renames one attribute/stream while preserving its type and values. |
@@ -35,7 +35,7 @@ A complete reference of all available nodes in the PCGODOT framework, grouped by
 | **Data Table Row To Attribute Set** | [data_table_row_to_attribute_set.gd](../nodes/data_table_row_to_attribute_set.gd) | Extracts one or more table rows into an attribute-set stream. |
 | **Delete Tags** | [delete_tags.gd](../nodes/delete_tags.gd) | Removes one or more tags from FlowData. |
 | **Load Data Table** | [load_data_table.gd](../nodes/load_data_table.gd) | Loads CSV/TSV-style rows as attribute-set data with typed columns. |
-| **Load PCG Data Asset** | [load_pcg_data_asset.gd](../nodes/load_pcg_data_asset.gd) | Loads JSON or Resource-backed PCG point/attribute data into FlowData streams. |
+| **Load PCG Data Asset** | [load_pcg_data_asset.gd](../nodes/load_pcg_data_asset.gd) | Loads JSON or Resource-backed PCG point/attribute data into FlowData streams. JSON numbers always parse as floats, so numeric JSON columns become Float streams. `asset_path` can be wired/bound like other settings. Parsed JSON is cached (shared by all nodes) per path + file modification time + parse settings, so re-evaluating an unchanged file skips the parse and an edited file is re-read; `clear_cache()` drops the cache. |
 | **Mutate Seed** | [mutate_seed.gd](../nodes/mutate_seed.gd) | Generates deterministic per-point seed values from existing seeds, index, and optional position. |
 | **Point Filter Range** | [point_filter_range.gd](../nodes/point_filter_range.gd) | Point-focused alias of Attribute Filter Range (defaults to position.X). |
 | **Point To Attribute Set** | [point_to_attribute_set.gd](../nodes/point_to_attribute_set.gd) | Converts point data to attribute-set style data, optionally removing point transform streams. |
@@ -120,7 +120,7 @@ A complete reference of all available nodes in the PCGODOT framework, grouped by
 | **Build Rotation From Up Vector** | [build_rotation_from_up.gd](../nodes/build_rotation_from_up.gd) | Computes rotation from an up vector stream or constant and applies it to the points. |
 | **Combine Points** | [combine_points.gd](../nodes/combine_points.gd) | For each input Point Data, outputs a new Point Data containing a single point that encompasses all points in its respective Point Data. |
 | **Compose Vector** | [compose_vector.gd](../nodes/compose_vector.gd) | Composes a Vector3 attribute from float attributes or default values. |
-| **Copy** | [copy.gd](../nodes/copy.gd) | Copies points using linear repeat offsets or source-to-target placement mode. |
+| **Copy** | [copy.gd](../nodes/copy.gd) | Copies points using linear repeat offsets or source-to-target placement mode. In SourceToTargets mode `attribute_inheritance` (UE Copy Points parity) picks which input's attributes the copies carry: `SourceOnly` (default; the historical output), `SourceFirst` (source attributes plus target attributes the source lacks), `TargetFirst` (target wins name collisions) or `TargetOnly`. Transform/extent streams (position, rotation, rotation_quat, size, bounds_min/max) are always composed from source and target and are not inherited. |
 | **Copy Points** | [copy_points.gd](../nodes/copy_points.gd) | Godot-facing alias of Copy for point data. |
 | **Curve Remap Density** | [curve_remap_density.gd](../nodes/curve_remap_density.gd) | Remaps the density of each point in the point data to another density value according to the provided curve. |
 | **Debug** | [debug.gd](../nodes/debug.gd) | Forces the visualization of the debug node. Used when some specific values are required in the debug options. |
@@ -140,20 +140,20 @@ A complete reference of all available nodes in the PCGODOT framework, grouped by
 | **Loop** | [loop.gd](../nodes/loop.gd) | Loops over each element in Stream and runs a graph for each |
 | **Make Bounds** | [make_bounds.gd](../nodes/make_bounds.gd) | Generates a single bounding point at center with size. |
 | **Make Vector** | [make_vector.gd](../nodes/make_vector.gd) | Creates a single Vector value from 3 inmediate float values |
-| **Match And Set** | [match_and_set.gd](../nodes/match_and_set.gd) | Copies attributes into input data set based on a match_attr. |
+| **Match And Set** | [match_and_set.gd](../nodes/match_and_set.gd) | Copies attributes into input data set based on a match_attr. **Numeric keys:** values are matched by their string form first; when a value has no exact match and both it and a key are numeric (int/float, or a string that parses as one), they are compared as floats with `is_equal_approx`, so a JSON-loaded `3.0` matches key `"3"` and an int `3` matches `"3.0"`. |
 | **Merge** | [merge.gd](../nodes/merge.gd) | Merges and combines all streams of all input connections in a single output If input A provides streams s1 and s2, and input B streams s1 and s3 the output will have streams s1,s2 and s3 and the default values will be used where the input does not define a value. |
 | **Merge Points** | [merge_points.gd](../nodes/merge_points.gd) | Godot-facing alias of Merge for point data. |
 | **Mesh Sampler** | [mesh_sampler.gd](../nodes/mesh_sampler.gd) | Samples points on a mesh surface. Alias of Sample Mesh. |
 | **Output** | [output.gd](../nodes/output.gd) | Exposes an output parameter of the Subgraph |
 | **Partition** | [partition.gd](../nodes/partition.gd) | Partition data based on the different values an attribute. |
 | **Point From Player** | [point_from_player_pawn.gd](../nodes/point_from_player_pawn.gd) | Emits one point from a Godot player/source Node3D. Resolves by explicit path, group, class/name, then optional camera fallback. |
-| **Point Offsets** | [point_offsets.gd](../nodes/point_offsets.gd) | Creates child points around each input point using local or world offsets. Useful for sockets, tabletop dressing, seating layouts, and repeated prop clusters. |
+| **Point Offsets** | [point_offsets.gd](../nodes/point_offsets.gd) | Creates child points around each input point using local or world offsets. Useful for sockets, tabletop dressing, seating layouts, and repeated prop clusters. Writes `parent_index`, `offset_index` and `offset_label` columns by default; clear an attribute name to skip that column. |
 | **Points From GridMap** | [points_from_gridmap.gd](../nodes/points_from_gridmap.gd) | Generates one point per used GridMap cell (Godot-specific 3D tile extraction). |
 | **Points From Scene** | [points_from_scene.gd](../nodes/points_from_scene.gd) | Generates one point per scene node and optionally imports metadata and selected properties. |
 | **Points From TileMap** | [points_from_tilemap.gd](../nodes/points_from_tilemap.gd) | Generates one point per used TileMapLayer cell (Godot-specific world extraction). |
 | **Print String** | [print_string.gd](../nodes/print_string.gd) | Prints a message that outputs a prefixed message optionally to the log. |
 | **Random Color** | [random_color.gd](../nodes/random_color.gd) | Generates random colors for each point. |
-| **Sample Points** | [sample_points.gd](../nodes/sample_points.gd) | Subdivides each int point into a subgrid of regular points with the specified sampling distance |
+| **Sample Points** | [sample_points.gd](../nodes/sample_points.gd) | Subdivides each input point into a subgrid of regular points with the specified sampling distance. Enable `inherit_attributes` (default off) to copy every other attribute of each input point onto the samples generated from it (broadcast streams stay broadcast; generated streams such as position, rotation, size, bounds, density and seed are never overridden). |
 | **Sanity Check Point Data** | [sanity_check.gd](../nodes/sanity_check.gd) | Validates that the input data point(s) have a value in the given range. |
 | **Scan Nodes** | [scan_nodes.gd](../nodes/scan_nodes.gd) | Generate points from existing non-flowgraph nodes in the scene Can filter by class name, group. Metadata values can optionally be imported You can also import properties of the nodes, even with a subpath property like mesh:text if the nodes are a MeshInstance3D with meshes of type TextMesh. |
 | **Select** | [select.gd](../nodes/select.gd) | Selects one of two inputs to be forwarded to a single output based on a Boolean attribute or value. |

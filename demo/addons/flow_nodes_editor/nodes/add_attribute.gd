@@ -7,7 +7,7 @@ func _init():
 		"settings" : AddAttributeNodeSettings,
 		"ins" : [{ "label": "In" }], 
 		"outs" : [{ "label" : "Out" }],
-		"tooltip" : "Add a new constant stream to the input set\nIf the input is not given a single entry with the constant value is created.",
+		"tooltip" : "Add a new constant stream to the input set\nIf the input is not given a single entry with the constant value is created.\nThis is intentional (schema-row idiom): with nothing connected the output is a 1-point Data holding only this attribute,\nso chained Add Attribute nodes build a one-row attribute set. A connected but empty input stays empty.",
 		"aliases" : ["Add Attribute", "Create Attribute"],
 		"category" : "Metadata",
 	}

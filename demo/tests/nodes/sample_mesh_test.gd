@@ -152,3 +152,85 @@ func test_discard_hard_edges() -> void:
 	node.free()
 	remove_child(mi)
 	mi.free()
+
+# ---------------------------------------------------------------------------
+# Face-normal orientation. Godot front faces are wound clockwise, so the face
+# normal must be (c - a) x (b - a); the counter-clockwise formula points into
+# the mesh (a table top would read as facing down, its underside as up).
+# ---------------------------------------------------------------------------
+
+## Rotation is built with the normal on the basis Z axis (basisFromNormal).
+func _rotation_normal_axis(euler_deg: Vector3) -> Vector3:
+	return FlowDataScript.eulerToBasis(euler_deg).z
+
+func test_plane_mesh_area_weighted_normals_face_up() -> void:
+	var mi = MeshInstance3D.new()
+	mi.mesh = PlaneMesh.new() # faces +Y
+	add_child(mi)
+	var node = _run_sample_mesh(mi, SampleMeshSettings.eMode.UseNumSamples, func(s):
+		s.num_samples = 16
+	)
+	assert_str(node.err).is_empty()
+	var out = _get_output_data(node)
+	var normals = out.findStream(FlowDataScript.AttrNormal).container
+	var rots = out.getVector3Container(FlowDataScript.AttrRotation)
+	assert_int(normals.size()).is_equal(16)
+	for i in range(normals.size()):
+		assert_float(normals[i].y).is_greater(0.99)
+		assert_float(_rotation_normal_axis(rots[i]).y).is_greater(0.99)
+	node.free()
+	remove_child(mi)
+	mi.free()
+
+func test_plane_mesh_face_center_normals_face_up() -> void:
+	var mi = MeshInstance3D.new()
+	mi.mesh = PlaneMesh.new()
+	add_child(mi)
+	var node = _run_sample_mesh(mi, SampleMeshSettings.eMode.FaceCenters)
+	var out = _get_output_data(node)
+	var normals = out.findStream(FlowDataScript.AttrNormal).container
+	var rots = out.getVector3Container(FlowDataScript.AttrRotation)
+	assert_int(normals.size()).is_equal(2)
+	for i in range(normals.size()):
+		assert_float(normals[i].y).is_greater(0.99)
+		assert_float(_rotation_normal_axis(rots[i]).y).is_greater(0.99)
+	node.free()
+	remove_child(mi)
+	mi.free()
+
+func test_box_mesh_normals_point_outward() -> void:
+	# Every sampled face normal on a centred box points away from its centre,
+	# so top-face samples (y == +0.5) report normal.y > 0.
+	var mi = MeshInstance3D.new()
+	mi.mesh = BoxMesh.new()
+	add_child(mi)
+	for mode in [SampleMeshSettings.eMode.UseNumSamples, SampleMeshSettings.eMode.FaceCenters]:
+		var node = _run_sample_mesh(mi, mode, func(s):
+			s.num_samples = 60
+		)
+		var out = _get_output_data(node)
+		var positions = out.getVector3Container(FlowDataScript.AttrPosition)
+		var normals = out.findStream(FlowDataScript.AttrNormal).container
+		var top_count := 0
+		for i in range(positions.size()):
+			assert_float(normals[i].dot(positions[i])).is_greater(0.0)
+			if is_equal_approx(positions[i].y, 0.5):
+				top_count += 1
+				assert_float(normals[i].y).is_greater(0.99)
+		assert_int(top_count).is_greater(0)
+		node.free()
+	remove_child(mi)
+	mi.free()
+
+func test_hard_edges_coplanar_triangles_are_not_hard() -> void:
+	# get_hard_edges compares face normals of adjacent triangles; the shared
+	# diagonal of a flat quad must not be classified as hard with either
+	# winding, and the top face's normal sign must be outward-consistent.
+	var mi = MeshInstance3D.new()
+	mi.mesh = PlaneMesh.new()
+	add_child(mi)
+	var edges = SampleMeshNode.get_hard_edges(mi, 45.0)
+	# 4 boundary edges only; the diagonal is shared by two coplanar triangles.
+	assert_int(edges.size()).is_equal(4)
+	remove_child(mi)
+	mi.free()

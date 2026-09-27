@@ -7,7 +7,7 @@ func _init():
 		"settings" : CopyNodeSettings,
 		"ins" : [{ "label": "Source" }, { "label": "Targets" }],
 		"outs" : [{ "label" : "Out" }],
-		"tooltip" :"Copies points using linear repeat offsets or source-to-target placement mode.",
+		"tooltip" :"Copies points using linear repeat offsets or source-to-target placement mode.\nSourceToTargets: 'Attribute Inheritance' picks which input's attributes the copies carry\n(SourceOnly by default; SourceFirst / TargetFirst merge both, the named side winning collisions; TargetOnly).\nTransforms are always composed from source and target regardless of that setting.",
 		"category" : "Spatial",
 	}
 
@@ -93,6 +93,50 @@ func _pick_source_index(target_idx : int, source_size : int, point_seed : int = 
 		return local_rng.randi_range(0, source_size - 1)
 	return target_idx % source_size
 
+## Streams describing the point transform/extent. They are always produced by
+## the transform composition below (from the source pick + target), never by
+## attribute inheritance: a target rotation_quat, for instance, would otherwise
+## win over the recomputed Euler rotation downstream.
+const TRANSFORM_STREAMS := [
+	FlowData.AttrPosition, FlowData.AttrRotation, FlowData.AttrRotationQuat,
+	FlowData.AttrSize, FlowData.AttrBoundsMin, FlowData.AttrBoundsMax,
+]
+
+## Applies UE-style attribute inheritance to `out_data` (the source points already
+## picked per target, so row i corresponds to target point i).
+func _apply_attribute_inheritance(out_data : FlowData.Data, targets_data : FlowData.Data, mode : int) -> void:
+	if mode == CopyNodeSettings.eAttributeInheritance.SourceOnly:
+		return
+	if mode == CopyNodeSettings.eAttributeInheritance.TargetOnly:
+		for stream_name in out_data.streams.keys():
+			if not TRANSFORM_STREAMS.has(StringName(stream_name)):
+				out_data.streams.erase(stream_name)
+		out_data.data_attrs = {}
+	var target_wins : bool = mode != CopyNodeSettings.eAttributeInheritance.SourceFirst
+	for stream_name in targets_data.streams:
+		if TRANSFORM_STREAMS.has(StringName(stream_name)):
+			continue
+		var exists : bool = out_data.streams.has(stream_name)
+		if exists and not target_wins:
+			continue
+		var tstream = targets_data.streams[stream_name]
+		# Target rows map 1:1 onto output rows; broadcast (length-1) stays broadcast.
+		var container = tstream.container.duplicate()
+		if exists:
+			# Replace in place: keeps the stream's position and avoids the
+			# "Stream name conflict" warning when the types differ on purpose.
+			out_data.streams[stream_name] = {
+				"container" : container,
+				"name" : stream_name,
+				"data_type" : tstream.data_type,
+			}
+		else:
+			out_data.registerStream(stream_name, container, tstream.data_type)
+	for attr_name in targets_data.data_attrs:
+		if out_data.data_attrs.has(attr_name) and not target_wins:
+			continue
+		out_data.data_attrs[attr_name] = targets_data.data_attrs[attr_name].duplicate(true)
+
 func _source_to_targets_copy(source_data : FlowData.Data, targets_data : FlowData.Data) -> FlowData.Data:
 	var source_size = source_data.size()
 	var target_size = targets_data.size()
@@ -109,6 +153,7 @@ func _source_to_targets_copy(source_data : FlowData.Data, targets_data : FlowDat
 		selected_source[i] = _pick_source_index(i, source_size, target_seeds[i] if target_seeds != null else 0, target_seeds != null)
 
 	var out_data = source_data.filter(selected_source)
+	_apply_attribute_inheritance(out_data, targets_data, settings.attribute_inheritance)
 	var source_trs = source_data.getTransformsStream()
 	var target_trs = targets_data.getTransformsStream()
 	if source_trs == null or target_trs == null:

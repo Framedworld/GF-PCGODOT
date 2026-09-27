@@ -266,3 +266,59 @@ func test_match_attr_multiple_candidates_selected_randomly() -> void:
 	assert_object(score_stream).is_not_null()
 	assert_int(score_stream.container.size()).is_equal(10)
 	node.free()
+
+# ---------------------------------------------------------------------------
+# Numeric keys: JSON numbers load as floats, keys are often "3"/3. Values that
+# have no exact string match fall back to a float comparison when both sides
+# are numeric.
+# ---------------------------------------------------------------------------
+
+func _run_match(in_stream: Dictionary, key_stream: Dictionary) -> MatchAndSetNode:
+	var s = MatchAndSetSettings.new()
+	s.match_attr = "id"
+	s.weight_attr = ""
+	var in_data := FlowDataScript.Data.new()
+	in_data.registerStream("id", in_stream.values, in_stream.type)
+	var attrs_data := FlowDataScript.Data.new()
+	attrs_data.registerStream("id", key_stream.values, key_stream.type)
+	attrs_data.registerStream("color", PackedStringArray(["red", "blue"]), FlowDataScript.DataType.String)
+	return _run([in_data, attrs_data], s)
+
+func test_numeric_key_int_attribute_matches_float_string_key() -> void:
+	var node = _run_match(
+		{"values": PackedInt32Array([3, 5, 4]), "type": FlowDataScript.DataType.Int},
+		{"values": PackedStringArray(["3.0", "5.00"]), "type": FlowDataScript.DataType.String})
+	assert_str(node.err).is_empty()
+	# 4 matches nothing and keeps the zero-filled default.
+	assert_array(Array(_output(node).findStream("color").container)).is_equal(["red", "blue", ""])
+	node.free()
+
+func test_numeric_key_float_attribute_matches_int_string_key() -> void:
+	var node = _run_match(
+		{"values": PackedFloat32Array([3.0, 7.0, 5.0]), "type": FlowDataScript.DataType.Float},
+		{"values": PackedStringArray(["3", "5"]), "type": FlowDataScript.DataType.String})
+	assert_array(Array(_output(node).findStream("color").container)).is_equal(["red", "", "blue"])
+	node.free()
+
+func test_numeric_key_float_attribute_matches_int_key() -> void:
+	# Float32 storage of 0.1 is not exactly 0.1: matched with is_equal_approx.
+	var node = _run_match(
+		{"values": PackedFloat32Array([3.0, 0.1]), "type": FlowDataScript.DataType.Float},
+		{"values": PackedStringArray(["3", "0.1"]), "type": FlowDataScript.DataType.String})
+	assert_array(Array(_output(node).findStream("color").container)).is_equal(["red", "blue"])
+	node.free()
+
+func test_numeric_key_non_numeric_values_keep_string_matching() -> void:
+	var node = _run_match(
+		{"values": PackedStringArray(["a", "3", "b"]), "type": FlowDataScript.DataType.String},
+		{"values": PackedStringArray(["b", "a"]), "type": FlowDataScript.DataType.String})
+	assert_array(Array(_output(node).findStream("color").container)).is_equal(["blue", "", "red"])
+	node.free()
+
+func test_numeric_key_empty_string_key_is_not_a_fallback() -> void:
+	# An empty key must not swallow numeric values that match no numeric key.
+	var node = _run_match(
+		{"values": PackedFloat32Array([9.0, 3.0]), "type": FlowDataScript.DataType.Float},
+		{"values": PackedStringArray(["", "3"]), "type": FlowDataScript.DataType.String})
+	assert_array(Array(_output(node).findStream("color").container)).is_equal(["", "blue"])
+	node.free()

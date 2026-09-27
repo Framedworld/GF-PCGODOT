@@ -58,7 +58,9 @@ static func sampleMeshSurface(mi: MeshInstance3D, n: int = -1, density: float = 
 			total_area += area
 
 			# Per-triangle normal (world space)
-			tri_normals.append(((b - a).cross(c - a)).normalized())
+			# Godot front faces are wound clockwise: (c - a) x (b - a) points out of
+			# the surface; (b - a) x (c - a) would point into it.
+			tri_normals.append(((c - a).cross(b - a)).normalized())
 
 	if tris.is_empty() or total_area <= 0.0:
 		return { "points": PackedVector3Array(), "normals": PackedVector3Array() }
@@ -177,7 +179,8 @@ static func meshFaceCenterPoints(mi: MeshInstance3D) -> Dictionary:
 			var a := gt * vtx[idx[i + 0]]
 			var b := gt * vtx[idx[i + 1]]
 			var c := gt * vtx[idx[i + 2]]
-			var face_n := (b - a).cross(c - a)
+			# Clockwise front faces: outward normal is (c - a) x (b - a).
+			var face_n := (c - a).cross(b - a)
 			if face_n.length_squared() <= 0.0:
 				continue # degenerate triangle
 			out_pts.append((a + b + c) / 3.0)
@@ -220,7 +223,8 @@ static func get_hard_edges(mi: MeshInstance3D, angle_threshold_deg: float) -> Ar
 			var b := gt * vtx[idx[i + 1]]
 			var c := gt * vtx[idx[i + 2]]
 			
-			var normal = (b - a).cross(c - a).normalized()
+			# Clockwise front faces: outward normal is (c - a) x (b - a).
+			var normal = (c - a).cross(b - a).normalized()
 			
 			var edges = [
 				[a, b],
