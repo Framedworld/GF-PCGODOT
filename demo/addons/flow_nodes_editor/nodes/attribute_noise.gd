@@ -69,7 +69,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var positions = in_data.getVector3Container(FlowData.AttrPosition)
 	if positions != null and positions.size() != num_points and positions.size() != 1:
 		positions = null
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var point_rng := RandomNumberGenerator.new()
 
 	var results := PackedFloat32Array()

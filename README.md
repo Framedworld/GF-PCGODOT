@@ -32,7 +32,7 @@ For what does **not** translate yet (HiGen, GPU nodes, per-point bounds/steepnes
 * **Subgraphs & loops**: nest graphs as `.tres` resources with parameter pins and per-instance overrides, collapse any selection into a subgraph, iterate data with `loop` + `get_loop_index`.
 * **Attribute selector syntax**: component access (`position.x`), `@last`, virtual streams (`index`, `front`/`up`/`right`), Yaw/Pitch/Roll aliases.
 * **Native acceleration**: precompiled GDExtension (Windows/macOS) wrapping C++ KdTree and RTree for distance queries, difference/intersection, and self-pruning.
-* **Runtime execution**: `FlowGraphNode3D` evaluates its graph at game startup and exposes `execute()` for re-triggering from scripts.
+* **Runtime execution**: `FlowGraphNode3D` works like a UE PCG Component — `generate()` / `cleanup()` / `regenerate()`, a graph `seed`, a `generated` signal and `last_outputs` — and `FlowNodeIO.evaluate()` runs a graph from code without any node in the scene.
 
 ---
 
@@ -45,10 +45,25 @@ For what does **not** translate yet (HiGen, GPU nodes, per-point bounds/steepnes
 
 To use the addon in your own project, copy `demo/addons/flow_nodes_editor/` into your project's `addons/` folder and enable **Flow Nodes Editor** under Project Settings → Plugins.
 
+### Runtime execution
+
 ```gdscript
-# Re-run a graph at runtime:
-$FlowGraphNode3D.execute()
+# A FlowGraphNode3D generates on _ready (disable with generate_on_ready = false).
+var pcg : FlowGraphNode3D = $FlowGraphNode3D
+pcg.seed = 1234                       # 0 = legacy: each node keeps its own random_seed
+pcg.generated.connect(func(outputs): print(outputs.keys()))
+var outputs := pcg.regenerate()       # cleanup() + generate(); returns name -> FlowData.Data
+var rooms = outputs["rooms"].first("count")   # Data.first / container / get_data_attr helpers
+pcg.cleanup()                         # frees only this component's spawned nodes
+
+# Or evaluate a graph resource directly: no node in the scene, no spawners.
+var result := FlowNodeIO.evaluate(preload("res://graphs/my_graph.tres"),
+		{ "width": 12 }, 1234, { "difficulty": 2 })
 ```
+
+`execute()` still works (it is `generate()` without arguments). Set
+`transient_output = true` to keep spawned nodes out of the saved scene. See
+[docs/RUNTIME_API_P0.md](docs/RUNTIME_API_P0.md) for the full contract.
 
 To tune one instance without duplicating its graph, set `overrides` on the
 `FlowGraphNode3D` (`{"scatter/num_points": 200}`, or

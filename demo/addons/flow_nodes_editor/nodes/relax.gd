@@ -38,7 +38,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 
 	# Deterministic tie-break direction for coincident points.
 	var rng = RandomNumberGenerator.new()
-	rng.seed = settings.random_seed
+	rng.seed = effective_seed()
 
 	var candidate_pos : PackedVector3Array
 	var candidate_size : PackedVector3Array

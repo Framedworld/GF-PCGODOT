@@ -23,7 +23,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		return
 
 	var cell_size : float = getSettingValue(ctx, "cell_size", 2.0)
-	var seed_val : int = getSettingValue(ctx, "random_seed", 12345)
+	var seed_val : int = derive_seed(graph_seed, int(getSettingValue(ctx, "random_seed", 12345)))
 
 	var in_size = in_data.size()
 	var in_pos = in_data.getVector3Container(FlowData.AttrPosition)

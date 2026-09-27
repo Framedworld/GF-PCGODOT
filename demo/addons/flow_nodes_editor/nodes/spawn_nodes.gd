@@ -15,15 +15,8 @@ func _init():
 		"tooltip" : "Dynamically instantiates a raw Godot class or custom script node on each point.\nProperties can be transferred from point attributes to node properties.",
 	}
 
-func removeInstancedNodes( root : Node3D ):
-	var nodes : Array[Node] = []
-	for child in root.get_children():
-		if !child.has_meta( "flow_owner" ):
-			continue
-		if child.get_meta( "flow_owner" ) == name:
-			nodes.append( child )
-	for node in nodes:
-		node.queue_free()
+func removeInstancedNodes( root : Node3D, ctx : FlowData.EvaluationContext = null ):
+	removeOwnFlowContent( root, ctx )
 
 func _resolve_spawn_parent(root : Node3D) -> Node3D:
 	var path = settings.spawn_parent_path.strip_edges()
@@ -51,9 +44,9 @@ func _resolve_class_name_for_point(idx : int, variants : Array[String], selector
 		var rng_local := RandomNumberGenerator.new()
 		if point_seeds != null:
 			# Per-point seed stream present: derive the pick from it (UE parity)
-			rng_local.seed = int(point_seeds[idx]) ^ settings.random_seed
+			rng_local.seed = int(point_seeds[idx]) ^ effective_seed()
 		else:
-			rng_local.seed = settings.random_seed + idx * 811
+			rng_local.seed = effective_seed() + idx * 811
 		return variants[rng_local.randi_range(0, variants.size() - 1)]
 
 	if selector_stream != null:
@@ -82,6 +75,8 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input( 0, ctx )
 	if in_data == null:
 		return
+	if handleMissingOwner( ctx ):
+		return
 
 	if in_data.size() == 0:
 		set_output(0, in_data)
@@ -103,7 +98,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var spawn_parent = _resolve_spawn_parent(root)
 	var in_size = in_data.size()
 	if settings.clear_previous_instances:
-		removeInstancedNodes( spawn_parent )
+		removeInstancedNodes( spawn_parent, ctx )
 
 	# Find who is going to be the owner of the new nodes
 	var node_tree = root.get_tree()
@@ -171,8 +166,8 @@ func execute( ctx : FlowData.EvaluationContext ):
 		node3d.transform = transforms.atIndex( idx )
 		node3d.name = "%s_%04d" % [class_name_to_spawn.get_file().get_basename(), idx]
 		spawn_parent.add_child( node3d )
-		node3d.owner = owner_of_spawned_nodes
-		node3d.set_meta("flow_owner", name )
+		assignSpawnOwner( node3d, owner_of_spawned_nodes, ctx )
+		node3d.set_meta("flow_owner", flowOwnerMeta( ctx ) )
 		var assign_target : Node = node3d
 		var assign_target_path = settings.assign_target_path.strip_edges()
 		if assign_target_path != "":

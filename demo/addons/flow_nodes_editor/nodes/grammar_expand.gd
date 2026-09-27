@@ -375,7 +375,7 @@ func execute(ctx : FlowData.EvaluationContext) -> void:
 	var ssize := in_data.getVector3Container(FlowData.AttrSize)
 	var length_stream = in_data.findStream(settings.length_attribute)
 	var seed_stream = in_data.findStream(FlowData.AttrSeed)
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 
 	var num_spans : int = spos.size()
 

@@ -71,6 +71,8 @@ func computeSceneFingerprint(ctx : FlowData.EvaluationContext) -> Variant:
 	return hashSceneNodesForFingerprint(ctx, filterOutGeneratedNodes(sources))
 
 func execute(ctx : FlowData.EvaluationContext):
+	if handleMissingOwner(ctx):
+		return
 	var player := _find_player(_scene_root(ctx))
 	if player == null:
 		setError("No player/source Node3D found")

@@ -25,6 +25,9 @@ func _on_settings_changed():
 		editor.queueRegen()
 
 var rng : RandomNumberGenerator = RandomNumberGenerator.new()
+# Graph seed (EvaluationContext.seed) of the evaluation this node last ran in.
+# 0 = legacy: every node uses its own settings.random_seed unchanged.
+var graph_seed : int = 0
 
 # Common attributes ------------------------------
 var num_connected_bulks : int = 0
@@ -144,11 +147,128 @@ func get_data_summary() -> String:
 		parts.append("%s(%s)" % [si.name, si.type])
 	return "%d pts — %s" % [s.points, ", ".join(parts)]
 
+## The one seed formula of the runtime API (docs/RUNTIME_API_P0.md §2):
+## hash([graph_seed, node_seed]) & 0x7fffffff. With graph_seed == 0 the node
+## seed is returned unchanged, so graphs run without a seed keep their
+## historical output bit for bit. preExecute (per node) and loop (per
+## iteration, with the iteration index as node_seed) both use it; hosts that
+## cross-check seeds should call it rather than copy the formula.
+static func derive_seed( in_graph_seed : int, node_seed : int ) -> int:
+	if in_graph_seed == 0:
+		return node_seed
+	return int( hash( [ in_graph_seed, node_seed ] ) & 0x7fffffff )
+
+## Seed a node must use for its randomness in the current evaluation: the
+## node's settings.random_seed decorrelated by the graph seed. Nodes build local
+## RNGs and call FlowData.point_seed/resolve_seed with this, never with
+## settings.random_seed directly. Returns 0 for nodes without random_seed. A
+## seed obtained another way (e.g. a wired random_seed port read through
+## getSettingValue) goes through derive_seed(graph_seed, value) instead.
+func effective_seed() -> int:
+	if settings == null or not ( "random_seed" in settings ):
+		return 0
+	return derive_seed( graph_seed, settings.random_seed )
+
+const OWNER_REQUIRED_ERROR := "%s needs an owner node; generate through a FlowGraphNode3D or pass owner to FlowNodeIO.evaluate"
+
+## Owner-less runtime guard (docs/RUNTIME_API_P0.md §3) for nodes that need a
+## scene (spawners, scene scanners, apply_on_actor, physics/ray queries).
+## When the evaluation has no owner outside the editor, reports the documented
+## error, passes input 0 through to output 0 (an empty Data when unconnected)
+## and returns true: the caller must return. Editor previews without an owner
+## return false and keep the node's own editor handling.
+func handleMissingOwner( ctx ) -> bool:
+	if not reportMissingOwner( ctx ):
+		return false
+	var in_data = inputs[0] if inputs.size() > 0 else null
+	set_output( 0, in_data if in_data is FlowData.Data else FlowData.Data.new() )
+	return true
+
+## Reports the documented owner-less error and returns true when the evaluation
+## has no owner outside the editor; emits nothing. Source nodes (scene
+## scanners) use it directly and keep producing their empty-schema output.
+func reportMissingOwner( ctx ) -> bool:
+	if ctx != null and ctx.owner != null and is_instance_valid( ctx.owner ):
+		return false
+	if Engine.is_editor_hint():
+		return false
+	var label := str( meta_node.get( "title", "" ) )
+	if label == "":
+		label = node_template if node_template != "" else String( name )
+	setError( OWNER_REQUIRED_ERROR % label )
+	return true
+
+# --- Generated-content ownership (docs/RUNTIME_API_P0.md §5) -----------------
+
+## Component id to stamp on spawned content: ctx.component_id, or the owner's
+## instance id for contexts built by hand (editor, legacy callers).
+static func flowComponentId( ctx ) -> int:
+	if ctx == null:
+		return 0
+	if ctx.component_id != 0:
+		return ctx.component_id
+	if ctx.owner != null and is_instance_valid( ctx.owner ):
+		return ctx.owner.get_instance_id()
+	return 0
+
+## `flow_owner` meta value for a subtree spawned by this node.
+func flowOwnerMeta( ctx ) -> Dictionary:
+	return { "component" : flowComponentId( ctx ), "node" : String( name ) }
+
+## A component id that no longer names a live object: content saved into a
+## scene by an earlier session (instance ids do not survive reloads).
+static func isStaleFlowComponent( component_id : int ) -> bool:
+	return component_id == 0 or not is_instance_id_valid( component_id )
+
+## True when `meta` (a `flow_owner` value) marks content spawned by this node
+## for the evaluation's component. Accepts the legacy String form (node name
+## only) and stale component ids, so content saved by older versions or earlier
+## sessions is still cleared.
+func isOwnFlowContent( meta, ctx ) -> bool:
+	if meta is String or meta is StringName:
+		return String( meta ) == String( name )
+	if meta is Dictionary:
+		if String( meta.get( "node", "" ) ) != String( name ):
+			return false
+		var comp := int( meta.get( "component", 0 ) )
+		return comp == flowComponentId( ctx ) or isStaleFlowComponent( comp )
+	return false
+
+## Remove the content this node spawned under `parent` for the evaluation's
+## component (see isOwnFlowContent), optionally narrowed by `filter`. Nodes are
+## detached immediately, so the fresh spawn keeps its names, and freed at the
+## end of the frame.
+func removeOwnFlowContent( parent : Node, ctx, filter : Callable = Callable() ) -> void:
+	var doomed : Array[Node] = []
+	for child in parent.get_children():
+		if not child.has_meta( "flow_owner" ):
+			continue
+		if not isOwnFlowContent( child.get_meta( "flow_owner" ), ctx ):
+			continue
+		if filter.is_valid() and not filter.call( child ):
+			continue
+		doomed.append( child )
+	for node in doomed:
+		parent.remove_child( node )
+		node.queue_free()
+
+## Assign the scene owner of a freshly spawned node, unless the component asked
+## for transient output (then it stays unowned and is never saved).
+static func assignSpawnOwner( spawned : Node, scene_owner : Node, ctx ) -> void:
+	# ctx.owner may be a plain Node3D host without the transient_output export.
+	if ctx != null and ctx.owner != null and is_instance_valid( ctx.owner ) and ctx.owner.get( "transient_output" ) == true:
+		return
+	# Only an ancestor can own a node; anything else is an engine error and
+	# leaves the node unowned anyway.
+	if scene_owner != null and scene_owner.is_ancestor_of( spawned ):
+		spawned.owner = scene_owner
+
 func preExecute( ctx : FlowData.EvaluationContext ):
 	eval_id = ctx.eval_id
+	graph_seed = ctx.seed
 	setError("")
 	if settings != null and "random_seed" in settings:
-		rng.seed = settings.random_seed
+		rng.seed = effective_seed()
 	num_generated_bulks = 0
 	num_connected_bulks = 0
 	input_bulks = []
@@ -333,7 +453,7 @@ func refreshFromSettings():
 
 	update_node_style()
 
-	if ( not settings.debug_enabled and draw_debug ) or settings.disabled:
+	if draw_debug and ( not settings.debug_enabled or settings.disabled ):
 		draw_debug.cleanup_multimesh_direct()
 
 	if settings and "data_type" in settings and node_template != "add_attribute" and node_template != "attribute_random":

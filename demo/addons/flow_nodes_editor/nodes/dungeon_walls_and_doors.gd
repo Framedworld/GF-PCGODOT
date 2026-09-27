@@ -32,7 +32,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		
 	var cell_size : float = getSettingValue(ctx, "cell_size", 2.0)
 	var torch_prob : float = getSettingValue(ctx, "torch_probability", 0.15)
-	var seed_val : int = getSettingValue(ctx, "random_seed", 12345)
+	var seed_val : int = derive_seed(graph_seed, int(getSettingValue(ctx, "random_seed", 12345)))
 	var wall_inset : float = getSettingValue(ctx, "wall_inset", 0.0)
 	var include_concave_pillars : bool = getSettingValue(ctx, "include_concave_pillars", true)
 	var output_scale : Vector3 = getSettingValue(ctx, "output_scale", Vector3.ONE)

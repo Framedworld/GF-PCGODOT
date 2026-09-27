@@ -50,8 +50,8 @@ func _run_with_owner(owner_node, settings) -> PointsFromGridmapNode:
 # Tests
 # ---------------------------------------------------------------------------
 
-# null owner → no crash, no error, empty output
-func test_null_owner_produces_empty_output() -> void:
+# null owner → no crash, documented owner error, empty output
+func test_null_owner_reports_owner_error_and_empty_output() -> void:
 	var s = PointsFromGridmapSettings.new()
 	var node = PointsFromGridmapNode.new()
 	node.name = "test_node"
@@ -61,7 +61,7 @@ func test_null_owner_produces_empty_output() -> void:
 	ctx.owner = null
 	node.preExecute(ctx)
 	node.execute(ctx)
-	assert_str(node.err).is_empty()
+	assert_str(node.err).contains("needs an owner node")
 	node.free()
 
 # owner with no GridMap child → no error, output is empty

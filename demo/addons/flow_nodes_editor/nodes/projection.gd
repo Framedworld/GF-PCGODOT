@@ -21,6 +21,8 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input(0, ctx, "Input 'In'")
 	if in_data == null:
 		return
+	if handleMissingOwner(ctx):
+		return
 
 	var root = ctx.owner if (ctx and ctx.owner) else (EditorInterface.get_edited_scene_root() if Engine.is_editor_hint() else null)
 	if not root:

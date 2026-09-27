@@ -182,12 +182,14 @@ func test_input_feed_is_a_new_data_sharing_containers() -> void:
 # LEGACY: the input feed drops tags today. Agent A's P0 round
 # (RUNTIME_API_P0.md section 3) makes both feed branches copy tags; when that
 # lands, invert these assertions (tags must equal ["hall", "north"]).
-func test_input_feed_drops_tags_LEGACY() -> void:
+func test_input_feed_carries_tags() -> void:
+	# Tags cross the graph-input boundary along with data_attrs and kind
+	# (RUNTIME_API_P0 §3); both feed branches must carry them.
 	var specific = _feed_specific("pts", FlowData.DataType.Vector, _rich_data())
-	assert_array(Array(specific.tags)).is_empty()
+	assert_array(Array(specific.tags)).is_equal(["hall", "north"])
 	Probe.reset_probe_state()
 	var multi = _feed_multiport({"a": _rich_data()})
-	assert_array(Array(multi.a_data.tags)).is_empty()
+	assert_array(Array(multi.a_data.tags)).is_equal(["hall", "north"])
 
 
 func test_multiport_input_carries_data_attrs_and_kind() -> void:

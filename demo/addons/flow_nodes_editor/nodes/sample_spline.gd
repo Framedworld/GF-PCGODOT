@@ -243,13 +243,13 @@ func execute( ctx : FlowData.EvaluationContext ):
 			if fill_mode == 1: # Random
 				var fill_count: int = getSettingValue( ctx, "num_random_samples" )
 				var rng := RandomNumberGenerator.new()
-				rng.seed = settings.random_seed
+				rng.seed = effective_seed()
 				var poly2d := points3d_to_polygon2d(curve.tessellate(2, 5))
 				var bounds := get_polygon_bounds(poly2d)
 				new_points = randomFillCurveInXZ(poly2d, bounds, fill_count, rng)
 			elif fill_mode == 2: # Poisson
 				var rng := RandomNumberGenerator.new()
-				rng.seed = settings.random_seed
+				rng.seed = effective_seed()
 				var poly2d := points3d_to_polygon2d(curve.tessellate(2, 5))
 				var bounds := get_polygon_bounds(poly2d)
 				new_points = poissonFillCurveInXZ(poly2d, bounds, uniform_interval, rng)
@@ -280,7 +280,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			var num_random_samples: int = getSettingValue( ctx, "num_random_samples" )
 			if num_random_samples > 0:
 				var rng := RandomNumberGenerator.new()
-				rng.seed = settings.random_seed
+				rng.seed = effective_seed()
 				for path_3d in path3d_nodes:
 					var curve : Curve3D = path_3d.curve
 					var curve_length := curve.get_baked_length()
@@ -374,7 +374,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 
 	# Density + per-point seed streams (UE parity)
 	var num_points := spos.size()
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var sdensity := PackedFloat32Array()
 	sdensity.resize( num_points )
 	sdensity.fill( 1.0 )

@@ -12389,9 +12389,7 @@
 			"outputs": {
 
 			},
-			"script_errors": [
-				"Invalid call. Nonexistent function 'cleanup_multimesh_direct' in base 'Nil'."
-			],
+			"script_errors": [],
 			"spawned": 0.0,
 			"status": "ok"
 		},
@@ -16151,9 +16149,7 @@
 			"outputs": {
 
 			},
-			"script_errors": [
-				"Invalid call. Nonexistent function 'cleanup_multimesh_direct' in base 'Nil'."
-			],
+			"script_errors": [],
 			"spawned": 0.0,
 			"status": "ok"
 		},

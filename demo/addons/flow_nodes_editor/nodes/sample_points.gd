@@ -255,7 +255,7 @@ func blueNoiseSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tran
 		var cell_size : Vector3 = Vector3( max_size, 1.0, max_size )
 
 		# Add i + 256 so each point has a potentially different distribution
-		var base_j : int = posmod( settings.random_seed + i * 256, num_bn )
+		var base_j : int = posmod( effective_seed() + i * 256, num_bn )
 		var max_x = min( size.x, max_size ) * 0.5
 		var max_z = min( size.z, max_size ) * 0.5
 		if blue_noise_samples.is_empty():
@@ -285,7 +285,7 @@ func registerDensityAndSeedStreams( out_data : FlowData.Data ):
 	var sseed : PackedInt32Array = out_data.addStream( FlowData.AttrSeed, FlowData.DataType.Int )
 	var spos := out_data.getVector3Container( FlowData.AttrPosition )
 	for i in sseed.size():
-		sseed[i] = FlowData.point_seed( spos[i], settings.random_seed )
+		sseed[i] = FlowData.point_seed( spos[i], effective_seed() )
 
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input( 0, ctx )

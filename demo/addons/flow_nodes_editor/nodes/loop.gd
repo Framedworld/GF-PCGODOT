@@ -94,6 +94,13 @@ func onPropChanged( prop_name : String ):
 func computeSceneFingerprint( _ctx : FlowData.EvaluationContext ) -> Variant:
 	return nestedGraphSceneFingerprint( settings.graph if settings else null )
 
+## Graph seed for loop iteration `index` given the loop's graph seed:
+## FlowNodeBase.derive_seed(seed, index), and 0 (legacy) when the seed is 0.
+static func iteration_seed( loop_graph_seed : int, index : int ) -> int:
+	if loop_graph_seed == 0:
+		return 0
+	return FlowNodeBase.derive_seed( loop_graph_seed, index )
+
 func execute( ctx : FlowData.EvaluationContext ):
 	if not settings.graph:
 		setError("No graph assigned to Loop")
@@ -174,8 +181,14 @@ func execute( ctx : FlowData.EvaluationContext ):
 				input_idx += 1
 
 		var child_depth := depth + 1
+		# Per-iteration seed (docs/RUNTIME_API_P0.md §2): iteration i runs with
+		# hash([seed, i]) so iterations are decorrelated; seed 0 stays 0 (legacy).
+		# The child context copies ctx.seed, so set it around the call.
+		var parent_seed : int = ctx.seed
+		ctx.seed = iteration_seed(parent_seed, idx)
 		var outputs = FlowNodeIOClass.evaluate_graph(settings.graph, input_data_map, ctx, {}, child_depth)
-		
+		ctx.seed = parent_seed
+
 		var result_data = outputs.get(settings.output_attribute_name, null)
 		if result_data == null:
 			push_warning("Loop iteration produced no output for stream: " + settings.output_attribute_name)

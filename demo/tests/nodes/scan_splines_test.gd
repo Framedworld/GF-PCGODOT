@@ -52,7 +52,7 @@ func _output(node) -> FlowData.Data:
 # Tests
 # ---------------------------------------------------------------------------
 
-func test_null_owner_returns_empty_streams() -> void:
+func test_null_owner_reports_owner_error_and_empty_streams() -> void:
 	var s = ScanSplinesSettings.new()
 	var node = ScanSplinesNode.new()
 	node.name = "test_node"
@@ -62,7 +62,7 @@ func test_null_owner_returns_empty_streams() -> void:
 	ctx.owner = null
 	node.preExecute(ctx)
 	node.execute(ctx)
-	assert_str(node.err).is_empty()
+	assert_str(node.err).contains("needs an owner node")
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	var node_stream = out.findStream("node")

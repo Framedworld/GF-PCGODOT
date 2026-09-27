@@ -214,7 +214,7 @@ func execute(ctx : FlowData.EvaluationContext):
 		out.registerStream(settings.out_t_end_attribute, t_ends, FlowData.DataType.Float)
 
 	# Density + per-point seed (sampler convention / UE parity).
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var sdensity := PackedFloat32Array()
 	sdensity.resize(num_points)
 	sdensity.fill(1.0)

@@ -129,7 +129,7 @@ func execute(_ctx : FlowData.EvaluationContext):
 		sdensity.resize(num_cells)
 		sdensity.fill(1.0)
 		out_data.registerStream(FlowData.AttrDensity, sdensity, FlowData.DataType.Float)
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var sseed := PackedInt32Array()
 	sseed.resize(num_cells)
 	for idx : int in range(num_cells):

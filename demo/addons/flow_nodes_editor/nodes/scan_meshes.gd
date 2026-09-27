@@ -29,7 +29,8 @@ func _collect_scene_nodes( ctx : FlowData.EvaluationContext, filter_class_name :
 
 	var all_nodes : Array[Node] = []
 	if group_name:
-		all_nodes = ctx.owner.get_tree().get_nodes_in_group( group_name )
+		if ctx.owner.is_inside_tree():
+			all_nodes = ctx.owner.get_tree().get_nodes_in_group( group_name )
 	else:
 		var root = getSceneRootNode3d( ctx.owner )
 		if recursive:
@@ -61,6 +62,8 @@ func computeSceneFingerprint( ctx : FlowData.EvaluationContext ) -> Variant:
 	return hashSceneNodesForFingerprint( ctx, nodes, extra )
 
 func execute( ctx : FlowData.EvaluationContext ):
+	# Owner-less runtime evaluation: report it, still emit the empty schema.
+	reportMissingOwner( ctx )
 	var nodes = _collect_scene_nodes( ctx, "MeshInstance3D" )
 	# Drop instances without a mesh so 'node' and 'mesh' streams stay aligned
 	# and downstream nodes never receive null Resources.

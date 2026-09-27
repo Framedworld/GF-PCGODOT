@@ -9,6 +9,7 @@ This guide covers:
 3. [Concept dictionary](#concept-dictionary) — `$Density`, `$Seed`, selectors, attribute sets, tags
 4. [The node dictionary](#the-node-dictionary) — every UE PCG node and its equivalent here
 5. [Translated tutorials](#translated-tutorials) — three classic UE recipes, node by node
+6. [Runtime: the PCG Component API](#runtime-the-pcg-component-api) — Generate/Cleanup/Seed from script
 
 For things that genuinely do not translate yet, see [PARITY_ROADMAP.md](PARITY_ROADMAP.md) — we would rather tell you up front than have you discover it at step 7 of a tutorial.
 
@@ -18,12 +19,12 @@ For things that genuinely do not translate yet, see [PARITY_ROADMAP.md](PARITY_R
 
 | In Unreal PCG | Here |
 |---|---|
-| **PCG Component** (on an actor) | **`FlowGraphNode3D`** — a Node3D you add to your scene. It holds a reference to a graph and evaluates it. |
+| **PCG Component** (on an actor) | **`FlowGraphNode3D`** — a Node3D you add to your scene. It holds a reference to a graph and evaluates it, with the component API (`generate()`, `cleanup()`, `regenerate()`, `seed`, `generated` signal) — see [Runtime: the PCG Component API](#runtime-the-pcg-component-api). |
 | **PCG Volume** | The `FlowGraphNode3D`'s place in the scene. There is no special volume actor — source nodes (`scan_meshes`, `scan_splines`, `scan_nodes`) read the surrounding scene directly, and generator nodes (`grid`, `grid_fill_bounds`, `make_bounds`) define their own regions. |
 | **PCG Graph asset** (`.uasset`) | **`FlowGraphResource`** saved as a `.tres` file (or embedded directly in the scene). Subgraphs are also `.tres` graphs. |
 | **Graph editor tab** | The **Data Flow** bottom panel. Select a `FlowGraphNode3D` and the panel appears at the bottom of the Godot editor, with the graph canvas, a sidebar inspector on the right, and the data table below. |
 | **Details panel** | The **sidebar inspector** on the right of the Data Flow panel. Select a node and its settings appear there (not in Godot's main Inspector dock). |
-| **Generate / Force Regenerate button** | **Automatic**. Editing any setting or wire dirties the affected nodes and re-evaluates them. Press **R** to force re-evaluation of selected nodes. At runtime, the graph runs once on `_ready()` and you can call `$FlowGraphNode3D.execute()` to re-trigger. |
+| **Generate / Force Regenerate button** | **Automatic**. Editing any setting or wire dirties the affected nodes and re-evaluates them. Press **R** to force re-evaluation of selected nodes. At runtime, the graph runs once on `_ready()` (`generate_on_ready`, ≈ GenerationTrigger "Generate On Load") and `regenerate()` re-triggers it. |
 | **Attributes table (Inspect)** | The **Data Inspector** — press **A** on a node. One row per point, one column per attribute, with filtering, and clicking a row highlights that point in the 3D viewport. |
 | **Debug cube rendering** | Press **D** on a node — points draw as instanced cubes in the viewport, tinted by density (or another attribute) on a grayscale ramp. |
 | **Level actors** | Scene nodes. `MeshInstance3D` ≈ Static Mesh Component, `Path3D` ≈ Spline Component, `PackedScene` ≈ Blueprint/actor template. |
@@ -104,7 +105,7 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Get Volume Data | `make_bounds` / `scan_nodes` (size_to_bounds) | partial | No volume actor type; a bounds point + `volume_sampler` covers the sampling use. |
 | Get Primitive Data | `scan_meshes` | 1:1 | Meshes with their `mesh` resources as streams. |
 | Get Texture Data | `texture_sampler` | partial | Samples a texture *at existing points* (UV or world XZ) instead of producing surface data — reorder your chain: points first, then texture sample, then `density_filter`. |
-| Get PCG Component Data | — | roadmap | Use a `subgraph` to share generation logic instead. |
+| Get PCG Component Data | `FlowGraphNode3D.last_outputs` (script side) | partial | No in-graph node; read another component's outputs from script and feed them as graph inputs, or use a `subgraph` to share generation logic. |
 | Get Actor Property | `scan_nodes` (import_properties) | partial | Property paths (incl. sub-resources like `mesh:size`) import as attributes. |
 | Get Property From Object Path | — | roadmap | |
 | Load Data Table | `load_data_table` | 1:1 | CSV/TSV rows → typed attribute streams. |
@@ -388,6 +389,31 @@ For the **two-layer biome** variant: run the rock chain through `bounds_modifier
 5. **`spawn_meshes`** — fence mesh in `mesh`; segment meshes stretch best when your mesh is authored to exactly `uniform_interval` length.
 
 **Spline exclusion (the road-through-forest follow-up):** sample the road spline, inflate the samples with `bounds_modifier`, and wire them as input B of a `difference` node spliced before the forest spawner — identical topology to the UE recipe. **Interior scatter** ("garden inside a closed spline"): `sample_spline` with `fill_curve` = on fills the closed polygon (grid, random, or Poisson) — no separate Interior mode node needed.
+
+---
+
+## Runtime: the PCG Component API
+
+| Unreal (`UPCGComponent`) | Here (`FlowGraphNode3D`) |
+|---|---|
+| `Generate()` | `generate(inputs := {}, extra_params := {}) -> Dictionary` — synchronous, returns the graph outputs (`name -> FlowData.Data`). `generate_async()` is the time-sliced variant. |
+| `Cleanup()` | `cleanup()` — frees only the nodes this component spawned (spawned roots carry `flow_owner = {component, node}` meta), so two components sharing a spawn parent never delete each other's output. |
+| `Regenerate` / Force Regenerate | `regenerate()` = `cleanup()` + `generate()`. |
+| `Seed` | `seed` — 0 keeps each node's own `random_seed` (legacy, bit-identical); any other value derives every node's seed as `FlowNodeBase.derive_seed(seed, random_seed)`, so the same graph gives different, reproducible results per component. Subgraphs inherit the seed; loop iteration *i* gets `derive_seed(seed, i)`. |
+| `OnGraphGenerated` delegate | `generated(outputs)` signal, plus `last_outputs`. `cleaned_up` fires after `cleanup()`. |
+| Graph parameter overrides | `args` (graph input values), `params` (runtime parameters), `overrides` (`"node_name/property" -> value`). |
+| Generation Trigger | `generate_on_ready` (on load) or call `generate()` yourself. |
+| Generated components are transient | `transient_output = true` — spawned nodes get no owner, so they are never saved into the `.tscn`. |
+
+Without a component (UE's "execute a graph from code"), evaluate a graph resource directly:
+
+```gdscript
+var outputs := FlowNodeIO.evaluate(graph, { "width": 12 }, 1234, { "difficulty": 2 })
+var count = outputs["rooms"].first("count")        # element 0 of a stream, or an @data attribute
+var tiles = outputs["rooms"].container("tile")     # the packed array, or null
+```
+
+`evaluate(graph, inputs, seed, params, owner := null, overrides := {})` needs no node in the scene; spawners, scene scanners and `apply_on_actor` then report "needs an owner node" and pass their input through. Pass any `Node3D` as `owner` to let them spawn under it. `FlowData.Data.scalar(name, value)` wraps a single value for an input, and `output` nodes carry tags, `@data` attributes and `kind` across graph boundaries.
 
 ---
 

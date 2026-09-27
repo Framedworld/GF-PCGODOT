@@ -334,7 +334,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	elif settings.mode == SampleMeshNodeSettings.eMode.UseNumSamples:
 		density = -1.0
 
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var node_idx : int = -1
 	for node in nodes:
 		node_idx += 1

@@ -53,7 +53,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			setError("'node' stream contains no MeshInstance3D with a mesh")
 			return
 
-	var seed_val = getSettingValue(ctx, "random_seed", 12345)
+	var seed_val = derive_seed(graph_seed, int(getSettingValue(ctx, "random_seed", 12345)))
 	var num_pts = getSettingValue(ctx, "num_points", 40)
 	var pt_size = getSettingValue(ctx, "point_size", Vector3.ONE)
 

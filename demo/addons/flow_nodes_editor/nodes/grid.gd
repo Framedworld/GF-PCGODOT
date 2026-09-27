@@ -40,7 +40,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 				idx += 1
 
 	# Density + per-point seed streams (UE parity)
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var sdensity := PackedFloat32Array()
 	sdensity.resize( nsamples )
 	sdensity.fill( 1.0 )

@@ -50,7 +50,7 @@ func test_wired_parameter_port_overrides_setting() -> void:
 # when settings.disabled is true, but evaluator-built nodes have no draw_debug.
 # The script error aborts refreshFromSettings; evaluation itself continues and
 # the disabled node still passes its input through.
-func test_disabled_node_saved_in_graph_raises_null_draw_debug_BUG() -> void:
+func test_disabled_node_saved_in_graph_passes_through_without_error() -> void:
 	var graph = TestGraph.new() \
 		.node("a", "test_probe") \
 		.node("skipped", "test_probe", {"disabled": true}) \
@@ -60,5 +60,5 @@ func test_disabled_node_saved_in_graph_raises_null_draw_debug_BUG() -> void:
 		.build()
 	var outputs := {}
 	await assert_error(func(): outputs.merge(FlowNodeIO.evaluate_graph(graph, {}, TestGraph.make_ctx(), {}, 0))) \
-		.is_runtime_error("Invalid call. Nonexistent function 'cleanup_multimesh_direct' in base 'Nil'.")
+		.is_success()
 	assert_array(Array(TestGraph.trail(outputs.get("result")))).is_equal(["a"])

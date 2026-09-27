@@ -432,7 +432,7 @@ func test_seed_stream_present_and_deterministic() -> void:
 # ---------------------------------------------------------------------------
 # 18. Null owner → no crash, no error, zero points (scene root null).
 # ---------------------------------------------------------------------------
-func test_null_owner_no_crash_zero_points() -> void:
+func test_null_owner_reports_owner_error_zero_points() -> void:
 	var s = _default_settings()
 	var node = NavigationRegionSamplerNode.new()
 	node.name = "test_node"
@@ -442,7 +442,7 @@ func test_null_owner_no_crash_zero_points() -> void:
 	ctx.owner = null
 	node.preExecute(ctx)
 	node.execute(ctx)
-	assert_str(node.err).is_empty()
+	assert_str(node.err).contains("needs an owner node")
 	var out = _output(node)
 	assert_int(out.size()).is_equal(0)
 	node.free()

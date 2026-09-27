@@ -26,7 +26,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var out_data : FlowData.Data = in_data.duplicate()
 	var size = in_data.size()
 
-	var seed_val : int = getSettingValue(ctx, "random_seed", 12345)
+	var seed_val : int = derive_seed(graph_seed, int(getSettingValue(ctx, "random_seed", 12345)))
 	var rng = RandomNumberGenerator.new()
 
 	# Per-point seed consumption (UE $Seed parity): when the input has a seed

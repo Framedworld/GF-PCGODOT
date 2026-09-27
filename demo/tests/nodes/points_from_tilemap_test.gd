@@ -59,7 +59,7 @@ func _output(node) -> FlowData.Data:
 # Error-path tests
 # ---------------------------------------------------------------------------
 
-func test_null_owner_returns_empty_without_error() -> void:
+func test_null_owner_reports_owner_error_and_empty_output() -> void:
 	var s = _default_settings()
 	var node = PointsFromTilemapNode.new()
 	node.name = "test_node"
@@ -69,7 +69,7 @@ func test_null_owner_returns_empty_without_error() -> void:
 	ctx.owner = null
 	node.preExecute(ctx)
 	node.execute(ctx)
-	assert_str(node.err).is_empty()
+	assert_str(node.err).contains("needs an owner node")
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	node.free()

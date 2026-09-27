@@ -28,7 +28,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	# seed; when absent, the node-level rng behavior is kept unchanged.
 	var seed_stream = in_data.streams.get(FlowData.AttrSeed, null)
 	var seed_container = seed_stream.container if seed_stream != null else null
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var point_rng := RandomNumberGenerator.new()
 
 	var using_lut := false

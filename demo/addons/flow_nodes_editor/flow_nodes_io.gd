@@ -587,6 +587,9 @@ static func _is_local_runtime_param(runtime_key: String) -> bool:
 		"flow_analyze_node",
 		"flow_suppress_preview_side_effects",
 		"flow_suppress_seed_advance",
+		# Mirrored from ctx.seed per evaluation; a loop iteration's derived seed
+		# must never leak into the parent context.
+		"seed",
 	]
 
 
@@ -1164,13 +1167,24 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 	# Construct EvaluationContext for subgraph
 	var ctx = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()
 	ctx.graph = graph
+	# parent_ctx.owner may be null (owner-less evaluation); owner-dependent
+	# nodes report it themselves.
 	ctx.owner = parent_ctx.owner
+	# Copied verbatim: only make_context()/the editor assign the counter, so
+	# legacy callers that hand-build a context (some store a seed in eval_id)
+	# stay byte-identical.
 	ctx.eval_id = parent_ctx.eval_id
+	# Seed, component identity and per-instance overrides flow into nested
+	# subgraph/loop evaluations unchanged (loop derives per-iteration seeds by
+	# setting parent_ctx.seed around its call).
+	ctx.seed = parent_ctx.seed
+	ctx.component_id = parent_ctx.component_id
 	ctx.overrides = parent_ctx.overrides
 	ctx.gedit_nodes_by_name = instances
 	ctx.runtime_params = parent_ctx.runtime_params.duplicate(true) if parent_ctx.runtime_params else {}
 	for key in runtime_params.keys():
 		ctx.runtime_params[key] = runtime_params[key]
+	ctx.runtime_params["seed"] = ctx.seed
 	ctx.runtime_params["__eval_depth"] = depth
 	ctx.set_meta("flow_eval_depth", depth)
 	ctx.set_meta(OVERRIDE_HITS_META, override_hits)
@@ -1208,8 +1222,9 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 						main_stream_name = val.streams.keys()[val.streams.size() - 1]
 					var main_stream = val.streams[main_stream_name]
 					target_data.registerStream(specific_input_name, main_stream.container, main_stream.data_type)
-				# Carry per-data domain attributes and kind across the subgraph boundary.
+				# Carry per-data domain attributes, tags and kind across the subgraph boundary.
 				target_data.data_attrs = val.data_attrs.duplicate()
+				target_data.tags = val.tags.duplicate()
 				target_data.kind = val.kind
 				node.set_output(0, target_data)
 		elif node.node_template == "input":
@@ -1230,6 +1245,7 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 							var main_stream = val.streams[main_stream_name]
 							target_data.registerStream(param.name, main_stream.container, main_stream.data_type)
 						target_data.data_attrs = val.data_attrs.duplicate()
+						target_data.tags = val.tags.duplicate()
 						target_data.kind = val.kind
 					else:
 						var new_value = param.get_default_value()
@@ -1278,8 +1294,8 @@ static func _execute_single_node(node, instances: Dictionary, graph: FlowGraphRe
 		if src and src.generated_bulks.size() > 0:
 			var src_bulk = src.generated_bulks[src.generated_bulks.size() - 1]
 			if conn.from_port < src_bulk.size():
-				# Wired parameter ports sit after the flow inputs (see
-				# _restore_wired_param_ports); grow the array instead of failing.
+				# Links into exposed setting ports (to_port >= meta ins) are legal;
+				# grow the input array instead of failing the whole evaluation.
 				if conn.to_port >= node.inputs.size():
 					node.inputs.resize(conn.to_port + 1)
 				node.inputs[conn.to_port] = src_bulk[conn.from_port]
@@ -1352,6 +1368,49 @@ static func _finalize_evaluation(state: Dictionary) -> Dictionary:
 	# `outputs` keep the data alive) — free the instanced node Controls now.
 	_free_node_instances(node_list)
 	return outputs
+
+
+## Build a root EvaluationContext (docs/RUNTIME_API_P0.md §3).
+## `owner` may be null for owner-less evaluation. Any Node3D can host the
+## evaluation (spawned content is parented under it and tagged with its
+## instance id); a FlowGraphNode3D additionally contributes its `overrides`.
+## `params` become ctx.runtime_params, with "seed" mirrored from `seed`.
+## `overrides` ("node_name/property" -> value) are merged over the owner's.
+## eval_id starts at 0 here; nested evaluations copy the parent's verbatim.
+static func make_context(owner : Node3D = null, seed : int = 0, params : Dictionary = {},
+		overrides : Dictionary = {}) -> FlowData.EvaluationContext:
+	var ctx = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()
+	ctx.owner = owner
+	ctx.component_id = owner.get_instance_id() if owner != null else 0
+	var merged_overrides := {}
+	if owner != null:
+		var owner_overrides = owner.get("overrides")
+		if owner_overrides is Dictionary:
+			merged_overrides = owner_overrides.duplicate()
+	if overrides:
+		merged_overrides.merge(overrides, true)
+	ctx.overrides = merged_overrides
+	ctx.seed = seed
+	ctx.eval_id = 0
+	ctx.gedit_nodes_by_name = {}
+	ctx.runtime_params = params.duplicate(true) if params else {}
+	ctx.runtime_params["seed"] = seed
+	return ctx
+
+
+## One-call evaluation: builds a context with make_context() and runs
+## evaluate_graph(). `inputs` maps graph input names to FlowData.Data or plain
+## values (float/int/bool/String/Vector3/Color). Returns the graph outputs,
+## name -> FlowData.Data. With `owner == null`, owner-dependent nodes
+## (spawners, scene scanners, apply_on_actor) report an error and pass their
+## input through.
+static func evaluate(graph : FlowGraphResource, inputs : Dictionary = {}, seed : int = 0,
+		params : Dictionary = {}, owner : Node3D = null, overrides : Dictionary = {}) -> Dictionary:
+	if graph == null:
+		push_warning("FlowNodeIO.evaluate: graph is null")
+		return {}
+	var ctx := make_context(owner, seed, params, overrides)
+	return evaluate_graph(graph, inputs.duplicate() if inputs else {}, ctx, {}, 0)
 
 
 ## Synchronous graph evaluation — the default, unchanged runtime path.

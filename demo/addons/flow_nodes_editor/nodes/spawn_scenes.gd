@@ -17,15 +17,8 @@ func _exit_tree():
 	#removeInstancedComponents();
 	pass
 	
-func removeInstancedNodes( root : Node3D ):
-	var nodes : Array[Node] = []
-	for child in root.get_children():
-		if !child.has_meta( "flow_owner" ):
-			continue
-		if child.get_meta( "flow_owner" ) == name:
-			nodes.append( child )
-	for node in nodes:
-		node.queue_free()
+func removeInstancedNodes( root : Node3D, ctx : FlowData.EvaluationContext = null ):
+	removeOwnFlowContent( root, ctx )
 
 func _resolve_spawn_parent(root : Node3D) -> Node3D:
 	var path = settings.spawn_parent_path.strip_edges()
@@ -82,9 +75,9 @@ func _resolve_scene_for_point(idx : int, scenes_stream, variants : Array[PackedS
 		var local_rng := RandomNumberGenerator.new()
 		if point_seeds != null:
 			# Per-point seed stream present: derive the pick from it (UE parity)
-			local_rng.seed = int(point_seeds[idx]) ^ settings.random_seed
+			local_rng.seed = int(point_seeds[idx]) ^ effective_seed()
 		else:
-			local_rng.seed = settings.random_seed + idx * 1237
+			local_rng.seed = effective_seed() + idx * 1237
 		var ridx = _pick_weighted_variant(variant_weights, local_rng.randf())
 		return variants[ridx]
 	if selector_stream != null:
@@ -101,6 +94,8 @@ func _resolve_scene_for_point(idx : int, scenes_stream, variants : Array[PackedS
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input( 0, ctx )
 	if in_data == null:
+		return
+	if handleMissingOwner( ctx ):
 		return
 
 	if in_data.size() == 0:
@@ -152,7 +147,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var spawn_parent = _resolve_spawn_parent(root)
 	var in_size = in_data.size()
 	if settings.clear_previous_instances:
-		removeInstancedNodes( spawn_parent )
+		removeInstancedNodes( spawn_parent, ctx )
 
 	# Find who is going to be the owner of the new nodes
 	# (shoulw be the parent root of the scene, not the parent)
@@ -214,8 +209,8 @@ func execute( ctx : FlowData.EvaluationContext ):
 		node.transform = transforms.atIndex( idx )
 		node.name = "Scene_%04d" % idx
 		spawn_parent.add_child( node )
-		node.owner = owner_of_spawned_nodes
-		node.set_meta("flow_owner", name )
+		assignSpawnOwner( node, owner_of_spawned_nodes, ctx )
+		node.set_meta("flow_owner", flowOwnerMeta( ctx ) )
 		var assign_target : Node = node
 		var assign_target_path = settings.assign_target_path.strip_edges()
 		if assign_target_path != "":

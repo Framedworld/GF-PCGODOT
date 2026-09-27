@@ -143,15 +143,15 @@ func execute( ctx : FlowData.EvaluationContext ):
 				set_output(i, fixture_data)
 				continue
 			var new_value = param.get_default_value()
-			if ctx.owner and ctx.owner.args.has( param.name ):
-				var ctx_value = ctx.owner.args[ param.name ]
+			if _owner_args(ctx).has( param.name ):
+				var ctx_value = _owner_args(ctx)[ param.name ]
 				if ctx_value is FlowData.Data:
 					var arg_data := _normalize_input_data(ctx_value, param.name, param.data_type)
 					if arg_data != null:
 						set_output(i, arg_data)
 						continue
 				elif FlowNodeBase.getFlowDataTypeFromObject( ctx_value ) == param.data_type:
-					new_value = ctx.owner.args[ param.name ]
+					new_value = ctx_value
 			var container = output.streams[ param.name ].container
 			container.resize( 1 )
 			FlowData.Data.writeValue( container, 0, new_value, param.data_type )
@@ -178,21 +178,29 @@ func execute( ctx : FlowData.EvaluationContext ):
 			return
 			
 		var new_value = input.get_default_value()
-		if ctx.owner and ctx.owner.args.has( input.name ):
-			var ctx_value = ctx.owner.args[ input.name ]
+		if _owner_args(ctx).has( input.name ):
+			var ctx_value = _owner_args(ctx)[ input.name ]
 			if ctx_value is FlowData.Data:
 				var arg_data := _normalize_input_data(ctx_value, input.name, input.data_type)
 				if arg_data != null:
 					set_output(0, arg_data)
 					return
 			elif FlowNodeBase.getFlowDataTypeFromObject( ctx_value ) == input.data_type:
-				new_value = ctx.owner.args[ input.name ]
+				new_value = ctx_value
 
 		var container =	output.streams[ settings.name ].container
 		container.resize( 1 )
 		FlowData.Data.writeValue( container, 0, new_value, input.data_type )
 			
 		set_output( 0, output )
+
+# Graph input values of the evaluation's host. ctx.owner may be null or a plain
+# Node3D without `args` (only FlowGraphNode3D carries them).
+func _owner_args(ctx: FlowData.EvaluationContext) -> Dictionary:
+	if ctx == null or ctx.owner == null:
+		return {}
+	var owner_args = ctx.owner.get("args")
+	return owner_args if owner_args is Dictionary else {}
 
 func _data_fixture_for_input(ctx: FlowData.EvaluationContext, input_name: String, input_type: FlowData.DataType) -> FlowData.Data:
 	if ctx.owner == null:

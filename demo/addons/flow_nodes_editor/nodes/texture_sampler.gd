@@ -28,7 +28,7 @@ func _ensure_density_seed(out_data : FlowData.Data):
 	if not out_data.hasStream(FlowData.AttrSeed):
 		var spos := out_data.getVector3Container(FlowData.AttrPosition)
 		if spos.size() == num_points:
-			var node_seed : int = settings.random_seed
+			var node_seed : int = effective_seed()
 			var sseed := PackedInt32Array()
 			sseed.resize(num_points)
 			for i in range(num_points):

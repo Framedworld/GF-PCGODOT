@@ -81,6 +81,8 @@ func execute(ctx : FlowData.EvaluationContext):
 	var in_data : FlowData.Data = require_input(0, ctx)
 	if in_data == null:
 		return
+	if handleMissingOwner(ctx):
+		return
 	var in_size := in_data.size()
 	if in_size == 0:
 		set_output(0, in_data)

@@ -134,6 +134,12 @@ func execute( ctx : FlowData.EvaluationContext ):
 			for stream_name in in_data.streams:
 				var stream = in_data.streams[stream_name]
 				target_data.registerStream(stream_name, stream.container, stream.data_type)
+			# Carry the whole Data across the graph boundary, not just its
+			# streams (docs/RUNTIME_API_P0.md §6): per-data attributes, tags and
+			# the kind marker survive subgraph outputs and component outputs.
+			target_data.data_attrs = in_data.data_attrs.duplicate(true)
+			target_data.tags = in_data.tags.duplicate()
+			target_data.kind = in_data.kind
 
 			if in_data.streams.size() == 0:
 				set_output( 0, target_data )

@@ -6,6 +6,13 @@ class_name FlowGraphNode3D
 # the generation of pcg
 # It technically should not need to be a Node3D, as the transform is not really used
 # but I'm currently generating the spawned nodes as child of this nodes
+#
+# Runtime API (docs/RUNTIME_API_P0.md §1), UE UPCGComponent analogue:
+#   generate(inputs, extra_params) -> Dictionary   synchronous, returns outputs
+#   generate_async(inputs, extra_params)           time-sliced across frames
+#   cleanup()                                      frees this component's spawned nodes
+#   regenerate(inputs, extra_params)               cleanup() + generate()
+#   signal generated(outputs), signal cleaned_up, var last_outputs
 
 const FlowNodeIOClass = preload("res://addons/flow_nodes_editor/flow_nodes_io.gd")
 
@@ -20,13 +27,36 @@ const FlowNodeIOClass = preload("res://addons/flow_nodes_editor/flow_nodes_io.gd
 var _graph : FlowGraphResource = FlowGraphResource.new()
 signal graph_node_changed( graph_node : FlowGraphNode3D, prop_name : String )
 
+## Emitted after every synchronous or asynchronous generation with the graph
+## outputs (output name -> FlowData.Data).
+signal generated( outputs : Dictionary )
+## Emitted by cleanup() once this component's spawned nodes are freed.
+signal cleaned_up
+
 ## Custom inputs values for this instantiation
 @export var args : Dictionary = {}
+
+## Graph seed. 0 keeps the legacy behaviour (every node uses its own
+## random_seed). Any other value decorrelates every random node of the graph,
+## including nested subgraphs and loops, so two components running the same
+## graph with different seeds produce different results.
+@export var seed : int = 0
+
+## Baseline runtime parameters (EvaluationContext.runtime_params) for every
+## generation; generate(..., extra_params) entries win over these.
+@export var params : Dictionary = {}
 
 ## Per-instance node setting overrides: "<node_name>/<property>" -> value, optionally
 ## prefixed with a graph basename ("my_subgraph:<node_name>/<property>") to target a
 ## node inside that subgraph only. Beats $param bindings; a wired port still wins.
 @export var overrides : Dictionary = {}
+
+## Generate automatically when the node enters the running game (never in the
+## editor). Disable to drive generation from code with generate().
+@export var generate_on_ready : bool = true
+
+## Spawned nodes get no owner, so they are never saved into the scene file.
+@export var transient_output : bool = false
 
 # --- Async / time-sliced generation (PARITY_ROADMAP async stage 2, opt-in) ---
 ## When false, execute() runs a single synchronous evaluate_graph()
@@ -41,8 +71,13 @@ signal graph_node_changed( graph_node : FlowGraphNode3D, prop_name : String )
 ## async_generation is false.
 @export var frame_budget_ms : float = 4.0
 
+## Outputs of the most recent generation (output name -> FlowData.Data).
+var last_outputs : Dictionary = {}
+
 # Active resumable evaluation while async generation is in flight (null otherwise).
 var _async_eval = null
+# True while a synchronous generate() is running.
+var _generating_sync : bool = false
 
 # You can also use get_property_list() for more control
 func _get_property_list():
@@ -109,41 +144,140 @@ func refreshInputs():
 
 func _ready():
 	# Processing is enabled only while an async evaluation is in flight (see
-	# execute()/_process). Disable it by default so the per-frame driver never
-	# spins in the editor or before generation starts.
+	# generate_async()/_process). Disable it by default so the per-frame driver
+	# never spins in the editor or before generation starts.
 	set_process(false)
-	if not Engine.is_editor_hint():
+	if generate_on_ready and not Engine.is_editor_hint() and graph:
 		execute()
 
+## Kept for compatibility: generate() with default arguments, ignoring the
+## returned outputs (generate_async() when async_generation is set, as before).
+## Unlike generate(), an explicit execute() without a graph warns.
 func execute() -> void:
 	if not graph:
 		push_warning("FlowGraphNode3D: no graph resource assigned")
 		return
-	var ctx = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()
-	ctx.owner = self
-	ctx.eval_id = 0
-	ctx.gedit_nodes_by_name = {}
-	ctx.runtime_params = {}
-	ctx.overrides = overrides if overrides != null else {}
+	if async_generation:
+		generate_async()
+	else:
+		generate()
+
+func _merged_inputs( inputs : Dictionary ) -> Dictionary:
+	var base : Dictionary = args if args != null else {}
+	return base.merged( inputs, true ) if inputs else base.duplicate()
+
+func _make_context( extra_params : Dictionary ) -> FlowData.EvaluationContext:
+	var base : Dictionary = params if params != null else {}
+	var merged_params : Dictionary = base.merged( extra_params, true ) if extra_params else base
+	return FlowNodeIOClass.make_context( self, seed, merged_params )
+
+## Evaluate the graph synchronously and return its outputs (output name ->
+## FlowData.Data). `inputs` are merged over `args` (graph input values);
+## `extra_params` over `params` (runtime parameters). Stores last_outputs and
+## emits `generated`. Does not clean up earlier output; see regenerate().
+func generate( inputs : Dictionary = {}, extra_params : Dictionary = {} ) -> Dictionary:
+	# A graph-less host is legal (e.g. assigned later from code): stay silent.
+	if not graph:
+		return {}
+	# A synchronous run supersedes an in-flight async one; finish it first so
+	# its node instances are freed.
+	_finish_async_now( false )
+	var ctx := _make_context( extra_params )
+	_generating_sync = true
 	# Root evaluation starts the recursion guard at depth 0; nested
 	# subgraph/loop nodes call evaluate_graph with depth + 1.
-	if async_generation:
-		# Build the resumable evaluation now; _process() drives it across frames.
-		# If a previous async run was still in flight, drop it (the new run
-		# supersedes it) — its instances are freed when finalize never runs only
-		# if we explicitly complete it, so flush it first to avoid a node leak.
-		if _async_eval != null and not _async_eval.is_done():
-			_async_eval.run_to_completion()
-		_async_eval = FlowNodeIOClass.begin_evaluation(graph, args if args != null else {}, ctx, {}, 0)
-		# begin_evaluation returns null only on the recursion guard (depth 0 here),
-		# but stay defensive: fall back to synchronous so generation still happens.
-		if _async_eval == null:
-			FlowNodeIOClass.evaluate_graph(graph, args if args != null else {}, ctx, {}, 0)
-			return
-		set_process(true)
-	else:
-		# Default path: unchanged single synchronous evaluation.
-		FlowNodeIOClass.evaluate_graph(graph, args if args != null else {}, ctx, {}, 0)
+	var outputs : Dictionary = FlowNodeIOClass.evaluate_graph( graph, _merged_inputs( inputs ), ctx, {}, 0 )
+	_generating_sync = false
+	_on_generation_finished( outputs )
+	return outputs
+
+## Time-sliced generation: the node-execution phase is spread across frames
+## from _process(), at most `frame_budget_ms` per frame. On completion stores
+## last_outputs and emits `generated`.
+func generate_async( inputs : Dictionary = {}, extra_params : Dictionary = {} ) -> void:
+	if not graph:
+		return
+	# If a previous async run is still in flight, the new run supersedes it;
+	# flush it so its node instances are freed (no `generated` for it).
+	_finish_async_now( false )
+	var ctx := _make_context( extra_params )
+	var input_map := _merged_inputs( inputs )
+	_async_eval = FlowNodeIOClass.begin_evaluation( graph, input_map, ctx, {}, 0 )
+	# begin_evaluation returns null only on the recursion guard (depth 0 here),
+	# but stay defensive: fall back to synchronous so generation still happens.
+	if _async_eval == null:
+		_on_generation_finished( FlowNodeIOClass.evaluate_graph( graph, input_map, ctx, {}, 0 ) )
+		return
+	set_process(true)
+
+## Free every spawned node this component owns (flow_owner meta naming this
+## component, or content saved by an earlier session under this node) and emit
+## `cleaned_up`. Safe to call when nothing was generated.
+func cleanup() -> void:
+	_finish_async_now( false )
+	var my_id := get_instance_id()
+	var doomed : Array[Node] = []
+	_collect_owned( self, my_id, true, doomed )
+	# Spawners may target a spawn_parent_path outside this node; claim content
+	# that names this component anywhere else in the same scene.
+	var scan_root : Node = owner if owner != null else get_parent()
+	if scan_root != null:
+		_collect_owned( scan_root, my_id, false, doomed )
+	for node in doomed:
+		if not is_instance_valid( node ):
+			continue
+		var parent := node.get_parent()
+		if parent:
+			parent.remove_child( node )
+		node.queue_free()
+	cleaned_up.emit()
+
+## cleanup() followed by generate(); returns the new outputs.
+func regenerate( inputs : Dictionary = {}, extra_params : Dictionary = {} ) -> Dictionary:
+	cleanup()
+	return generate( inputs, extra_params )
+
+## True while a generate() call or an async generation is in progress.
+func is_generating() -> bool:
+	return _generating_sync or ( _async_eval != null and not _async_eval.is_done() )
+
+# Collects spawned subtree roots under `node` that belong to component `my_id`.
+# Inside this component's own subtree (`own_subtree`), legacy String metas and
+# metas naming a component that no longer exists (content saved into the scene
+# by an earlier session) also belong to it.
+func _collect_owned( node : Node, my_id : int, own_subtree : bool, doomed : Array[Node] ) -> void:
+	for child in node.get_children():
+		if not own_subtree and child == self:
+			continue
+		if child.has_meta( "flow_owner" ):
+			var meta = child.get_meta( "flow_owner" )
+			var mine := false
+			if meta is Dictionary:
+				var comp := int( meta.get( "component", 0 ) )
+				mine = comp == my_id or ( own_subtree and FlowNodeBase.isStaleFlowComponent( comp ) )
+			else:
+				mine = own_subtree
+			if mine:
+				if not doomed.has( child ):
+					doomed.append( child )
+				continue
+		_collect_owned( child, my_id, own_subtree, doomed )
+
+func _on_generation_finished( outputs : Dictionary ) -> void:
+	last_outputs = outputs if outputs != null else {}
+	generated.emit( last_outputs )
+
+# Run an in-flight async evaluation to completion now.
+func _finish_async_now( emit_generated : bool ) -> void:
+	if _async_eval == null:
+		return
+	var evaluation = _async_eval
+	_async_eval = null
+	set_process(false)
+	if not evaluation.is_done():
+		evaluation.run_to_completion()
+	if emit_generated:
+		_on_generation_finished( evaluation.outputs )
 
 func _process(_delta: float) -> void:
 	if _async_eval == null:
@@ -151,13 +285,13 @@ func _process(_delta: float) -> void:
 		return
 	if _async_eval.step(frame_budget_ms):
 		# Finished this frame: outputs collected, instances freed inside the
-		# evaluator. Stop processing until the next execute().
+		# evaluator. Stop processing until the next generation.
+		var evaluation = _async_eval
 		_async_eval = null
 		set_process(false)
+		_on_generation_finished( evaluation.outputs )
 
 func _exit_tree() -> void:
 	# Ensure an in-flight async evaluation is finalized (instances freed) if the
 	# host leaves the tree mid-generation.
-	if _async_eval != null and not _async_eval.is_done():
-		_async_eval.run_to_completion()
-	_async_eval = null
+	_finish_async_now( true )

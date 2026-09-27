@@ -36,7 +36,7 @@ func _output(node) -> FlowData.Data:
 # Tests
 # ---------------------------------------------------------------------------
 
-func test_null_owner_does_not_crash() -> void:
+func test_null_owner_reports_owner_error_without_crash() -> void:
 	var s = PointsFromSceneSettings.new()
 	var node = PointsFromSceneNode.new()
 	node.name = "test_node"
@@ -46,7 +46,7 @@ func test_null_owner_does_not_crash() -> void:
 	ctx.owner = null
 	node.preExecute(ctx)
 	node.execute(ctx)
-	assert_str(node.err).is_empty()
+	assert_str(node.err).contains("needs an owner node")
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	var pos_stream = out.findStream(FlowData.AttrPosition)

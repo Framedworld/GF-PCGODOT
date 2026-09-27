@@ -87,9 +87,9 @@ func _pick_source_index(target_idx : int, source_size : int, point_seed : int = 
 		# Per-point seed consumption (UE $Seed parity): prefer the target point's
 		# own seed when its data carries a seed stream; legacy spacing otherwise.
 		if use_point_seed:
-			local_rng.seed = point_seed ^ settings.random_seed
+			local_rng.seed = point_seed ^ effective_seed()
 		else:
-			local_rng.seed = settings.random_seed + target_idx * 7919
+			local_rng.seed = effective_seed() + target_idx * 7919
 		return local_rng.randi_range(0, source_size - 1)
 	return target_idx % source_size
 

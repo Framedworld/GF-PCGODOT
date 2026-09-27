@@ -53,6 +53,8 @@ func computeSceneFingerprint(_ctx : FlowData.EvaluationContext) -> Variant:
 	return hashSceneNodesForFingerprint(_ctx, grids, extra)
 
 func execute(_ctx : FlowData.EvaluationContext):
+	# Owner-less runtime evaluation: report it, still emit an empty output.
+	reportMissingOwner(_ctx)
 	var root = _ctx.owner if (_ctx and _ctx.owner) else (EditorInterface.get_edited_scene_root() if Engine.is_editor_hint() else null)
 	if root == null:
 		set_output(0, FlowData.Data.new())

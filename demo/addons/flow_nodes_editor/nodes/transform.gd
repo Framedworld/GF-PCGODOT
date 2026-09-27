@@ -49,7 +49,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var point_seeds = out_data.getContainerChecked( FlowData.AttrSeed, FlowData.DataType.Int )
 	if point_seeds != null and point_seeds.size() != spos.size() and point_seeds.size() != 1:
 		point_seeds = null
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var prng := RandomNumberGenerator.new()
 	for i in spos.size():
 		# Seed from the point's input position (before we move it) so the draw is deterministic.

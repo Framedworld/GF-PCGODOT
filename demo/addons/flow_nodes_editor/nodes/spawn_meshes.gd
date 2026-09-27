@@ -17,18 +17,12 @@ func _exit_tree():
 	#removeInstancedComponents();
 	pass
 
-func removeInstancedComponents( root : Node3D ):
-	var comps = []
-	for child in root.get_children():
-		var mmi = child as MultiMeshInstance3D
-		if mmi and mmi.has_meta( "flow_owner" ) and mmi.get_meta( "flow_owner" ) == name:
-			comps.append( mmi )
-	for comp in comps:
-		comp.queue_free()
+func removeInstancedComponents( root : Node3D, ctx : FlowData.EvaluationContext = null ):
+	removeOwnFlowContent( root, ctx, func( child ): return child is MultiMeshInstance3D )
 
-func spawnNode( class_to_spawn ):
+func spawnNode( class_to_spawn, ctx : FlowData.EvaluationContext = null ):
 	var new_node = class_to_spawn.new()
-	new_node.set_meta("flow_owner", name )
+	new_node.set_meta("flow_owner", flowOwnerMeta( ctx ) )
 	return new_node
 
 func _resolve_spawn_parent(root : Node3D) -> Node3D:
@@ -88,9 +82,9 @@ func _resolve_mesh_for_point(idx : int, meshes_stream, variants : Array[Mesh], v
 		var local_rng := RandomNumberGenerator.new()
 		if point_seeds != null:
 			# Per-point seed stream present: derive the pick from it (UE parity)
-			local_rng.seed = int(point_seeds[idx]) ^ settings.random_seed
+			local_rng.seed = int(point_seeds[idx]) ^ effective_seed()
 		else:
-			local_rng.seed = settings.random_seed + idx * 19937
+			local_rng.seed = effective_seed() + idx * 19937
 		var ridx = _pick_weighted_variant(variant_weights, local_rng.randf())
 		return variants[ridx]
 
@@ -111,6 +105,8 @@ func _resolve_mesh_for_point(idx : int, meshes_stream, variants : Array[Mesh], v
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input( 0, ctx )
 	if in_data == null:
+		return
+	if handleMissingOwner( ctx ):
 		return
 
 	if in_data.size() == 0:
@@ -165,7 +161,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var spawn_parent = _resolve_spawn_parent(root)
 	var in_size = in_data.size()
 	if settings.clear_previous_instances:
-		removeInstancedComponents( spawn_parent )
+		removeInstancedComponents( spawn_parent, ctx )
 
 	# Find who is going to be the owner of the new nodes
 	# (should be the parent root of the scene, not the parent)
@@ -219,7 +215,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			return
 
 	for res in mmis.keys():
-		var mmi : MultiMeshInstance3D = spawnNode( MultiMeshInstance3D )
+		var mmi : MultiMeshInstance3D = spawnNode( MultiMeshInstance3D, ctx )
 		
 		var multimesh := MultiMesh.new()
 		multimesh.mesh = res
@@ -245,7 +241,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			mat.roughness = 0.3
 			mmi.material_override = mat
 		spawn_parent.add_child( mmi )
-		mmi.owner = owner_of_mmis
+		assignSpawnOwner( mmi, owner_of_mmis, ctx )
 	
 	if Engine.is_editor_hint():
 		EditorInterface.mark_scene_as_unsaved()

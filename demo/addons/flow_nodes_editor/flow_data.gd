@@ -58,13 +58,31 @@ const AttrBoundsMin : StringName = &"bounds_min"	# Vector, per-point local-space
 const AttrBoundsMax : StringName = &"bounds_max"	# Vector, per-point local-space max corner of the bounds box
 const AttrSteepness : StringName = &"steepness"		# Float, 0..1, hardness of the point volume edge (UE $Steepness; 1 = binary box)
 
+# Per-evaluation state shared by every node of one graph evaluation. Build one
+# with FlowNodeIO.make_context(); nested subgraph/loop evaluations derive a
+# child context from it (see FlowNodeIO._build_evaluation_state).
 class EvaluationContext:
-	var owner : FlowGraphNode3D
+	## The host of this evaluation: normally a FlowGraphNode3D, but any Node3D
+	## works as the spawn parent / scene anchor (component features such as
+	## args, transient_output and overrides are read only when present).
+	## MAY BE NULL (owner-less evaluation via FlowNodeIO.evaluate); nodes that
+	## need a scene (spawners, scanners, apply_on_actor) then report an error
+	## and pass their input through.
+	var owner : Node3D
+	## Evaluation counter (the editor bumps it per regen). Never a seed.
 	var eval_id : int = 0
+	## Graph seed. 0 = legacy: every node uses its own settings.random_seed.
+	## Otherwise each node derives hash([seed, random_seed]) & 0x7fffffff.
+	var seed : int = 0
+	## owner.get_instance_id(), or 0. Stamped into spawned nodes' flow_owner
+	## meta so components sharing a spawn parent never clean up each other.
+	var component_id : int = 0
 	var graph : FlowGraphResource
 	var gedit_nodes_by_name : Dictionary
+	## Always contains "seed" mirrored from `seed` once the evaluator built it.
 	var runtime_params : Dictionary = {}
 	var variables : Dictionary = {}
+	## Per-instance node setting overrides, "node_name/property" -> value.
 	var overrides : Dictionary = {}
 
 ## Deterministic per-point seed (UE $Seed parity): hashes the position
@@ -290,6 +308,125 @@ class Data:
 			return FlowData.DataType.Bool
 		return FlowData.DataType.Invalid
 
+	## One-element Data holding `value` in stream `name` (e.g. to feed a graph
+	## input or a runtime parameter). The type is inferred from the value when
+	## `data_type` is Invalid.
+	static func scalar( name : String, value, data_type : DataType = DataType.Invalid ) -> Data:
+		var data := Data.new()
+		if data_type == DataType.Invalid:
+			data_type = _inferValueType( value )
+		if data_type == DataType.Invalid:
+			push_warning( "Data.scalar('%s'): unsupported value type %s" % [ name, type_string( typeof( value ) ) ] )
+			return data
+		var new_container = data.addStream( name, data_type )
+		if new_container == null:
+			return data
+		new_container.resize( 1 )
+		writeValue( new_container, 0, value, data_type )
+		return data
+
+	# Same mapping as FlowNodeBase.getFlowDataTypeFromObject (kept local so
+	# flow_data.gd does not depend on node.gd), plus StringName, Quaternion and
+	# Node values.
+	static func _inferValueType( value ) -> DataType:
+		match typeof( value ):
+			TYPE_BOOL:
+				return DataType.Bool
+			TYPE_INT:
+				return DataType.Int
+			TYPE_FLOAT:
+				return DataType.Float
+			TYPE_STRING, TYPE_STRING_NAME:
+				return DataType.String
+			TYPE_VECTOR3:
+				return DataType.Vector
+			TYPE_COLOR:
+				return DataType.Color
+			TYPE_QUATERNION, TYPE_VECTOR4:
+				return DataType.Quaternion
+		if value is Resource:
+			return DataType.Resource
+		if value is Node:
+			return DataType.NodeMesh
+		return DataType.Invalid
+
+	# findStream without the push_error noise for absent streams, so the
+	# convenience readers fall back to their defaults silently.
+	func _findStreamQuiet( name : String ):
+		if name == "":
+			return null
+		if name == "@last":
+			if last_added_stream_name == "":
+				return null
+			return findStream( name )
+		if name.begins_with( DataAttrPrefix ):
+			return findStream( name )
+		var translated : String = translateStreamName( name )
+		var parts := translated.split( "." )
+		if parts.size() > 2:
+			return null
+		if parts.size() == 2:
+			var root = findStream( parts[0] )
+			if root == null or getSubStreamIndex( parts[1] ) == -1:
+				return null
+			if root.data_type != DataType.Vector and root.data_type != DataType.Color:
+				return null
+		return findStream( name )
+
+	static func _readElement( stream : Dictionary, index : int ):
+		var value = stream.container[ index ]
+		if stream.data_type == DataType.Bool:
+			return bool( value )
+		return value
+
+	## Element 0 of stream `name`, else the per-data attribute `name`, else
+	## `default`. Accepts every selector findStream accepts ("@last",
+	## "position.x", "@data.foo", "Yaw").
+	func first( name : String, default = null ):
+		var stream = _findStreamQuiet( name )
+		if stream != null and stream.container.size() > 0:
+			return _readElement( stream, 0 )
+		if not name.begins_with( DataAttrPrefix ) and data_attrs.has( name ):
+			return get_data_attr( name, default )
+		return default
+
+	## The packed container (or Array for Resource/Node streams) of stream
+	## `name`, or null when absent. Same selectors as first().
+	func container( name : String ):
+		var stream = _findStreamQuiet( name )
+		if stream == null:
+			return null
+		return stream.container
+
+	## Set per-data attribute `name` (read back with get_data_attr, first() or
+	## the "@data.<name>" selector). Type inferred when `data_type` is Invalid.
+	## A data attribute holds ONE value: prefer this over
+	## registerStream("@data.<name>", container), which silently keeps only
+	## element 0 of a multi-element container (it now warns).
+	func set_data_attr( name : String, value, data_type : DataType = DataType.Invalid ) -> void:
+		if data_type == DataType.Invalid:
+			data_type = _inferValueType( value )
+		if data_type == DataType.Invalid:
+			push_warning( "Data.set_data_attr('%s'): unsupported value type %s" % [ name, type_string( typeof( value ) ) ] )
+			return
+		# Store exactly what registerStream("@data.<name>", ...) would store:
+		# the value coerced to the declared type (Bool as a 0/1 byte).
+		var coerced = newContainerOfType( data_type )
+		if coerced == null:
+			return
+		coerced.resize( 1 )
+		writeValue( coerced, 0, value, data_type )
+		var holder : Dictionary = { "container" : coerced }
+		data_attrs[ name ] = { "value" : holder.container[0], "data_type" : data_type }
+
+	func get_data_attr( name : String, default = null ):
+		var rec = data_attrs.get( name, null )
+		if rec == null:
+			return default
+		if rec.data_type == DataType.Bool and rec.value != null:
+			return bool( rec.value )
+		return rec.value
+
 	func numFields() -> int:
 		return streams.size()
 		
@@ -467,6 +604,10 @@ class Data:
 				data_type = _inferContainerType( container )
 			if data_type == FlowData.DataType.Invalid:
 				return "Invalid container type"
+			if container.size() > 1:
+				# Semantics unchanged this round (element 0 wins), but a
+				# multi-element write is almost always a bug upstream.
+				push_warning( "registerStream('%s'): per-data attribute got %d elements; only element 0 is kept" % [ name, container.size() ] )
 			var value = container[0] if container.size() > 0 else null
 			data_attrs[ attr_name ] = { "value" : value, "data_type" : data_type }
 			last_added_stream_name = name
