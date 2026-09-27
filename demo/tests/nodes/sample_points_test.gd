@@ -234,3 +234,23 @@ func test_inherit_attributes_empty_input_keeps_schema() -> void:
 	assert_bool(out.hasStream("room")).is_true()
 	assert_int(out.size()).is_equal(0)
 	node.free()
+
+
+func test_legacy_scale_from_extent_writes_no_bounds_streams() -> void:
+	# Legacy bridge = pre-bounds output exactly: extent in `size`, no bounds streams.
+	var in_data := FlowDataScript.Data.new()
+	in_data.addCommonStreams(1)
+	in_data.getVector3Container(FlowDataScript.AttrSize)[0] = Vector3(10, 1, 10)
+	var node = _run_sample_points(in_data, SamplePointsSettings.eDistribution.UniformGrid, func(s):
+		s.legacy_scale_from_extent = true
+	)
+	var out = _get_output_data(node)
+	assert_object(out).is_not_null()
+	assert_bool(out.hasStream(FlowDataScript.AttrBoundsMin)).is_false()
+	assert_bool(out.hasStream(FlowDataScript.AttrBoundsMax)).is_false()
+	node.free()
+
+	var node_b = _run_sample_points(in_data, SamplePointsSettings.eDistribution.UniformGrid)
+	var out_b = _get_output_data(node_b)
+	assert_bool(out_b.hasStream(FlowDataScript.AttrBoundsMin)).is_true()
+	node_b.free()

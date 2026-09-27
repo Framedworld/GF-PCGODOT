@@ -388,9 +388,13 @@ func execute( ctx : FlowData.EvaluationContext ):
 	# length / cross-section) belongs in the point BOUNDS, not in scale. Record it
 	# as bounds, then reset scale to unit so spawned meshes are placed at their
 	# natural size instead of being stretched to the sampling interval.
-	output.setSymmetricBounds( ssize )
-	# Opt-in legacy bridge: keep size = extent (old size-as-scale) when requested.
-	if not getSettingValue( ctx, "legacy_scale_from_extent" ):
+	# Opt-in legacy bridge: keep size = extent (old size-as-scale) and write NO
+	# bounds streams, so the output is byte-identical to the pre-bounds node
+	# (downstream point_offsets/difference must not see extents they never had).
+	if getSettingValue( ctx, "legacy_scale_from_extent" ):
+		pass
+	else:
+		output.setSymmetricBounds( ssize )
 		for i in range( ssize.size() ):
 			ssize[i] = Vector3.ONE
 

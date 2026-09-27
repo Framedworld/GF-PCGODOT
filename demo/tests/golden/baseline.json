@@ -172,18 +172,6 @@
 							"streams": [
 								{
 									"count": 8.0,
-									"data_type": 3.0,
-									"hash": "bd553f388e886195",
-									"name": "bounds_max"
-								},
-								{
-									"count": 8.0,
-									"data_type": 3.0,
-									"hash": "8e86fa9028a2305a",
-									"name": "bounds_min"
-								},
-								{
-									"count": 8.0,
 									"data_type": 2.0,
 									"hash": "5098696358629e45",
 									"name": "density"
@@ -228,18 +216,6 @@
 							"streams": [
 								{
 									"count": 8.0,
-									"data_type": 3.0,
-									"hash": "bd553f388e886195",
-									"name": "bounds_max"
-								},
-								{
-									"count": 8.0,
-									"data_type": 3.0,
-									"hash": "8e86fa9028a2305a",
-									"name": "bounds_min"
-								},
-								{
-									"count": 8.0,
 									"data_type": 2.0,
 									"hash": "5098696358629e45",
 									"name": "density"
@@ -282,18 +258,6 @@
 							"kind": 0.0,
 							"size": 24.0,
 							"streams": [
-								{
-									"count": 24.0,
-									"data_type": 3.0,
-									"hash": "a7fac0ff2a9dae7f",
-									"name": "bounds_max"
-								},
-								{
-									"count": 24.0,
-									"data_type": 3.0,
-									"hash": "6af87daf7465e9b6",
-									"name": "bounds_min"
-								},
 								{
 									"count": 24.0,
 									"data_type": 2.0,
@@ -380,18 +344,6 @@
 							"streams": [
 								{
 									"count": 24.0,
-									"data_type": 3.0,
-									"hash": "a7fac0ff2a9dae7f",
-									"name": "bounds_max"
-								},
-								{
-									"count": 24.0,
-									"data_type": 3.0,
-									"hash": "6af87daf7465e9b6",
-									"name": "bounds_min"
-								},
-								{
-									"count": 24.0,
 									"data_type": 2.0,
 									"hash": "3e8f2918ee98ba19",
 									"name": "density"
@@ -476,18 +428,6 @@
 							"streams": [
 								{
 									"count": 24.0,
-									"data_type": 3.0,
-									"hash": "a7fac0ff2a9dae7f",
-									"name": "bounds_max"
-								},
-								{
-									"count": 24.0,
-									"data_type": 3.0,
-									"hash": "6af87daf7465e9b6",
-									"name": "bounds_min"
-								},
-								{
-									"count": 24.0,
 									"data_type": 2.0,
 									"hash": "3e8f2918ee98ba19",
 									"name": "density"
@@ -530,18 +470,6 @@
 							"kind": 0.0,
 							"size": 24.0,
 							"streams": [
-								{
-									"count": 24.0,
-									"data_type": 3.0,
-									"hash": "a7fac0ff2a9dae7f",
-									"name": "bounds_max"
-								},
-								{
-									"count": 24.0,
-									"data_type": 3.0,
-									"hash": "6af87daf7465e9b6",
-									"name": "bounds_min"
-								},
 								{
 									"count": 24.0,
 									"data_type": 2.0,
@@ -626,18 +554,6 @@
 							"kind": 0.0,
 							"size": 24.0,
 							"streams": [
-								{
-									"count": 24.0,
-									"data_type": 3.0,
-									"hash": "a7fac0ff2a9dae7f",
-									"name": "bounds_max"
-								},
-								{
-									"count": 24.0,
-									"data_type": 3.0,
-									"hash": "6af87daf7465e9b6",
-									"name": "bounds_min"
-								},
 								{
 									"count": 24.0,
 									"data_type": 2.0,
@@ -7423,18 +7339,6 @@
 							"streams": [
 								{
 									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "e4f6602b2111c2a2",
-									"name": "bounds_max"
-								},
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "9de95c47023d9f36",
-									"name": "bounds_min"
-								},
-								{
-									"count": 475.0,
 									"data_type": 2.0,
 									"hash": "8759513bf84b8384",
 									"name": "density"
@@ -7477,18 +7381,6 @@
 							"kind": 0.0,
 							"size": 475.0,
 							"streams": [
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "e4f6602b2111c2a2",
-									"name": "bounds_max"
-								},
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "9de95c47023d9f36",
-									"name": "bounds_min"
-								},
 								{
 									"count": 475.0,
 									"data_type": 2.0,
@@ -7535,18 +7427,6 @@
 							"streams": [
 								{
 									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "e4f6602b2111c2a2",
-									"name": "bounds_max"
-								},
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "9de95c47023d9f36",
-									"name": "bounds_min"
-								},
-								{
-									"count": 475.0,
 									"data_type": 2.0,
 									"hash": "8759513bf84b8384",
 									"name": "density"
@@ -7589,18 +7469,6 @@
 							"kind": 0.0,
 							"size": 475.0,
 							"streams": [
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "e4f6602b2111c2a2",
-									"name": "bounds_max"
-								},
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "9de95c47023d9f36",
-									"name": "bounds_min"
-								},
 								{
 									"count": 475.0,
 									"data_type": 2.0,
@@ -7647,18 +7515,6 @@
 							"streams": [
 								{
 									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "e4f6602b2111c2a2",
-									"name": "bounds_max"
-								},
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "9de95c47023d9f36",
-									"name": "bounds_min"
-								},
-								{
-									"count": 475.0,
 									"data_type": 2.0,
 									"hash": "8759513bf84b8384",
 									"name": "density"
@@ -7701,18 +7557,6 @@
 							"kind": 0.0,
 							"size": 1425.0,
 							"streams": [
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "0152ffc17ce077aa",
-									"name": "bounds_max"
-								},
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "ec7df304165bcd17",
-									"name": "bounds_min"
-								},
 								{
 									"count": 1425.0,
 									"data_type": 2.0,
@@ -7759,18 +7603,6 @@
 							"streams": [
 								{
 									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "0152ffc17ce077aa",
-									"name": "bounds_max"
-								},
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "ec7df304165bcd17",
-									"name": "bounds_min"
-								},
-								{
-									"count": 1425.0,
 									"data_type": 2.0,
 									"hash": "83ddfd90faa65b7a",
 									"name": "density"
@@ -7813,18 +7645,6 @@
 							"kind": 0.0,
 							"size": 1425.0,
 							"streams": [
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "0152ffc17ce077aa",
-									"name": "bounds_max"
-								},
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "ec7df304165bcd17",
-									"name": "bounds_min"
-								},
 								{
 									"count": 1425.0,
 									"data_type": 8.0,
@@ -7875,18 +7695,6 @@
 							"kind": 0.0,
 							"size": 1425.0,
 							"streams": [
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "0152ffc17ce077aa",
-									"name": "bounds_max"
-								},
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "ec7df304165bcd17",
-									"name": "bounds_min"
-								},
 								{
 									"count": 1425.0,
 									"data_type": 8.0,
@@ -7976,18 +7784,6 @@
 							"streams": [
 								{
 									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "e4f6602b2111c2a2",
-									"name": "bounds_max"
-								},
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "9de95c47023d9f36",
-									"name": "bounds_min"
-								},
-								{
-									"count": 475.0,
 									"data_type": 2.0,
 									"hash": "8759513bf84b8384",
 									"name": "density"
@@ -8030,18 +7826,6 @@
 							"kind": 0.0,
 							"size": 475.0,
 							"streams": [
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "e4f6602b2111c2a2",
-									"name": "bounds_max"
-								},
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "9de95c47023d9f36",
-									"name": "bounds_min"
-								},
 								{
 									"count": 475.0,
 									"data_type": 2.0,
@@ -8088,18 +7872,6 @@
 							"streams": [
 								{
 									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "e4f6602b2111c2a2",
-									"name": "bounds_max"
-								},
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "9de95c47023d9f36",
-									"name": "bounds_min"
-								},
-								{
-									"count": 475.0,
 									"data_type": 2.0,
 									"hash": "8759513bf84b8384",
 									"name": "density"
@@ -8142,18 +7914,6 @@
 							"kind": 0.0,
 							"size": 475.0,
 							"streams": [
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "e4f6602b2111c2a2",
-									"name": "bounds_max"
-								},
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "9de95c47023d9f36",
-									"name": "bounds_min"
-								},
 								{
 									"count": 475.0,
 									"data_type": 2.0,
@@ -8200,18 +7960,6 @@
 							"streams": [
 								{
 									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "e4f6602b2111c2a2",
-									"name": "bounds_max"
-								},
-								{
-									"count": 475.0,
-									"data_type": 3.0,
-									"hash": "9de95c47023d9f36",
-									"name": "bounds_min"
-								},
-								{
-									"count": 475.0,
 									"data_type": 2.0,
 									"hash": "8759513bf84b8384",
 									"name": "density"
@@ -8254,18 +8002,6 @@
 							"kind": 0.0,
 							"size": 1425.0,
 							"streams": [
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "0152ffc17ce077aa",
-									"name": "bounds_max"
-								},
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "ec7df304165bcd17",
-									"name": "bounds_min"
-								},
 								{
 									"count": 1425.0,
 									"data_type": 2.0,
@@ -8312,18 +8048,6 @@
 							"streams": [
 								{
 									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "0152ffc17ce077aa",
-									"name": "bounds_max"
-								},
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "ec7df304165bcd17",
-									"name": "bounds_min"
-								},
-								{
-									"count": 1425.0,
 									"data_type": 2.0,
 									"hash": "83ddfd90faa65b7a",
 									"name": "density"
@@ -8366,18 +8090,6 @@
 							"kind": 0.0,
 							"size": 1425.0,
 							"streams": [
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "0152ffc17ce077aa",
-									"name": "bounds_max"
-								},
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "ec7df304165bcd17",
-									"name": "bounds_min"
-								},
 								{
 									"count": 1425.0,
 									"data_type": 8.0,
@@ -8428,18 +8140,6 @@
 							"kind": 0.0,
 							"size": 1425.0,
 							"streams": [
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "0152ffc17ce077aa",
-									"name": "bounds_max"
-								},
-								{
-									"count": 1425.0,
-									"data_type": 3.0,
-									"hash": "ec7df304165bcd17",
-									"name": "bounds_min"
-								},
 								{
 									"count": 1425.0,
 									"data_type": 8.0,
@@ -8527,18 +8227,6 @@
 							"kind": 0.0,
 							"size": 6.0,
 							"streams": [
-								{
-									"count": 6.0,
-									"data_type": 3.0,
-									"hash": "dd9bb128098633b6",
-									"name": "bounds_max"
-								},
-								{
-									"count": 6.0,
-									"data_type": 3.0,
-									"hash": "c0563089bd93e247",
-									"name": "bounds_min"
-								},
 								{
 									"count": 6.0,
 									"data_type": 2.0,
@@ -10571,18 +10259,6 @@
 							"streams": [
 								{
 									"count": 101.0,
-									"data_type": 3.0,
-									"hash": "538ffdd2d96e69c6",
-									"name": "bounds_max"
-								},
-								{
-									"count": 101.0,
-									"data_type": 3.0,
-									"hash": "7ae02c099028c3c9",
-									"name": "bounds_min"
-								},
-								{
-									"count": 101.0,
 									"data_type": 2.0,
 									"hash": "2ead558c784598e6",
 									"name": "density"
@@ -10625,18 +10301,6 @@
 							"kind": 0.0,
 							"size": 24099.0,
 							"streams": [
-								{
-									"count": 24099.0,
-									"data_type": 3.0,
-									"hash": "7a9a104d3f200ec4",
-									"name": "bounds_max"
-								},
-								{
-									"count": 24099.0,
-									"data_type": 3.0,
-									"hash": "ce51ed8e8adc0571",
-									"name": "bounds_min"
-								},
 								{
 									"count": 24099.0,
 									"data_type": 2.0,
@@ -10715,18 +10379,6 @@
 							"streams": [
 								{
 									"count": 11977.0,
-									"data_type": 3.0,
-									"hash": "09cda6c27e04c789",
-									"name": "bounds_max"
-								},
-								{
-									"count": 11977.0,
-									"data_type": 3.0,
-									"hash": "7b020532789f7a6a",
-									"name": "bounds_min"
-								},
-								{
-									"count": 11977.0,
 									"data_type": 2.0,
 									"hash": "55eb5097f475af7d",
 									"name": "density"
@@ -10783,18 +10435,6 @@
 							"streams": [
 								{
 									"count": 12929.0,
-									"data_type": 3.0,
-									"hash": "5a58c88fe4005019",
-									"name": "bounds_max"
-								},
-								{
-									"count": 12929.0,
-									"data_type": 3.0,
-									"hash": "4f5f757752fa6033",
-									"name": "bounds_min"
-								},
-								{
-									"count": 12929.0,
 									"data_type": 2.0,
 									"hash": "3cde7ba2f934088c",
 									"name": "density"
@@ -10845,18 +10485,6 @@
 							"kind": 0.0,
 							"size": 11170.0,
 							"streams": [
-								{
-									"count": 11170.0,
-									"data_type": 3.0,
-									"hash": "be7cbd46cd82372f",
-									"name": "bounds_max"
-								},
-								{
-									"count": 11170.0,
-									"data_type": 3.0,
-									"hash": "c953411644e94bf1",
-									"name": "bounds_min"
-								},
 								{
 									"count": 11170.0,
 									"data_type": 2.0,
@@ -10915,18 +10543,6 @@
 							"streams": [
 								{
 									"count": 24099.0,
-									"data_type": 3.0,
-									"hash": "7a9a104d3f200ec4",
-									"name": "bounds_max"
-								},
-								{
-									"count": 24099.0,
-									"data_type": 3.0,
-									"hash": "ce51ed8e8adc0571",
-									"name": "bounds_min"
-								},
-								{
-									"count": 24099.0,
 									"data_type": 2.0,
 									"hash": "ae41bf96492c4290",
 									"name": "density"
@@ -10983,18 +10599,6 @@
 							"streams": [
 								{
 									"count": 24099.0,
-									"data_type": 3.0,
-									"hash": "7a9a104d3f200ec4",
-									"name": "bounds_max"
-								},
-								{
-									"count": 24099.0,
-									"data_type": 3.0,
-									"hash": "ce51ed8e8adc0571",
-									"name": "bounds_min"
-								},
-								{
-									"count": 24099.0,
 									"data_type": 2.0,
 									"hash": "ae41bf96492c4290",
 									"name": "density"
@@ -11043,18 +10647,6 @@
 							"kind": 0.0,
 							"size": 24099.0,
 							"streams": [
-								{
-									"count": 24099.0,
-									"data_type": 3.0,
-									"hash": "7a9a104d3f200ec4",
-									"name": "bounds_max"
-								},
-								{
-									"count": 24099.0,
-									"data_type": 3.0,
-									"hash": "ce51ed8e8adc0571",
-									"name": "bounds_min"
-								},
 								{
 									"count": 24099.0,
 									"data_type": 2.0,
@@ -11131,18 +10723,6 @@
 							"kind": 0.0,
 							"size": 24099.0,
 							"streams": [
-								{
-									"count": 24099.0,
-									"data_type": 3.0,
-									"hash": "7a9a104d3f200ec4",
-									"name": "bounds_max"
-								},
-								{
-									"count": 24099.0,
-									"data_type": 3.0,
-									"hash": "ce51ed8e8adc0571",
-									"name": "bounds_min"
-								},
 								{
 									"count": 24099.0,
 									"data_type": 2.0,
@@ -11251,18 +10831,6 @@
 							"streams": [
 								{
 									"count": 5679.0,
-									"data_type": 3.0,
-									"hash": "6b8e7cd39cae2ffc",
-									"name": "bounds_max"
-								},
-								{
-									"count": 5679.0,
-									"data_type": 3.0,
-									"hash": "b99cb28bc1029305",
-									"name": "bounds_min"
-								},
-								{
-									"count": 5679.0,
 									"data_type": 2.0,
 									"hash": "031acd7b40657e1e",
 									"name": "density"
@@ -11356,18 +10924,6 @@
 							"streams": [
 								{
 									"count": 33.0,
-									"data_type": 3.0,
-									"hash": "bef3e69d82d8192b",
-									"name": "bounds_max"
-								},
-								{
-									"count": 33.0,
-									"data_type": 3.0,
-									"hash": "2617f8b193183b98",
-									"name": "bounds_min"
-								},
-								{
-									"count": 33.0,
 									"data_type": 2.0,
 									"hash": "a027d74d2b3376d7",
 									"name": "density"
@@ -11410,18 +10966,6 @@
 							"kind": 0.0,
 							"size": 33.0,
 							"streams": [
-								{
-									"count": 33.0,
-									"data_type": 3.0,
-									"hash": "bef3e69d82d8192b",
-									"name": "bounds_max"
-								},
-								{
-									"count": 33.0,
-									"data_type": 3.0,
-									"hash": "2617f8b193183b98",
-									"name": "bounds_min"
-								},
 								{
 									"count": 33.0,
 									"data_type": 2.0,
@@ -11494,18 +11038,6 @@
 							"streams": [
 								{
 									"count": 33.0,
-									"data_type": 3.0,
-									"hash": "bef3e69d82d8192b",
-									"name": "bounds_max"
-								},
-								{
-									"count": 33.0,
-									"data_type": 3.0,
-									"hash": "2617f8b193183b98",
-									"name": "bounds_min"
-								},
-								{
-									"count": 33.0,
 									"data_type": 2.0,
 									"hash": "a027d74d2b3376d7",
 									"name": "density"
@@ -11562,18 +11094,6 @@
 							"streams": [
 								{
 									"count": 16.0,
-									"data_type": 3.0,
-									"hash": "ef93c743c2bcddf8",
-									"name": "bounds_max"
-								},
-								{
-									"count": 16.0,
-									"data_type": 3.0,
-									"hash": "bcae05e71408c36d",
-									"name": "bounds_min"
-								},
-								{
-									"count": 16.0,
 									"data_type": 2.0,
 									"hash": "9ed32785f98a0c22",
 									"name": "density"
@@ -11624,18 +11144,6 @@
 							"kind": 0.0,
 							"size": 17.0,
 							"streams": [
-								{
-									"count": 17.0,
-									"data_type": 3.0,
-									"hash": "c4c968b3171b39a5",
-									"name": "bounds_max"
-								},
-								{
-									"count": 17.0,
-									"data_type": 3.0,
-									"hash": "193ba7138a232cbb",
-									"name": "bounds_min"
-								},
 								{
 									"count": 17.0,
 									"data_type": 2.0,
@@ -11692,18 +11200,6 @@
 							"kind": 0.0,
 							"size": 16.0,
 							"streams": [
-								{
-									"count": 16.0,
-									"data_type": 3.0,
-									"hash": "ef93c743c2bcddf8",
-									"name": "bounds_max"
-								},
-								{
-									"count": 16.0,
-									"data_type": 3.0,
-									"hash": "bcae05e71408c36d",
-									"name": "bounds_min"
-								},
 								{
 									"count": 16.0,
 									"data_type": 2.0,
@@ -11799,18 +11295,6 @@
 							"streams": [
 								{
 									"count": 16.0,
-									"data_type": 3.0,
-									"hash": "b1a2743c23d3c0ed",
-									"name": "bounds_max"
-								},
-								{
-									"count": 16.0,
-									"data_type": 3.0,
-									"hash": "b18b09bfce04b374",
-									"name": "bounds_min"
-								},
-								{
-									"count": 16.0,
 									"data_type": 2.0,
 									"hash": "9ed32785f98a0c22",
 									"name": "density"
@@ -11861,18 +11345,6 @@
 							"streams": [
 								{
 									"count": 13.0,
-									"data_type": 3.0,
-									"hash": "51fd0bf77922a8e6",
-									"name": "bounds_max"
-								},
-								{
-									"count": 13.0,
-									"data_type": 3.0,
-									"hash": "6135472a20ebfff6",
-									"name": "bounds_min"
-								},
-								{
-									"count": 13.0,
 									"data_type": 2.0,
 									"hash": "1b7f7407467b3631",
 									"name": "density"
@@ -11917,18 +11389,6 @@
 							"kind": 0.0,
 							"size": 3.0,
 							"streams": [
-								{
-									"count": 3.0,
-									"data_type": 3.0,
-									"hash": "9364bfd1f8aa26c6",
-									"name": "bounds_max"
-								},
-								{
-									"count": 3.0,
-									"data_type": 3.0,
-									"hash": "4c0aed768db53bb0",
-									"name": "bounds_min"
-								},
 								{
 									"count": 3.0,
 									"data_type": 2.0,
@@ -11981,18 +11441,6 @@
 							"streams": [
 								{
 									"count": 3.0,
-									"data_type": 3.0,
-									"hash": "9364bfd1f8aa26c6",
-									"name": "bounds_max"
-								},
-								{
-									"count": 3.0,
-									"data_type": 3.0,
-									"hash": "4c0aed768db53bb0",
-									"name": "bounds_min"
-								},
-								{
-									"count": 3.0,
 									"data_type": 2.0,
 									"hash": "016a02a426d5ebf2",
 									"name": "density"
@@ -12041,18 +11489,6 @@
 							"kind": 0.0,
 							"size": 13.0,
 							"streams": [
-								{
-									"count": 13.0,
-									"data_type": 3.0,
-									"hash": "51fd0bf77922a8e6",
-									"name": "bounds_max"
-								},
-								{
-									"count": 13.0,
-									"data_type": 3.0,
-									"hash": "6135472a20ebfff6",
-									"name": "bounds_min"
-								},
 								{
 									"count": 13.0,
 									"data_type": 2.0,
@@ -12105,18 +11541,6 @@
 							"streams": [
 								{
 									"count": 13.0,
-									"data_type": 3.0,
-									"hash": "51fd0bf77922a8e6",
-									"name": "bounds_max"
-								},
-								{
-									"count": 13.0,
-									"data_type": 3.0,
-									"hash": "6135472a20ebfff6",
-									"name": "bounds_min"
-								},
-								{
-									"count": 13.0,
 									"data_type": 2.0,
 									"hash": "1b7f7407467b3631",
 									"name": "density"
@@ -12167,18 +11591,6 @@
 							"streams": [
 								{
 									"count": 16.0,
-									"data_type": 3.0,
-									"hash": "b1a2743c23d3c0ed",
-									"name": "bounds_max"
-								},
-								{
-									"count": 16.0,
-									"data_type": 3.0,
-									"hash": "b18b09bfce04b374",
-									"name": "bounds_min"
-								},
-								{
-									"count": 16.0,
 									"data_type": 2.0,
 									"hash": "9ed32785f98a0c22",
 									"name": "density"
@@ -12221,18 +11633,6 @@
 							"kind": 0.0,
 							"size": 16.0,
 							"streams": [
-								{
-									"count": 16.0,
-									"data_type": 3.0,
-									"hash": "b1a2743c23d3c0ed",
-									"name": "bounds_max"
-								},
-								{
-									"count": 16.0,
-									"data_type": 3.0,
-									"hash": "b18b09bfce04b374",
-									"name": "bounds_min"
-								},
 								{
 									"count": 16.0,
 									"data_type": 2.0,
@@ -12431,18 +11831,6 @@
 							"kind": 0.0,
 							"size": 37.0,
 							"streams": [
-								{
-									"count": 37.0,
-									"data_type": 3.0,
-									"hash": "9ee9df9e906d0233",
-									"name": "bounds_max"
-								},
-								{
-									"count": 37.0,
-									"data_type": 3.0,
-									"hash": "8a65d63f08693248",
-									"name": "bounds_min"
-								},
 								{
 									"count": 37.0,
 									"data_type": 2.0,

@@ -125,7 +125,9 @@ func uniformSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Transf
 		var extents := PackedVector3Array()
 		extents.resize( npts )
 		extents.fill( cell_extent )
-		output.setSymmetricBounds( extents )
+		# Legacy bridge: no bounds streams, exactly as before the size->bounds change.
+		if not legacy:
+			output.setSymmetricBounds( extents )
 	
 
 func uniformDistributedSample1D( n : int, base : float) -> float:

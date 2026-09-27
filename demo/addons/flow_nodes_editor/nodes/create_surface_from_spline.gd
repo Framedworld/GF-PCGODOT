@@ -108,7 +108,8 @@ func execute(_ctx : FlowData.EvaluationContext):
 		op[i] = positions[i]
 		orot[i] = rotations[i]
 		osize[i] = sizes[i] if legacy else Vector3.ONE
-	out.setSymmetricBounds(sizes)
+	if not legacy:
+		out.setSymmetricBounds(sizes)
 	if settings.out_area_attribute.strip_edges() != "":
 		out.registerStream(settings.out_area_attribute, areas, FlowData.DataType.Float)
 	if settings.out_perimeter_attribute.strip_edges() != "":

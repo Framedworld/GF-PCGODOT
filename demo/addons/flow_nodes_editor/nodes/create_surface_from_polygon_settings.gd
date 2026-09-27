@@ -24,10 +24,9 @@ enum ePlane {
 @export var out_perimeter_attribute : String = "surface_perimeter"
 ## Output attribute name that stores point count produced by this node.
 @export var out_point_count_attribute : String = "surface_point_count"
-## UE-parity bridge. By default the surface point keeps UNIT scale and its AABB
-## extent lives in the bounds streams only. Enable to ALSO write that extent into
-## the `size` stream as before, so spawners scale meshes by it — restores the
-## pre-bounds look.
+## Legacy bridge: write the sampling extent into `size` (old size-as-scale) and
+## write NO `bounds_min`/`bounds_max` streams, so the output is byte-identical to
+## the node before the size->bounds change. Off = UE-correct unit scale + bounds.
 @export var legacy_scale_from_extent : bool = false
 
 func _init():

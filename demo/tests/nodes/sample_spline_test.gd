@@ -125,8 +125,8 @@ func test_legacy_scale_from_extent_writes_size() -> void:
 	assert_bool(sizes.size() > 0).is_true()
 	for sz in sizes:
 		assert_float(sz.x).is_equal_approx(2.0, 0.001)  # size == interval (old behavior)
-	# Bounds are still recorded too.
-	assert_int(out.getVector3Container(FlowDataScript.AttrBoundsMin).size()).is_equal(sizes.size())
+	# The bridge reproduces the pre-bounds node exactly: no bounds streams.
+	assert_bool(out.hasStream(FlowDataScript.AttrBoundsMin)).is_false()
 	node.free()
 	path_3d.free()
 
@@ -392,3 +392,44 @@ func test_wrong_node_stream_type_errors() -> void:
 	assert_str(node.err).contains("'node' stream must be NodePath/Node typed (got NodeMesh)")
 	node.free()
 	mi.free()
+
+
+func test_legacy_scale_from_extent_writes_no_bounds_streams() -> void:
+	# The legacy bridge must reproduce the pre-bounds node byte for byte: extent
+	# in `size`, and NO bounds_min/bounds_max at all. Writing bounds under the
+	# flag leaked ±extent boxes into downstream point_offsets/difference and
+	# removed road poles in a production graph.
+	var path_3d = Path3D.new()
+	path_3d.curve = Curve3D.new()
+	path_3d.curve.add_point(Vector3(0, 0, 0))
+	path_3d.curve.add_point(Vector3(10, 0, 0))
+	var node = _run_sample_spline(path_3d, false, func(s):
+		s.sampling_mode = SampleSplineSettings.eSamplingMode.Uniform
+		s.uniform_interval = 2.0
+		s.adjust_to_borders = true
+		s.legacy_scale_from_extent = true
+	)
+	assert_str(node.err).is_empty()
+	var out = _get_output_data(node)
+	assert_bool(out.hasStream(FlowDataScript.AttrBoundsMin)).is_false()
+	assert_bool(out.hasStream(FlowDataScript.AttrBoundsMax)).is_false()
+	var sizes = out.getVector3Container(FlowDataScript.AttrSize)
+	assert_bool(sizes[0] != Vector3.ONE).is_true()
+	node.free()
+	path_3d.free()
+
+	# Default (bridge off): unit scale and bounds present.
+	var path_b = Path3D.new()
+	path_b.curve = Curve3D.new()
+	path_b.curve.add_point(Vector3(0, 0, 0))
+	path_b.curve.add_point(Vector3(10, 0, 0))
+	var node_b = _run_sample_spline(path_b, false, func(s):
+		s.sampling_mode = SampleSplineSettings.eSamplingMode.Uniform
+		s.uniform_interval = 2.0
+		s.adjust_to_borders = true
+	)
+	var out_b = _get_output_data(node_b)
+	assert_bool(out_b.hasStream(FlowDataScript.AttrBoundsMin)).is_true()
+	assert_bool(out_b.getVector3Container(FlowDataScript.AttrSize)[0].is_equal_approx(Vector3.ONE)).is_true()
+	node_b.free()
+	path_b.free()
