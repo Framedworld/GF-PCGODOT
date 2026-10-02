@@ -227,6 +227,18 @@ const LOGGING_TEMPLATES := {
 	"boolean": true,              # translateStreamName (@last on Data without streams)
 	"filter": true,               # translateStreamName (@last on Data without streams)
 	"partition": true,            # translateStreamName (@last on Data without streams)
+	# The node script itself calls push_warning / push_error on some inputs
+	# (found by a source scan, tests/review/r1_executor_review_test.gd).
+	"assets": true,                           # unsupported or conflicting property types
+	"attribute_rename": true,                 # renaming a canonical stream
+	"branch": true,                           # empty attribute name or attribute
+	"compose_vector": true,                   # component attribute not found
+	"copy": true,                             # SourceToTargets without transforms
+	"create_surface_from_polygon": true,      # groups with fewer than 3 points
+	"data_table_row_to_attribute_set": true,  # row index out of range
+	"merge": true,                            # stream type conflict between inputs
+	"merge_attributes": true,                 # attribute overridden by a later input
+	"noise": true,                            # Add mode fallbacks
 }
 
 static var _cache : Dictionary = {}

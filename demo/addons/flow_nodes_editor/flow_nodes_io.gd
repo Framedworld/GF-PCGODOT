@@ -875,7 +875,8 @@ static func apply_setting_bindings(node_instance, graph: FlowGraphResource, ctx:
 
 	if ctx.overrides != null and not ctx.overrides.is_empty():
 		var graph_name := graph_basename(graph)
-		var hits = ctx.get_meta(OVERRIDE_HITS_META, null)
+		# get_meta with a null default still errors on a missing key: check first.
+		var hits = ctx.get_meta(OVERRIDE_HITS_META) if ctx.has_meta(OVERRIDE_HITS_META) else null
 		for key in ctx.overrides:
 			var target := _parse_override_key(str(key))
 			if target.is_empty() or target.node != node_name:

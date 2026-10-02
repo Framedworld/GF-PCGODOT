@@ -73,6 +73,14 @@ func _is_inside_any(p : Vector2, polygons : Array) -> bool:
 			return true
 	return false
 
+# Editor dirty tracking: with a polygon_node_path the node reads a Path3D from
+# the scene, so any scene edit may change its output (polygons wired through
+# the Polygon input are covered by the node that scanned them).
+func computeSceneFingerprint(ctx : FlowData.EvaluationContext) -> Variant:
+	if settings == null or settings.polygon_node_path == NodePath():
+		return SCENE_INDEPENDENT
+	return null
+
 func execute(ctx : FlowData.EvaluationContext):
 	var points : FlowData.Data = require_input(0, ctx, "Points input")
 	if points == null:

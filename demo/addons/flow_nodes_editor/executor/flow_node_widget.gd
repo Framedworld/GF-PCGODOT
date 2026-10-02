@@ -158,13 +158,16 @@ var graph_seed : int:
 	get: return _element.graph_seed if _element else 0
 
 # Any other element member (node-specific vars) reads and writes through.
+# Godot calls _get/_set before built-in properties, so `script`, which every
+# Object has, is never forwarded: the widget keeps its own (get("script"),
+# duplicate()).
 func _get(property: StringName):
-	if _element != null and property in _element:
+	if _element != null and property != &"script" and property in _element:
 		return _element.get(property)
 	return null
 
 func _set(property: StringName, value) -> bool:
-	if _element != null and property in _element:
+	if _element != null and property != &"script" and property in _element:
 		_element.set(property, value)
 		return true
 	return false

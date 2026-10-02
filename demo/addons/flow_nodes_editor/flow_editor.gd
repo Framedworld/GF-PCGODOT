@@ -2540,6 +2540,10 @@ func addNodeFromTemplate( node_template, node_name : String, settings = null, in
 	var node : FlowNodeWidget = widget_script.new()
 	node.name = node_name
 	node.element = element
+	# A new node (added, pasted, or rebuilt by undo/redo) has no output yet:
+	# the next evaluation must run it even when nothing marks it dirty, or its
+	# consumers read nothing.
+	element.dirty = true
 	node.ui_scale = ui_scale
 	node.position_offset = localToGraphCoords(local_drop_position)
 	if settings:
@@ -4475,9 +4479,39 @@ func expandDirtyFlagToDependants( node : FlowNodeWidget ):
 				dst_node.dirty = true
 				expandDirtyFlagToDependants( dst_node )
 
+# [seed, overrides, params] of the owning component at the previous evaluation.
+var _owner_eval_signature = null
+
+# The dock previews a component's graph under that component, so it evaluates
+# with what the component's generate() uses (FlowNodeIO.make_context): its
+# graph seed, per-instance overrides and runtime params. When any of them
+# changed since the previous evaluation, every node is re-evaluated.
+func _sync_owner_evaluation_settings() -> void:
+	var owner : Node = resource_owner if is_instance_valid(resource_owner) else null
+	var owner_seed = owner.get("seed") if owner != null else null
+	var owner_overrides = owner.get("overrides") if owner != null else null
+	var owner_params = owner.get("params") if owner != null else null
+	ctx.seed = int(owner_seed) if owner_seed is int else 0
+	ctx.overrides = owner_overrides.duplicate() if owner_overrides is Dictionary else {}
+	# The dock runs the top-level nodes itself, so no nested subgraph or loop
+	# evaluation is the outermost one: give them a hit set to share, which also
+	# keeps them from reporting the top-level overrides as unmatched. (The
+	# dock never reports unmatched overrides: a partial re-evaluation does not
+	# run every node.)
+	ctx.set_meta(FlowNodeIO.OVERRIDE_HITS_META, {})
+	var params : Dictionary = owner_params if owner_params is Dictionary else {}
+	for key in params:
+		ctx.runtime_params[key] = params[key]
+	ctx.runtime_params["seed"] = ctx.seed
+	var signature := [ctx.seed, ctx.overrides.duplicate(true), params.duplicate(true)]
+	if _owner_eval_signature != null and signature != _owner_eval_signature:
+		markAllNodesAsDirty()
+	_owner_eval_signature = signature
+
 func _begin_eval_graph() -> Dictionary:
 	ctx.eval_id += 1
 	ctx.variables.clear()
+	_sync_owner_evaluation_settings()
 
 	var time_start = Time.get_ticks_usec()
 

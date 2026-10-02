@@ -472,6 +472,10 @@ func _process(_delta: float) -> void:
 		_on_generation_finished( evaluation.outputs, _async_errors )
 
 func _exit_tree() -> void:
-	# Ensure an in-flight async evaluation is finalized (instances freed) if the
-	# host leaves the tree mid-generation.
-	_finish_async_now( true )
+	# An in-flight async evaluation is NOT finished here: its spawners would add
+	# content to this node while it leaves the tree, and such content enters
+	# the tree and is never told it left. The run stays suspended (_process
+	# only runs inside the tree) and resumes when the node re-enters the tree;
+	# generate(), generate_async() and cleanup() still finish it first. Its
+	# elements are RefCounted, so a freed host releases them with _async_eval.
+	pass

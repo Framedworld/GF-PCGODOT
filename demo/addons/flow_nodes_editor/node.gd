@@ -809,6 +809,7 @@ const SCENE_DEPENDENT_TEMPLATES := [
 	"physics_shape_sweep", "projection", "subgraph", "loop",
 	"get_property_from_object_path", "get_spline_data", "get_surface_data", "get_volume_data",
 	"sample_terrain_layers",	# WP6: layer_source = TerrainAdapter reads the terrain node
+	"create_points",	# Local coordinate space reads the owner transform
 ]
 
 func computeSceneFingerprint( ctx : FlowData.EvaluationContext ) -> Variant:
