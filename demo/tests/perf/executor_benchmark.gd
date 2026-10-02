@@ -30,8 +30,16 @@ const FlowDataScript = preload("res://addons/flow_nodes_editor/flow_data.gd")
 
 const BEFORE_NOTE := "base commit 17c4524 (pre-round evaluator), Godot 4.6 headless, 4-core Xeon 2.8 GHz build container; median of 4 runs"
 ## Mean ms per evaluation measured on the pre-round code; -1 = not recorded.
-const BEFORE_A_MS := 32.8
-const BEFORE_B_MS := 137.5
+const BEFORE_A_MS_REFERENCE := 32.8
+const BEFORE_B_MS_REFERENCE := 137.5
+## These are absolute times from the reference container named in BEFORE_NOTE.
+## A ratio against them is only meaningful on comparable hardware (on a faster
+## machine it overstates the gain). For a fair ratio, run this script at the base
+## commit on YOUR machine and pass the printed "after" numbers back through the
+## environment: FLOW_BENCH_BEFORE_A_MS and FLOW_BENCH_BEFORE_B_MS.
+var BEFORE_A_MS := _before_ms("FLOW_BENCH_BEFORE_A_MS", BEFORE_A_MS_REFERENCE)
+var BEFORE_B_MS := _before_ms("FLOW_BENCH_BEFORE_B_MS", BEFORE_B_MS_REFERENCE)
+var _using_reference_before := not (OS.has_environment("FLOW_BENCH_BEFORE_A_MS") and OS.has_environment("FLOW_BENCH_BEFORE_B_MS"))
 
 const POINTS_X := 5
 const POINTS_Z := 10
@@ -92,7 +100,18 @@ func _initialize() -> void:
 		cache.clear()
 	print("")
 	print("before: %s" % BEFORE_NOTE)
+	if _using_reference_before:
+		print("note: the 'before' times above are from the reference container; speedups are only comparable on similar hardware.")
+		print("      Measure the base commit on this machine and set FLOW_BENCH_BEFORE_A_MS / FLOW_BENCH_BEFORE_B_MS for a fair ratio.")
 	quit(0)
+
+
+static func _before_ms(env_name: String, fallback: float) -> float:
+	if OS.has_environment(env_name):
+		var v := OS.get_environment(env_name).to_float()
+		if v > 0.0:
+			return v
+	return fallback
 
 
 func _report(before_ms: float, after_ms: float) -> void:
