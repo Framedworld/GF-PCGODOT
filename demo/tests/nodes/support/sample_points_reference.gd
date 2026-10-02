@@ -1,3 +1,6 @@
+## Verbatim copy of nodes/sample_points.gd before the WP13-P1 performance rewrite
+## (base d5bd9b6). Reference implementation for sample_points_precomputed_test.gd;
+## not a registered node. Do not edit.
 @tool
 extends FlowNodeBase
 
@@ -161,7 +164,7 @@ func uniformDistributedSample3D( n : int, base : float) -> Vector3:
 
 func quasiRandomSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.TransformsStream, output : FlowData.Data ):
 	
-	var is_2d : bool = settings.distribution == SamplePointsNodeSettings.eDistribution.QuasiRandom2D
+	var samplerFn : Callable= uniformDistributedSample2Das3D if settings.distribution == SamplePointsNodeSettings.eDistribution.QuasiRandom2D else uniformDistributedSample3D
 		
 	var spos := output.getVector3Container( FlowData.AttrPosition )
 	var srot := output.getVector3Container( FlowData.AttrRotation )
@@ -184,15 +187,6 @@ func quasiRandomSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tr
 		
 	if qs_num_samples < 0:
 		qs_num_samples = 0
-
-	# The 2D sequence depends only on the sample number and the phase, so it is
-	# computed once and reused for every input point (the 3D one draws from rng
-	# per sample and stays per sample, in the same order).
-	var samples_2d := PackedVector3Array()
-	if is_2d:
-		samples_2d.resize( qs_num_samples )
-		for j : int in qs_num_samples:
-			samples_2d[j] = uniformDistributedSample2Das3D( j, phase )
 	
 	for i : int in in_trs.size():
 		
@@ -208,10 +202,10 @@ func quasiRandomSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tr
 		var origin : Vector3 = in_trs.positions[ i ]
 		var rotation : Vector3 = in_trs.eulers[ i ] 
 		var size : Vector3 = in_trs.sizes[i]
-		var transform := Transform3D( FlowData.eulerToBasis(rotation), origin )
+		var transform = Transform3D( FlowData.eulerToBasis(rotation), origin )
 		
 		var offset := -size * 0.5
-		if is_2d:
+		if settings.distribution == SamplePointsNodeSettings.eDistribution.QuasiRandom2D:
 			offset.y = 0.0
 			
 		var color_idx := 0
@@ -219,7 +213,7 @@ func quasiRandomSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tr
 	
 		#print( "num_samples is %d. Max_j starts at %d " % [ qs_num_samples, max_j ] )
 		for j : int in qs_num_samples:
-			var p : Vector3 = ( samples_2d[j] if is_2d else uniformDistributedSample3D( j, phase ) ) * size + offset
+			var p : Vector3 = samplerFn.call( j, phase ) * size + offset
 			spos[idx] = transform * p
 			srot[idx] = rotation
 			ssize[idx] = point_size
@@ -335,16 +329,8 @@ func registerDensityAndSeedStreams( out_data : FlowData.Data ):
 	sdensity.fill( 1.0 )
 	var sseed : PackedInt32Array = out_data.addStream( FlowData.AttrSeed, FlowData.DataType.Int )
 	var spos := out_data.getVector3Container( FlowData.AttrPosition )
-	# effective_seed() is constant during the loop. The seed stream is as long
-	# as the position stream (addStream sizes it by size(), the first stream).
-	var node_seed : int = effective_seed()
-	if spos.size() == sseed.size():
-		var seeds := FlowData.point_seed_stream( spos, node_seed )
-		for i in sseed.size():
-			sseed[i] = seeds[i]
-	else:
-		for i in sseed.size():
-			sseed[i] = FlowData.point_seed( spos[i], node_seed )
+	for i in sseed.size():
+		sseed[i] = FlowData.point_seed( spos[i], effective_seed() )
 
 ## Copies every non-generated input stream onto the samples, gathering each
 ## sample's value from its parent input point (see _sample_parents).

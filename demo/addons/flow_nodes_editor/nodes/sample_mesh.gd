@@ -411,10 +411,8 @@ func execute( ctx : FlowData.EvaluationContext ):
 	sdensity.resize( total )
 	sdensity.fill( 1.0 )
 	output.registerStream( FlowData.AttrDensity, sdensity, FlowData.DataType.Float )
-	var sseed := PackedInt32Array()
-	sseed.resize( total )
-	for i in range( total ):
-		sseed[i] = FlowData.point_seed( spos[i], node_seed )
+	# total is spos.size().
+	var sseed := FlowData.point_seed_stream( spos, node_seed )
 	output.registerStream( FlowData.AttrSeed, sseed, FlowData.DataType.Int )
 	output.registerStream( FlowData.AttrNormal, snormals, FlowData.DataType.Vector )
 

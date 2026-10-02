@@ -271,10 +271,7 @@ static func make_points_data( positions : PackedVector3Array, rotations : Packed
 		sdens.resize( n )
 		sdens.fill( 1.0 )
 	out.registerStream( FlowData.AttrDensity, sdens, FlowData.DataType.Float )
-	var sseed := PackedInt32Array()
-	sseed.resize( n )
-	for i in range( n ):
-		sseed[i] = FlowData.point_seed( positions[i], node_seed )
+	var sseed := FlowData.point_seed_stream( positions, node_seed )
 	out.registerStream( FlowData.AttrSeed, sseed, FlowData.DataType.Int )
 	if point_steepness >= 0.0:
 		var ssteep := PackedFloat32Array()

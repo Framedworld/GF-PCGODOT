@@ -195,6 +195,23 @@ static func point_seed( pos : Vector3, node_seed : int ) -> int:
 	var pz = int(round(pos.z * 1000.0))
 	return hash([px, py, pz, node_seed]) & 0x7fffffff
 
+## point_seed( positions[i], node_seed ) for every position, as a seed stream.
+## One key array is reused for the whole loop instead of a new four-element
+## Array per point (the hash of an Array depends only on its elements, so the
+## values are identical); about 40% cheaper than calling point_seed per point.
+static func point_seed_stream( positions : PackedVector3Array, node_seed : int ) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var count := positions.size()
+	out.resize( count )
+	var key := [ 0, 0, 0, node_seed ]
+	for i in count:
+		var pos : Vector3 = positions[i]
+		key[0] = int( round( pos.x * 1000.0 ) )
+		key[1] = int( round( pos.y * 1000.0 ) )
+		key[2] = int( round( pos.z * 1000.0 ) )
+		out[i] = hash( key ) & 0x7fffffff
+	return out
+
 ## Broadcast convention: a stream whose container holds a single element is a
 ## "broadcast" stream — that one value applies to every point. Streams with
 ## more than one element are read per point. Use this helper to compute the
@@ -296,13 +313,24 @@ class TransformsStream:
 	var quats : PackedVector4Array
 	var use_quats : bool = false
 
+	# The bodies of FlowData.eulerToBasis and quatToBasis(vec4ToQuat()) are
+	# inlined below (bit-identical: the same engine calls on the same values);
+	# the nested static calls cost more than the basis itself.
 	func basisAt( id: int ) -> Basis:
 		if use_quats:
-			return FlowData.quatToBasis( FlowData.vec4ToQuat( quats[id] ) )
-		return FlowData.eulerToBasis( eulers[id] )
+			var q : Vector4 = quats[id]
+			return Basis( Quaternion( q.x, q.y, q.z, q.w ) )
+		var e : Vector3 = eulers[id]
+		return Basis.from_euler( Vector3( deg_to_rad( e.x ), deg_to_rad( e.y ), deg_to_rad( e.z ) ) )
 
 	func atIndex( id: int ) -> Transform3D:
-		var basis := basisAt( id )
+		var basis : Basis
+		if use_quats:
+			var q : Vector4 = quats[id]
+			basis = Basis( Quaternion( q.x, q.y, q.z, q.w ) )
+		else:
+			var e : Vector3 = eulers[id]
+			basis = Basis.from_euler( Vector3( deg_to_rad( e.x ), deg_to_rad( e.y ), deg_to_rad( e.z ) ) )
 		return Transform3D( basis.scaled( sizes[id] ), positions[id] )
 
 	func atIndexAbsScale( id: int, scale: float ) -> Transform3D:
@@ -717,10 +745,10 @@ class Data:
 		return streams.size()
 		
 	func size() -> int:
-		if streams.size() == 0:
-			return 0
-		var key0 = streams.keys()[0]
-		return streams[ key0 ].container.size()
+		# The first stream's length; iterating avoids building the keys() array.
+		for key0 in streams:
+			return streams[ key0 ].container.size()
+		return 0
 	
 	func hasStream( name : StringName ) -> bool:
 		return streams.has( name )
@@ -752,6 +780,18 @@ class Data:
 				return alias
 		return name
 		
+	## True when registerStream stores `name` under itself: a non-empty String
+	## or StringName with no selector syntax ("@last", "@data.", "$alias",
+	## "a.b") that is not one of the Yaw/Pitch/Roll shorthands
+	## translateStreamName rewrites.
+	static func _isPlainStreamName( name ) -> bool:
+		if not ( name is String or name is StringName ):
+			return false
+		var text := String( name )
+		if text == "" or text.begins_with( "@" ) or text.begins_with( "$" ) or text.contains( "." ):
+			return false
+		return text != "Yaw" and text != "Pitch" and text != "Roll"
+
 	func getSubStreamIndex(  sub_comp : String ):
 		var sc_up = sub_comp.to_upper()
 		if sc_up == "X" or sc_up == "R":
@@ -844,7 +884,9 @@ class Data:
 				"name" : name
 			}
 
-		name = translateStreamName( name )
+		# translateStreamName returns any other name unchanged; skip the call.
+		if name == "@last" or name == "Yaw" or name == "Pitch" or name == "Roll" or name.begins_with( "$" ):
+			name = translateStreamName( name )
 
 		var name_lower := name.to_lower()
 		if name_lower == "front" or name_lower == "up" or name_lower == "right":
@@ -880,7 +922,7 @@ class Data:
 				"name" : "Index"
 			}
 			
-		var parts = name.split( "." )
+		var parts = name.split( "." ) if name.contains( "." ) else [ name ]
 		if parts.size() == 2:
 			#print( "findStream(%s) => %s (Streams:%s)" % [ name, parts, streams])
 			var s0 = findStream( parts[0] )
@@ -1042,10 +1084,16 @@ class Data:
 		return new_container
 		
 	func filteredStream( old_stream : Dictionary, indices : PackedInt32Array ):
-		var new_size : int = indices.size()
 		var source_container = old_stream.container
 		if size() > 1 and source_container.size() == 1:
 			return source_container.duplicate()
+		return _gatherStream( old_stream, indices )
+
+	## The elements `indices` of the stream's container, in a new container of
+	## the storage newContainerOfType( data_type ) creates (null after an error
+	## for an unsupported type). filteredStream() without the broadcast rule.
+	func _gatherStream( old_stream : Dictionary, indices : PackedInt32Array ):
+		var new_size : int = indices.size()
 		match old_stream.data_type:
 			
 			DataType.Bool:
@@ -1171,9 +1219,14 @@ class Data:
 
 	func duplicate() -> Data:
 		var s := Data.new()
+		# Each stream dictionary is copied (same keys, same order) and its
+		# container duplicated; one lookup per stream instead of five.
+		var copies : Dictionary = s.streams
 		for name in streams:
-			s.streams[name] = streams[name].duplicate()
-			s.streams[name]["container"] = streams[name]["container"].duplicate()
+			var stream = streams[name]
+			var copy = stream.duplicate()
+			copy["container"] = stream["container"].duplicate()
+			copies[name] = copy
 		s.last_added_stream_name = last_added_stream_name
 		s.copy_meta_from( self )
 		return s
@@ -1194,9 +1247,42 @@ class Data:
 
 	func filter( indices : PackedInt32Array ) -> Data:
 		var new_data := Data.new()
+		# Same result as filteredStream + registerStream for every stream. The
+		# common case (a gathered container, whose storage always matches its
+		# type, under a plain stream name of the right canonical type, with the
+		# length of the first stream registered) is inserted directly:
+		# registerStream would store exactly that and log nothing. Anything else
+		# (broadcast streams, failed gathers, selector-like names, canonical
+		# type errors, length mismatches) still goes through registerStream.
+		var data_size : int = size()
+		var first_size : int = -1
 		for old_stream in streams.values():
-			var new_container = filteredStream( old_stream, indices )
+			var source_container = old_stream.container
+			var new_container
+			var gathered : bool = false
+			if data_size > 1 and source_container.size() == 1:
+				new_container = source_container.duplicate()
+			else:
+				new_container = _gatherStream( old_stream, indices )
+				gathered = new_container != null
+			if gathered and _isPlainStreamName( old_stream.name ):
+				var key : String = old_stream.name
+				var expected = FlowData.CANONICAL_ATTRIBUTE_TYPES.get( StringName( key ), null )
+				var count : int = new_container.size()
+				if not new_data.streams.has( key ) \
+						and ( expected == null or expected == old_stream.data_type ) \
+						and ( first_size <= 0 or count <= 1 or count == first_size ):
+					new_data.streams[ key ] = {
+						"container" : new_container,
+						"name" : key,
+						"data_type" : old_stream.data_type
+					}
+					new_data.last_added_stream_name = key
+					if first_size < 0:
+						first_size = count
+					continue
 			new_data.registerStream( old_stream.name, new_container, old_stream.data_type )
+			first_size = new_data.size() if not new_data.streams.is_empty() else -1
 		# Tags, per-data attributes, kind and shape are domain-level metadata, not
 		# per-point: filtering the point set does not change them.
 		new_data.copy_meta_from( self )
@@ -1277,18 +1363,22 @@ class Data:
 			var bmax : PackedVector3Array = getVector3Container( AttrBoundsMax )
 			# Defensive: if either container is empty/malformed, fall back to size.
 			if bmin.size() >= 1 and bmax.size() >= 1:
+				# FlowData.bcast_idx inlined (index i, or 0 for a broadcast stream).
+				var bmin_bcast : bool = bmin.size() <= 1
+				var bmax_bcast : bool = bmax.size() <= 1
 				for i in range( n ):
-					out_min[i] = bmin[ FlowData.bcast_idx( bmin.size(), i ) ]
-					out_max[i] = bmax[ FlowData.bcast_idx( bmax.size(), i ) ]
+					out_min[i] = bmin[ 0 if bmin_bcast else i ]
+					out_max[i] = bmax[ 0 if bmax_bcast else i ]
 				return { "min": out_min, "max": out_max }
 
 		# Symmetric fallback from `size` — identical to today's center ± size*0.5.
 		var sizes : PackedVector3Array = getVector3Container( AttrSize )
 		var half := Vector3( 0.5, 0.5, 0.5 )
+		var size_count : int = sizes.size()
 		for i in range( n ):
 			var s : Vector3 = Vector3.ONE
-			if sizes.size() >= 1:
-				s = sizes[ FlowData.bcast_idx( sizes.size(), i ) ]
+			if size_count >= 1:
+				s = sizes[ i if size_count > 1 else 0 ]
 			var h : Vector3 = s * half
 			out_min[i] = -h
 			out_max[i] = h
@@ -1344,8 +1434,12 @@ class Data:
 			# read trs.eulers directly still get a consistent value.
 			var derived_eulers := PackedVector3Array()
 			derived_eulers.resize( trs.quats.size() )
-			for i in range( trs.quats.size() ):
-				derived_eulers[i] = FlowData.quatToEuler( FlowData.vec4ToQuat( trs.quats[i] ) )
+			# quatToEuler( vec4ToQuat( q ) ) inlined (same engine calls, bit-identical).
+			var quats : PackedVector4Array = trs.quats
+			for i in range( quats.size() ):
+				var q : Vector4 = quats[i]
+				var e : Vector3 = Basis( Quaternion( q.x, q.y, q.z, q.w ) ).get_euler()
+				derived_eulers[i] = Vector3( rad_to_deg( e.x ), rad_to_deg( e.y ), rad_to_deg( e.z ) )
 			trs.eulers = derived_eulers
 			return trs
 

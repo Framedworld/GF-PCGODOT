@@ -1,3 +1,6 @@
+## Verbatim copy of nodes/difference.gd before the WP13-P1 performance rewrite
+## (base d5bd9b6). Reference implementation for difference_lazy_lists_test.gd;
+## not a registered node. Do not edit.
 @tool
 extends FlowNodeBase
 
@@ -45,7 +48,7 @@ func _safe_sizes(data : FlowData.Data, expected_size : int, input_label : String
 		}
 
 	for i in range(out_sizes.size()):
-		var s : Vector3 = out_sizes[i]
+		var s = out_sizes[i]
 		if not s.is_finite():
 			s = Vector3.ONE
 		s = Vector3(absf(s.x), absf(s.y), absf(s.z))
@@ -93,19 +96,6 @@ func _sanitize_indices(indices, max_size : int) -> PackedInt32Array:
 	var out := PackedInt32Array()
 	if max_size <= 0:
 		return out
-	# Fast path: GDRTree returns strictly increasing indices inside the tree,
-	# which the general path below would return unchanged.
-	if indices is PackedInt32Array:
-		var typed : PackedInt32Array = indices
-		var ordered := true
-		var prev := -1
-		for v in typed:
-			if v <= prev or v >= max_size:
-				ordered = false
-				break
-			prev = v
-		if ordered:
-			return typed.duplicate()
 	var seen := {}
 	for idx in indices:
 		var i = int(idx)
@@ -164,39 +154,6 @@ func _merge_data_sets(data_sets : Array) -> FlowData.Data:
 		if offset < 0:
 			return null
 	return out_data
-
-## Which of the four index lists (a_only, a_overlap, b_only, b_overlap) the
-## point-set operation `op` reads, mirroring the match in execute() and
-## _build_overlap_output().
-func _needed_index_lists(op : int, density_function) -> Dictionary:
-	var needs := { "a_only": false, "a_overlap": false, "b_only": false, "b_overlap": false }
-	var binary : bool = density_function == DifferenceNodeSettings.eDensityFunction.Binary
-	match op:
-		DifferenceNodeSettings.eOperation.A_Minus_B:
-			needs[ "a_only" if binary else "a_overlap" ] = true
-		DifferenceNodeSettings.eOperation.B_Minus_A:
-			needs[ "b_only" if binary else "b_overlap" ] = true
-		DifferenceNodeSettings.eOperation.Intersection:
-			_mark_overlap_lists(needs, settings.intersection_overlap_source)
-		DifferenceNodeSettings.eOperation.Union:
-			needs.a_only = true
-			needs.b_only = true
-			_mark_overlap_lists(needs, _resolve_union_overlap_source())
-		DifferenceNodeSettings.eOperation.SymmetricDifference:
-			needs.a_only = true
-			needs.b_only = true
-	return needs
-
-## The overlap lists _build_overlap_output( mode, ... ) reads.
-static func _mark_overlap_lists(needs : Dictionary, mode : int) -> void:
-	match mode:
-		DifferenceNodeSettings.eOverlapSource.FromB:
-			needs.b_overlap = true
-		DifferenceNodeSettings.eOverlapSource.MergeAAndB:
-			needs.a_overlap = true
-			needs.b_overlap = true
-		_:
-			needs.a_overlap = true
 
 func _resolve_union_overlap_source() -> int:
 	var mode = settings.union_overlap_source
@@ -288,26 +245,20 @@ func execute(ctx : FlowData.EvaluationContext):
 		setError(bp_b.error)
 		return
 
+	var tA = GDRTree.new()
+	var tB = GDRTree.new()
+	tA.add(bp_a.centers, bp_a.sizes)
+	tB.add(bp_b.centers, bp_b.sizes)
+
+	var a_only = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.sizes, false).idxs_overlapped, in_dataA.size())
+	var a_overlap = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.sizes, true).idxs_overlapped, in_dataA.size())
+	var b_only = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.sizes, false).idxs_overlapped, in_dataB.size())
+	var b_overlap = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.sizes, true).idxs_overlapped, in_dataB.size())
+
 	# Density-function attenuation only applies to the subtractive operations and
 	# only when not Binary. Binary (the default) preserves the legacy hard-remove
 	# behavior exactly.
 	var density_function = settings.density_function if "density_function" in settings else DifferenceNodeSettings.eDensityFunction.Binary
-
-	# Only the index lists the operation reads are computed (each is a native
-	# query over the other set; the queries are pure, so skipping unused ones
-	# changes nothing). A_Minus_B, the default, needs one query instead of four.
-	var needs := _needed_index_lists(op, density_function)
-	var tA = GDRTree.new()
-	var tB = GDRTree.new()
-	if needs.a_only or needs.a_overlap:
-		tA.add(bp_a.centers, bp_a.sizes)
-	if needs.b_only or needs.b_overlap:
-		tB.add(bp_b.centers, bp_b.sizes)
-
-	var a_only = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.sizes, false).idxs_overlapped, in_dataA.size()) if needs.a_only else PackedInt32Array()
-	var a_overlap = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.sizes, true).idxs_overlapped, in_dataA.size()) if needs.a_overlap else PackedInt32Array()
-	var b_only = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.sizes, false).idxs_overlapped, in_dataB.size()) if needs.b_only else PackedInt32Array()
-	var b_overlap = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.sizes, true).idxs_overlapped, in_dataB.size()) if needs.b_overlap else PackedInt32Array()
 
 	match op:
 		DifferenceNodeSettings.eOperation.A_Minus_B:
@@ -455,15 +406,6 @@ func _execute_spatial(in_dataA : FlowData.Data, in_dataB : FlowData.Data, op : i
 	var om := _overlap_mode()
 	var a_shape : FlowSpatial = in_dataA.shape
 	var b_shape : FlowSpatial = in_dataB.shape
-	# A shape united (or symmetric-differenced) with an empty point set is the
-	# shape itself; folding no points into it would drop it.
-	if op == DifferenceNodeSettings.eOperation.Union or op == DifferenceNodeSettings.eOperation.SymmetricDifference:
-		if a_shape != null and b_shape == null and in_dataB.size() == 0:
-			set_output(0, in_dataA.duplicate())
-			return
-		if b_shape != null and a_shape == null and in_dataA.size() == 0:
-			set_output(0, in_dataB.duplicate())
-			return
 	match op:
 		DifferenceNodeSettings.eOperation.A_Minus_B:
 			_spatial_difference(in_dataA, in_dataB, fn, om)

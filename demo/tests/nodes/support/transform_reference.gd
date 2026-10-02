@@ -1,3 +1,6 @@
+## Verbatim copy of nodes/transform.gd before the WP13-P1 performance rewrite
+## (base d5bd9b6). Reference implementation for transform_inline_test.gd;
+## not a registered node. Do not edit.
 @tool
 extends FlowNodeBase
 
@@ -51,39 +54,22 @@ func execute( ctx : FlowData.EvaluationContext ):
 		point_seeds = null
 	var node_seed : int = effective_seed()
 	var prng := RandomNumberGenerator.new()
-	# Loop invariants, and the bodies of FlowData.resolve_seed, point_seed,
-	# eulerToBasis and basisToEuler inlined: the same expressions on the same
-	# values (bit-identical), without four static calls per point.
-	var seeds : PackedInt32Array = point_seeds if point_seeds != null else PackedInt32Array()
-	var seeds_size : int = seeds.size()
-	var offset_range : Vector3 = offset_max - offset_min
-	var rotation_range : Vector3 = rotation_max - rotation_min
-	var scale_range : Vector3 = scale_max - scale_min
-	var scale_range_x : float = scale_max.x - scale_min.x
-	var count : int = spos.size()
-	for i in count:
+	for i in spos.size():
 		# Seed from the point's input position (before we move it) so the draw is deterministic.
-		if seeds_size > 0:
-			prng.seed = int( seeds[i if seeds_size > 1 else 0] ) ^ node_seed
-		else:
-			var pos : Vector3 = spos[i if count > 1 else 0]
-			prng.seed = hash( [ int( round( pos.x * 1000.0 ) ), int( round( pos.y * 1000.0 ) ), int( round( pos.z * 1000.0 ) ), node_seed ] ) & 0x7fffffff
+		prng.seed = FlowData.resolve_seed( point_seeds, spos, i, node_seed )
 		var amount_pos = Vector3( prng.randf(), prng.randf(), prng.randf() )
-		var euler : Vector3 = srot[i]
-		var basis := Basis.from_euler( Vector3( deg_to_rad( euler.x ), deg_to_rad( euler.y ), deg_to_rad( euler.z ) ) )
-		spos[i] += basis * (offset_min + offset_range * amount_pos)
+		var basis := FlowData.eulerToBasis( srot[i] )
+		spos[i] += basis * (offset_min + ( offset_max - offset_min ) * amount_pos)
 		var amount_rot = Vector3( prng.randf(), prng.randf(), prng.randf() )
 		if rotation_local_space:
-			var delta_rot : Vector3 = rotation_min + rotation_range * amount_rot
-			var delta_basis := Basis.from_euler( Vector3( deg_to_rad( delta_rot.x ), deg_to_rad( delta_rot.y ), deg_to_rad( delta_rot.z ) ) )
-			var e : Vector3 = ( basis * delta_basis ).get_euler()
-			srot[i] = Vector3( rad_to_deg( e.x ), rad_to_deg( e.y ), rad_to_deg( e.z ) )
+			var delta_rot = rotation_min + ( rotation_max - rotation_min ) * amount_rot
+			srot[i] = FlowData.basisToEuler( basis * FlowData.eulerToBasis( delta_rot ) )
 		else:
-			srot[i] += rotation_min + rotation_range * amount_rot
+			srot[i] += rotation_min + ( rotation_max - rotation_min ) * amount_rot
 		if uniform_scale:
 			var amount_scale = prng.randf()
-			ssizes[i] *= scale_min.x + scale_range_x * amount_scale
+			ssizes[i] *= scale_min.x + ( scale_max.x - scale_min.x ) * amount_scale
 		else:
 			var amount_scale = Vector3( prng.randf(), prng.randf(), prng.randf() )
-			ssizes[i] *= scale_min + scale_range * amount_scale
+			ssizes[i] *= scale_min + ( scale_max - scale_min ) * amount_scale
 	set_output( 0, out_data )

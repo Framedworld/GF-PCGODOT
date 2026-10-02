@@ -1,3 +1,6 @@
+## Verbatim copy of nodes/filter.gd before the WP13-P1 performance rewrite
+## (base d5bd9b6). Reference implementation for filter_typed_loop_test.gd;
+## not a registered node. Do not edit.
 @tool
 extends FlowNodeBase
 
@@ -78,94 +81,6 @@ func _passes_numeric_condition(value_a, value_b, condition : int, threshold : fl
 	return false
 
 
-## The first `count` values of a Float, Int, Bool or Double container as
-## doubles, or an empty array when the container has another type, does not
-## match its declared type or is shorter than `count`. Every value converts
-## exactly (Int is 32-bit), so _passes_numeric_condition on the doubles gives
-## the same answer as on the original values; Int64 is left out because it
-## can exceed 2^53.
-static func _as_float64(container, data_type : int, count : int) -> PackedFloat64Array:
-	var out := PackedFloat64Array()
-	if count <= 0 or container == null or container.size() < count:
-		return out
-	match data_type:
-		FlowData.DataType.Float:
-			if not (container is PackedFloat32Array):
-				return out
-			var c : PackedFloat32Array = container
-			out.resize(count)
-			for i in count:
-				out[i] = c[i]
-		FlowData.DataType.Int:
-			if not (container is PackedInt32Array):
-				return out
-			var c : PackedInt32Array = container
-			out.resize(count)
-			for i in count:
-				out[i] = c[i]
-		FlowData.DataType.Bool:
-			if not (container is PackedByteArray):
-				return out
-			var c : PackedByteArray = container
-			out.resize(count)
-			for i in count:
-				out[i] = c[i]
-		FlowData.DataType.Double:
-			if not (container is PackedFloat64Array):
-				return out
-			out = container.slice(0, count)
-	return out
-
-
-## _passes_numeric_condition for every point, on doubles, one typed loop per
-## condition (a call per point cost about 1.5 us).
-static func _split_float64(a : PackedFloat64Array, b : PackedFloat64Array, count : int, condition : int, threshold : float, inside : PackedInt32Array, outside : PackedInt32Array) -> void:
-	match condition:
-		FilterNodeSettings.eCondition.Equal:
-			for i in count:
-				if a[i] == b[i]: inside.append(i)
-				else: outside.append(i)
-		FilterNodeSettings.eCondition.NotEqual:
-			for i in count:
-				if a[i] != b[i]: inside.append(i)
-				else: outside.append(i)
-		FilterNodeSettings.eCondition.Greater:
-			for i in count:
-				if a[i] > b[i]: inside.append(i)
-				else: outside.append(i)
-		FilterNodeSettings.eCondition.GreaterOrEqual:
-			for i in count:
-				if a[i] >= b[i]: inside.append(i)
-				else: outside.append(i)
-		FilterNodeSettings.eCondition.Less:
-			for i in count:
-				if a[i] < b[i]: inside.append(i)
-				else: outside.append(i)
-		FilterNodeSettings.eCondition.LessOrEqual:
-			for i in count:
-				if a[i] <= b[i]: inside.append(i)
-				else: outside.append(i)
-		FilterNodeSettings.eCondition.AlmostEqual:
-			for i in count:
-				if absf(a[i] - b[i]) < threshold: inside.append(i)
-				else: outside.append(i)
-		FilterNodeSettings.eCondition.LogicalAND:
-			for i in count:
-				if bool(a[i]) and bool(b[i]): inside.append(i)
-				else: outside.append(i)
-		FilterNodeSettings.eCondition.LogicalOR:
-			for i in count:
-				if bool(a[i]) or bool(b[i]): inside.append(i)
-				else: outside.append(i)
-		FilterNodeSettings.eCondition.LogicalXOR:
-			for i in count:
-				if bool(a[i]) != bool(b[i]): inside.append(i)
-				else: outside.append(i)
-		_:
-			for i in count:
-				outside.append(i)
-
-
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_dataA : FlowData.Data = require_input(0, ctx, "Input A")
 	if in_dataA == null:
@@ -243,25 +158,18 @@ func execute( ctx : FlowData.EvaluationContext ):
 		var inA = sA.container
 		var inB = sB.container
 		var threshold : float = getSettingValue( ctx, "threshold" )
-		var condition : int = settings.condition
-		var fA := _as_float64(inA, sA.data_type, num_elems)
-		var fB := _as_float64(inB, sB.data_type, num_elems)
-		if not fA.is_empty() and not fB.is_empty():
-			_split_float64(fA, fB, num_elems, condition, threshold, indices_true, indices_false)
-		else:
-			# Broadcast (length-1) streams apply their one value to every point.
-			for i in num_elems:
-				if _passes_numeric_condition(inA[FlowData.bcast_idx(inA.size(), i)], inB[FlowData.bcast_idx(inB.size(), i)], condition, threshold):
-					indices_true.append(i)
-				else:
-					indices_false.append(i)
+		for i in num_elems:
+			if _passes_numeric_condition(inA[i], inB[i], settings.condition, threshold):
+				indices_true.append(i)
+			else:
+				indices_false.append(i)
 
 	elif not requires_two_operands:
 		var inA = sA.container
 		match settings.condition:
 			FilterNodeSettings.eCondition.IsNull:
 				for i in num_elems:
-					if !inA[FlowData.bcast_idx(inA.size(), i)]:
+					if !inA[i]:
 						indices_true.append(i)
 					else:
 						indices_false.append(i)

@@ -1,3 +1,6 @@
+## Verbatim copy of nodes/expression.gd before the WP13-P1 performance rewrite
+## (base d5bd9b6). Reference implementation for expression_fast_path_test.gd;
+## not a registered node. Do not edit.
 @tool
 extends FlowNodeBase
 
@@ -164,29 +167,6 @@ func evaluateAndSaveResult( idx : int, values : Array ):
 	setError( _expression.get_error_text() )	
 	return false
 
-## typeof() a result must have to be stored with a plain indexed write into
-## the output container of `data_type`; for these pairs the write gives exactly
-## what FlowData.Data.writeValue stores. -1: always go through writeValue.
-static func _direct_store_type( data_type : FlowData.DataType ) -> int:
-	match data_type:
-		FlowData.DataType.Float, FlowData.DataType.Double:
-			return TYPE_FLOAT
-		FlowData.DataType.Int, FlowData.DataType.Int64:
-			return TYPE_INT
-		FlowData.DataType.Bool:
-			return TYPE_BOOL
-		FlowData.DataType.Vector:
-			return TYPE_VECTOR3
-		FlowData.DataType.Color:
-			return TYPE_COLOR
-		FlowData.DataType.String:
-			return TYPE_STRING
-		FlowData.DataType.Vector2:
-			return TYPE_VECTOR2
-		FlowData.DataType.Vector4:
-			return TYPE_VECTOR4
-	return -1
-
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input(0, ctx, "Input 'In'")
 	if in_data == null:
@@ -202,35 +182,10 @@ func execute( ctx : FlowData.EvaluationContext ):
 	_container = null
 	_data_type = FlowData.DataType.Invalid
 
-	var stream_names : Array = in_data.streams.keys()
-	var containers : Array = in_data.streams.values().map( func( s ): return s.container )
 	var names = ["Index", "Size"]
 	names.append_array( settings.args.keys() )
-	names.append_array( stream_names )
+	names.append_array( in_data.streams.keys() )
 	var parsed_expression := _translate_ue_attribute_names( settings.expression, names )
-
-	# Performance: only streams whose name occurs in the expression text can be
-	# referenced by it, so only those are bound as inputs and copied per point
-	# (the order of the bound names is kept, so duplicates resolve as before).
-	# The full binding stays when tracing, and in per-point mode when a stream
-	# is shorter than the point count: reading it fails exactly as it always did.
-	var bind_all : bool = settings.trace
-	if not settings.expose_arrays:
-		for c in containers:
-			if c.size() < _in_size:
-				bind_all = true
-				break
-	if not bind_all:
-		var kept_names := []
-		var kept_containers := []
-		for k in range( stream_names.size() ):
-			if parsed_expression.contains( str( stream_names[k] ) ):
-				kept_names.append( stream_names[k] )
-				kept_containers.append( containers[k] )
-		names.resize( names.size() - stream_names.size() )
-		names.append_array( kept_names )
-		containers = kept_containers
-
 	var error := _expression.parse(parsed_expression, names)
 	if error != OK:
 		setError("Failed parsing expression: %s" % _expression.get_error_text())
@@ -245,28 +200,27 @@ func execute( ctx : FlowData.EvaluationContext ):
 		else:
 			values.append( def_value )
 	
-	if bind_all:
-		# Reference path (tracing, or a short stream): the original loop, one
-		# evaluateAndSaveResult per point, inline here so a failing read
-		# aborts this function exactly as it always did.
-		if settings.expose_arrays:
-			values.append_array( containers )
-			for idx in range( _in_size ):
-				values[0] = idx
-				if not evaluateAndSaveResult( idx, values ):
-					break
-		else:
-			var k0 = values.size()
-			values.append_array( containers.map( func( c ): return c[0] ) )
-			for idx in range( _in_size ):
-				values[0] = idx
-				for k in range( containers.size() ):
-					# Broadcast (length-1) streams apply their one value to every point.
-					values[ k0 + k ] = containers[k][ FlowData.bcast_idx( containers[k].size(), idx ) ]
-				if not evaluateAndSaveResult( idx, values ):
-					break
+	if settings.expose_arrays:
+		var containers = in_data.streams.values().map( func( s ): return s.container )
+		values.append_array( containers )
+
+		for idx in range( _in_size ):
+			values[0] = idx
+			if not evaluateAndSaveResult( idx, values ):
+				break
 	else:
-		_evaluate_points( values, containers )
+		var k0 = values.size()
+		var containers := in_data.streams.values().map( func(s): return s.container )
+		var num_containers = containers.size()
+		values.append_array( containers.map( func( c ): return c[0] ) )
+		for idx in range( _in_size ):
+			values[0] = idx
+			for k in range( containers.size() ):
+				values[ k0 + k ] = containers[k][ FlowData.bcast_idx( containers[k].size(), idx ) ]
+			#if settings.trace:
+				#print( "  For %d : %s" % [ idx, values ])
+			if not evaluateAndSaveResult( idx, values ):
+				break
 
 	# Register the result stream in both modes (expose_arrays previously
 	# skipped this and silently dropped the computed stream).
@@ -282,78 +236,3 @@ func execute( ctx : FlowData.EvaluationContext ):
 			setError( err_msg )
 
 	set_output( 0, _out_data )
-
-## The per-point loop without tracing. Same results as calling
-## evaluateAndSaveResult for every point: the first point goes through it (it
-## creates the typed output container); later points store results of the
-## container's own type with a plain indexed write and hand anything else to
-## FlowData.Data.writeValue, as evaluateAndSaveResult does. In per-point mode
-## the bound stream values are copied with unrolled locals for up to four
-## streams (a nested loop over an untyped Array costs about 150 ns per stream
-## and point).
-func _evaluate_points( values : Array, containers : Array ) -> void:
-	var k0 : int = values.size()
-	var per_point : bool = not settings.expose_arrays
-	var count : int = containers.size()
-	if per_point:
-		for c in containers:
-			if c.size() != _in_size:
-				# Broadcast (length-1) streams apply their one value to every
-				# point: take the general loop below, which indexes with
-				# bcast_idx, instead of the unrolled direct reads.
-				count = -1
-				break
-		values.append_array( containers.map( func( c ): return c[0] ) )
-	else:
-		values.append_array( containers )
-		count = 0
-	var c0 = containers[0] if count > 0 else null
-	var c1 = containers[1] if count > 1 else null
-	var c2 = containers[2] if count > 2 else null
-	var c3 = containers[3] if count > 3 else null
-	var expression : Expression = _expression
-	var direct_type : int = -2   # -2: output container not created yet
-	var as_byte : bool = false
-	var out = null
-	for idx in range( _in_size ):
-		values[0] = idx
-		match count:
-			0:
-				pass
-			1:
-				values[k0] = c0[idx]
-			2:
-				values[k0] = c0[idx]
-				values[k0 + 1] = c1[idx]
-			3:
-				values[k0] = c0[idx]
-				values[k0 + 1] = c1[idx]
-				values[k0 + 2] = c2[idx]
-			4:
-				values[k0] = c0[idx]
-				values[k0 + 1] = c1[idx]
-				values[k0 + 2] = c2[idx]
-				values[k0 + 3] = c3[idx]
-			_:
-				var k := k0
-				for c in containers:
-					values[k] = c[ FlowData.bcast_idx( c.size(), idx ) ]
-					k += 1
-		if direct_type == -2:
-			if not evaluateAndSaveResult( idx, values ):
-				break
-			direct_type = _direct_store_type( _data_type )
-			as_byte = _data_type == FlowData.DataType.Bool
-			out = _container
-			continue
-		var result = expression.execute( values )
-		if expression.has_execute_failed():
-			setError( expression.get_error_text() )
-			break
-		if typeof( result ) == direct_type:
-			if as_byte:
-				out[idx] = 1 if result else 0
-			else:
-				out[idx] = result
-		else:
-			FlowData.Data.writeValue( out, idx, result, _data_type )

@@ -1,3 +1,6 @@
+## Verbatim copy of nodes/grid.gd before the WP13-P1 performance rewrite
+## (base d5bd9b6). Reference implementation for point_seed_stream_test.gd;
+## not a registered node. Do not edit.
 @tool
 extends FlowNodeBase
 
@@ -45,15 +48,10 @@ func execute( ctx : FlowData.EvaluationContext ):
 	sdensity.resize( nsamples )
 	sdensity.fill( 1.0 )
 	output.registerStream( FlowData.AttrDensity, sdensity, FlowData.DataType.Float )
-	var sseed : PackedInt32Array
-	if spos.size() == nsamples:
-		sseed = FlowData.point_seed_stream( spos, node_seed )
-	else:
-		# Negative counts: keep the original resize (and its error).
-		sseed = PackedInt32Array()
-		sseed.resize( nsamples )
-		for i in range( nsamples ):
-			sseed[i] = FlowData.point_seed( spos[i], node_seed )
+	var sseed := PackedInt32Array()
+	sseed.resize( nsamples )
+	for i in range( nsamples ):
+		sseed[i] = FlowData.point_seed( spos[i], node_seed )
 	output.registerStream( FlowData.AttrSeed, sseed, FlowData.DataType.Int )
 
 	set_output( 0, output )
