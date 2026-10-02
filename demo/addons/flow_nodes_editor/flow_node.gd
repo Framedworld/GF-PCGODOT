@@ -165,7 +165,7 @@ func refreshInputs():
 
 			else:
 				var curr_val = args[ param_name ]
-				if in_param.data_type != FlowNodeBase.getFlowDataTypeFromObject( curr_val ):
+				if not FlowNodeBase.valueMatchesFlowDataType( curr_val, in_param.data_type ):
 					print( "  found but wrong type. Assigning default value %s" % [ curr_val ] )
 					changed = true
 					args[ param_name ] = in_param.get_default_value()

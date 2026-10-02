@@ -66,7 +66,7 @@ func importMetaData( output, nodes ):
 			var value = node.get_meta( meta )
 			if value == null:
 				continue
-			var value_data_type = getFlowDataTypeFromObject( value )
+			var value_data_type = getLegacyFlowDataTypeFromObject( value )
 			if value_data_type == FlowData.DataType.Invalid:
 				continue
 			if not output.hasStream( meta ):
@@ -122,7 +122,7 @@ func importProperty( output, nodes, prop_path ):
 		var value = get_property_path( node, parts )
 		if value == null:
 			continue
-		var value_data_type = getFlowDataTypeFromObject( value )
+		var value_data_type = getLegacyFlowDataTypeFromObject( value )
 		if value_data_type == FlowData.DataType.Invalid:
 			# Special conversion StringName becomes a String. For example reading name
 			if typeof( value ) == TYPE_STRING_NAME:

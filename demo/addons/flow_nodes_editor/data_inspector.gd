@@ -21,6 +21,9 @@ var col_titles : Array[String]
 var col_streams_names : Array[String]
 var data : FlowData.Data
 var visible_rows : Array[int] = []
+## Table model of `data` (columns, cell text, sort keys, filter); see
+## visualization/flow_data_table_model.gd.
+var model : FlowDataTableModel
 
 # View-only column sorting state (never mutates the underlying FlowData)
 var sort_col : int = -1
@@ -63,31 +66,19 @@ func setLabelNumber( label : Label, value : float ):
 		label.text = new_text
 
 func updateNumRowsAndCols():
-	num_rows = data.size()
-	col_titles.clear()
-	col_streams_names.clear()
-	for stream in data.streams.values():
-		var stream_name : String = stream.name
-		match stream.data_type:
-			FlowData.DataType.Vector:
-				col_titles.append( "%s.X" % stream_name)
-				col_titles.append( "%s.Y" % stream_name)
-				col_titles.append( "%s.Z" % stream_name)
-				col_streams_names.append( stream_name)
-				col_streams_names.append( stream_name)
-				col_streams_names.append( stream_name)
-			_:
-				col_titles.append( "%s" % stream_name)
-				col_streams_names.append( stream_name)
+	model = FlowDataTableModel.new( data )
+	num_rows = model.row_count
+	col_titles = model.titles()
+	col_streams_names = model.stream_names()
 	num_cols = col_titles.size()
-	#print( col_titles )
 
 func fmt( v : float ) -> String:
-	return "%1.3f" % v
+	return FlowDataTableModel.fmt_real( v )
 
 # When the draw of a column starts, we choose which fn will be used
-# to display the data of that column. As all the datas of that column
-# have the same type
+# to display the data of that column. Every data column reads its text from
+# the table model (FlowDataTableModel), which formats each DataType, vector
+# components included.
 func onColumnBegins( cell : DataTableContainer.CellContents ):
 	cell.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
@@ -97,104 +88,33 @@ func onColumnBegins( cell : DataTableContainer.CellContents ):
 
 	# col = 0 is for the Index
 	var data_col = cell.col - 1
-	if data_col >= col_streams_names.size():
-		tv.cell_contents = null
+	if model == null or data_col >= model.column_count():
+		# Nothing to show (the trailing filler column): no formatter, so the
+		# table skips the column.
+		container = null
+		tv.setCellCallback( Callable() )
 		return
 
-	var stream_name = col_streams_names[ data_col ]
-	var stream = data.streams.get( stream_name, null )
-	if !stream:
-		tv.cell_contents = null
-		return
-	container = stream.container
-
-	var title = col_titles[ data_col ]
-	if stream.data_type == FlowData.DataType.Vector:
-		if title.ends_with(".X"):
-			tv.setCellCallback( getCellContentsVectorX )
-		elif title.ends_with(".Y"):
-			tv.setCellCallback( getCellContentsVectorY )
-		elif title.ends_with(".Z"):
-			tv.setCellCallback( getCellContentsVectorZ )
-	elif stream.data_type == FlowData.DataType.Bool:
-		tv.setCellCallback( getCellContentsBool )
-	elif stream.data_type == FlowData.DataType.Int:
-		tv.setCellCallback( getCellContentsInt )
-	elif stream.data_type == FlowData.DataType.Float:
-		tv.setCellCallback( getCellContentsFloat )
-	elif stream.data_type == FlowData.DataType.String:
-		tv.setCellCallback( getCellContentsString )
-		cell.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	elif stream.data_type == FlowData.DataType.Resource:
-		tv.setCellCallback( getCellContentsResource )
-		cell.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	elif stream.data_type == FlowData.DataType.NodePath or stream.data_type == FlowData.DataType.NodeMesh:
-		tv.setCellCallback( getCellContentsNode )
-		cell.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var column : FlowDataTableModel.Column = model.columns[ data_col ]
+	container = column.container
+	cell.alignment = column.alignment
+	tv.setCellCallback( getCellContentsModel )
 
 func _container_index_for_cell(cell_row: int) -> int:
 	if container == null:
 		return -1
-	var container_size: int = container.size()
-	if container_size <= 0:
-		return -1
-	var real_row: int = visible_rows[cell_row] if cell_row < visible_rows.size() else cell_row
-	if real_row >= 0 and real_row < container_size:
-		return real_row
-	if container_size == 1:
-		return 0
-	return -1
+	return FlowDataTableModel.value_index( container, _real_row( cell_row ) )
 
-func getCellContentsVectorX(cell : DataTableContainer.CellContents ):
-	var real_row := _container_index_for_cell(cell.row)
-	cell.text = fmt( container[ real_row ].x ) if real_row >= 0 else ""
+## Data row shown at table row `cell_row` (after filtering and sorting).
+func _real_row( cell_row : int ) -> int:
+	return visible_rows[cell_row] if cell_row >= 0 and cell_row < visible_rows.size() else cell_row
 
-func getCellContentsVectorY(cell : DataTableContainer.CellContents ):
-	var real_row := _container_index_for_cell(cell.row)
-	cell.text = fmt( container[ real_row ].y ) if real_row >= 0 else ""
-
-func getCellContentsVectorZ(cell : DataTableContainer.CellContents ):
-	var real_row := _container_index_for_cell(cell.row)
-	cell.text = fmt( container[ real_row ].z ) if real_row >= 0 else ""
-
-func getCellContentsFloat(cell : DataTableContainer.CellContents ):
-	var real_row := _container_index_for_cell(cell.row)
-	cell.text = fmt( container[ real_row ] ) if real_row >= 0 else ""
-
-func getCellContentsBool(cell : DataTableContainer.CellContents ):
-	var real_row := _container_index_for_cell(cell.row)
-	if real_row < 0:
-		cell.text = ""
-		return
-	cell.text = FlowI18n.t("True") if container[ real_row ] else FlowI18n.t("False")
-
-func getCellContentsInt(cell : DataTableContainer.CellContents ):
-	var real_row := _container_index_for_cell(cell.row)
-	cell.text = "%d" % container[ real_row ] if real_row >= 0 else ""
+func getCellContentsModel( cell : DataTableContainer.CellContents ):
+	cell.text = model.cell_text( cell.col - 1, _real_row( cell.row ) ) if model != null else ""
 
 func getCellContentsIndex(cell : DataTableContainer.CellContents ):
 	var real_row = visible_rows[cell.row] if cell.row < visible_rows.size() else cell.row
 	cell.text = "%d" % real_row
-
-func getCellContentsString(cell : DataTableContainer.CellContents ):
-	var real_row := _container_index_for_cell(cell.row)
-	cell.text = container[ real_row ] if real_row >= 0 else ""
-
-func getCellContentsResource(cell : DataTableContainer.CellContents ):
-	var real_row := _container_index_for_cell(cell.row)
-	if real_row < 0:
-		cell.text = ""
-		return
-	var res = container[ real_row ] as Resource
-	cell.text = res.resource_path if res else ""
-
-func getCellContentsNode(cell : DataTableContainer.CellContents ):
-	var real_row := _container_index_for_cell(cell.row)
-	if real_row < 0:
-		cell.text = ""
-		return
-	var node = container[ real_row ] as Node3D
-	cell.text = ( "$" + node.name ) if node else ""
 
 func refresh():
 
@@ -205,6 +125,7 @@ func refresh():
 	tv.setColumnCallback( onColumnBegins )
 
 	data = null
+	model = null
 
 	if node:
 
@@ -233,7 +154,7 @@ func refresh():
 		apply_sort()
 
 		# Stats: row/col summary
-		%LabelStats.text = FlowI18n.t("%d rows · %d streams · %d cols") % [ num_rows, data.numFields(), num_cols]
+		%LabelStats.text = model.summary_text()
 
 		# Index column
 		tv.addColumn( "#", 0 )
@@ -247,6 +168,8 @@ func refresh():
 		for title in col_titles:
 			var text_w = base_font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, header_font_size).x
 			var col_w = int(max(text_w + 16, 60)) # min 60px, pad 16px
+			if model.is_shape_summary:
+				col_w = maxi(col_w, 150) # shape names, bounds and details are long
 			tv.addColumn( title, col_w )
 
 	tv.commitColumns()
@@ -273,6 +196,9 @@ func _data_row_count() -> int:
 func _get_row_world_position(real_row: int) -> Variant:
 	if data == null or real_row < 0:
 		return null
+	# Shape summary rows focus on the shape's bounds.
+	if model != null and model.is_shape_summary:
+		return model.row_world_position(real_row)
 	if real_row >= _data_row_count():
 		return null
 	if data.hasStream(FlowData.AttrPosition):
@@ -330,41 +256,13 @@ func onTitleClicked( col : int ):
 		tv.refreshUI()
 
 # Returns a comparable value for the given data row in the given table column.
-# Column 0 is the index column; data columns map through col_streams_names.
+# Column 0 is the index column; data columns are the model's columns.
 func _row_sort_value( real_row : int, col : int ):
 	if col == 0:
 		return real_row
-	var data_col = col - 1
-	if data_col >= col_streams_names.size():
+	if model == null:
 		return null
-	var stream = data.streams.get( col_streams_names[ data_col ], null )
-	if stream == null or real_row >= stream.container.size():
-		return null
-	var val = stream.container[ real_row ]
-	match stream.data_type:
-		FlowData.DataType.Vector:
-			if val is Vector3:
-				var title = col_titles[ data_col ]
-				if title.ends_with(".X"):
-					return val.x
-				elif title.ends_with(".Y"):
-					return val.y
-				elif title.ends_with(".Z"):
-					return val.z
-			return null
-		FlowData.DataType.Bool:
-			return 1 if val else 0
-		FlowData.DataType.Int, FlowData.DataType.Float:
-			return val
-		FlowData.DataType.String:
-			return str(val)
-		FlowData.DataType.Resource:
-			var res = val as Resource
-			return res.resource_path if res else ""
-		FlowData.DataType.NodePath, FlowData.DataType.NodeMesh:
-			var n3d = val as Node3D
-			return ( "$" + n3d.name ) if n3d else ""
-	return str(val)
+	return model.sort_value( col - 1, real_row )
 
 # Reorders visible_rows by the current sort column/direction. View-only:
 # the underlying FlowData streams are never touched.
@@ -380,78 +278,15 @@ func apply_sort():
 	)
 
 func _sort_rows_less( va, vb, asc : bool, row_a : int, row_b : int ) -> bool:
-	# Nulls always sort last, regardless of direction
-	if va == null or vb == null:
-		if va == null and vb == null:
-			return row_a < row_b
-		return va != null
-	# Numeric-aware: strings that parse as numbers compare numerically
-	if va is String and vb is String and va.is_valid_float() and vb.is_valid_float():
-		va = va.to_float()
-		vb = vb.to_float()
-	var a_num = (va is int) or (va is float)
-	var b_num = (vb is int) or (vb is float)
-	if not (a_num and b_num) and not (va is String and vb is String):
-		va = str(va)
-		vb = str(vb)
-	if va == vb:
-		return row_a < row_b # stable tiebreak on original row index
-	return (va < vb) if asc else (va > vb)
+	return FlowDataTableModel.sort_less( va, vb, asc, row_a, row_b )
 
 func update_visible_rows(filter_text : String):
 	visible_rows.clear()
 	if data == null:
 		return
-
-	if filter_text.is_empty():
-		for i in range(data.size()):
-			visible_rows.append(i)
-	else:
-		var filter_lower = filter_text.to_lower()
-		for i in range(data.size()):
-			var matched = false
-			if filter_lower in str(i):
-				matched = true
-			else:
-				for stream in data.streams.values():
-					if i >= stream.container.size():
-						continue
-					var val = stream.container[i]
-					match stream.data_type:
-						FlowData.DataType.Vector:
-							if val is Vector3:
-								if filter_lower in fmt(val.x).to_lower() or filter_lower in fmt(val.y).to_lower() or filter_lower in fmt(val.z).to_lower():
-									matched = true
-									break
-						FlowData.DataType.Float:
-							if filter_lower in fmt(val).to_lower():
-								matched = true
-								break
-						FlowData.DataType.Bool:
-							var b_str = "true" if val else "false"
-							if filter_lower in b_str:
-								matched = true
-								break
-						FlowData.DataType.Int:
-							if filter_lower in str(val).to_lower():
-								matched = true
-								break
-						FlowData.DataType.String:
-							if filter_lower in str(val).to_lower():
-								matched = true
-								break
-						FlowData.DataType.Resource:
-							var res = val as Resource
-							if res and filter_lower in res.resource_path.to_lower():
-								matched = true
-								break
-						FlowData.DataType.NodePath, FlowData.DataType.NodeMesh:
-							var node_val = val as Node3D
-							if node_val and filter_lower in ("$" + node_val.name).to_lower():
-								matched = true
-								break
-			if matched:
-				visible_rows.append(i)
+	if model == null or model.data != data:
+		updateNumRowsAndCols()
+	visible_rows = model.filtered_rows( filter_text )
 
 func _on_filter_edit_text_changed(new_text : String):
 	update_visible_rows(new_text)

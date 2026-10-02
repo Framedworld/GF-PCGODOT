@@ -540,6 +540,14 @@ static func _restore_wired_param_ports(instance : FlowNodeBase, saved_ports : Di
 			continue
 		instance.args_ports_by_name[arg_name] = { "port": port, "connected": true }
 
+# Declared type of the graph input parameter `param_name` (Invalid when the
+# graph does not declare it). Lets a raw int feed an Int64 parameter as Int64.
+static func _in_param_type(graph : FlowGraphResource, param_name : String) -> int:
+	for param in graph.in_params:
+		if param and param.name == param_name:
+			return param.data_type
+	return FlowData.DataType.Invalid
+
 # Feeds the graph inputs from input_data_map into the input nodes' outputs.
 static func _feed_graph_inputs(graph : FlowGraphResource, ordered_nodes : Array, input_data_map : Dictionary) -> void:
 	for node in ordered_nodes:
@@ -559,7 +567,7 @@ static func _feed_graph_inputs(graph : FlowGraphResource, ordered_nodes : Array,
 			continue
 
 		if is_specific_input:
-			var val = FlowNodeIO._coerce_input_data(input_data_map.get(specific_input_name, null), specific_input_name)
+			var val = FlowNodeIO._coerce_input_data(input_data_map.get(specific_input_name, null), specific_input_name, _in_param_type(graph, specific_input_name))
 			if val:
 				# Create a new Data object to rename/register the stream under the input's name
 				var target_data := FlowData.Data.new()
@@ -585,7 +593,7 @@ static func _feed_graph_inputs(graph : FlowGraphResource, ordered_nodes : Array,
 			for i in range(graph.in_params.size()):
 				var param = graph.in_params[i]
 				if param:
-					var val = FlowNodeIO._coerce_input_data(input_data_map.get(param.name, null), param.name)
+					var val = FlowNodeIO._coerce_input_data(input_data_map.get(param.name, null), param.name, param.data_type)
 					var target_data := FlowData.Data.new()
 					if val:
 						for stream_name in val.streams:

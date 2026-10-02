@@ -358,6 +358,10 @@ func test_every_template_builds_a_widget() -> void:
 			failures.append("reroute: expected FlowRerouteWidget")
 		widget.refreshFromSettings()
 		widget.queue_redraw()
+		# WP7: the built slots match the element's ports (mode settings are
+		# switched per template in editor_widget_modes_test.gd).
+		for problem in load("res://tests/editor/support/widget_port_checks.gd").port_mismatches(widget):
+			failures.append("%s: %s" % [template, problem])
 	_clear_gdunit_script_errors()
 	assert_array(failures).override_failure_message("\n".join(failures)).is_empty()
 	_editor.clear_graph()

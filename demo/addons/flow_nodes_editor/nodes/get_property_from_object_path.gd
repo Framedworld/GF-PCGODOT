@@ -64,7 +64,7 @@ func computeSceneFingerprint( ctx : FlowData.EvaluationContext ) -> Variant:
 
 static func _import_value( value ) -> Array:
 	# [value, data_type] with scan_nodes' conversions; data_type Invalid = skip.
-	var data_type := getFlowDataTypeFromObject( value )
+	var data_type := getLegacyFlowDataTypeFromObject( value )
 	if data_type == FlowData.DataType.Invalid and typeof( value ) == TYPE_STRING_NAME:
 		return [ String( value ), FlowData.DataType.String ]
 	return [ value, data_type ]

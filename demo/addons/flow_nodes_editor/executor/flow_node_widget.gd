@@ -41,6 +41,15 @@ var _no_conns : Array[Dictionary] = []
 ## Row of the inspected output highlighted by the debug draw (-1 = none).
 var debug_row : int = -1
 
+# Port layout the rows were last built from (port_signature()), or null before
+# the first initFromScript(). refresh_ui() rebuilds the rows when the element's
+# metadata no longer matches it (a mode setting such as use_bounding_shape or
+# projection_mode changed the inputs), whatever path changed the setting.
+var _built_port_signature = null
+# Flow input and output counts of the last build (-1 before the first one).
+var _built_num_flow_ins : int = -1
+var _built_num_outs : int = -1
+
 # --- Delegated element state ------------------------------------------------------
 
 var settings : NodeSettings:
@@ -421,6 +430,7 @@ func _cache_output_summaries():
 				"points": out_data.size(),
 				"streams": out_data.numFields(),
 				"stream_info": info,
+				"shape": shape_summary( out_data ),
 			}
 	set_meta("output_summaries", output_summaries)
 	# Update tooltip with stream summary
@@ -439,7 +449,8 @@ func _update_data_tooltip():
 		if summary == null:
 			continue
 		var port_label = _localized_node_text(str(outs[port_idx].get("label", "Out %d" % port_idx)))
-		lines.append("%s: %d pts, %d streams" % [port_label, summary.points, summary.streams])
+		var shape_text : String = summary.get("shape", "")
+		lines.append("%s: %d pts, %d streams%s" % [port_label, summary.points, summary.streams, ( ", " + shape_text ) if shape_text else ""])
 		for si in summary.stream_info:
 			lines.append("  · %s (%s)" % [si.name, si.type])
 	if lines.size() > 0:
@@ -452,9 +463,18 @@ func get_data_summary() -> String:
 		return ""
 	var s = output_summaries[0]
 	var parts := PackedStringArray()
+	var shape_text : String = s.get("shape", "")
+	if shape_text:
+		parts.append(shape_text)
 	for si in s.stream_info:
 		parts.append("%s(%s)" % [si.name, si.type])
 	return "%d pts — %s" % [s.points, ", ".join(parts)]
+
+## "shape <class> (<kind>)" for a Data carrying a spatial shape, else "".
+static func shape_summary( data : FlowData.Data ) -> String:
+	if data == null or data.shape == null:
+		return ""
+	return "shape %s (%s)" % [ FlowDataTableModel.shape_class_name( data.shape ), FlowDataTableModel.kind_name( data.shape.get_kind() ) ]
 
 func redrawUI():
 	queue_redraw()
@@ -596,6 +616,7 @@ func refresh_ui():
 
 	if draw_debug and ( not settings.debug_enabled or settings.disabled ):
 		draw_debug.cleanup_multimesh_direct()
+		draw_debug.cleanup_lines_direct()
 
 	if settings and "data_type" in settings and node_template != "add_attribute" and node_template != "attribute_random":
 		var meta := getMeta()
@@ -610,8 +631,29 @@ func refresh_ui():
 						set_slot_color_right(idx, color)
 						set_slot_type_right(idx, settings.data_type)
 
+	if _built_port_signature != null and port_signature() != _built_port_signature:
+		initFromScript()
+
 	if _element != null and _element.has_method( "widget_refresh" ):
 		_element.widget_refresh( self )
+
+## What the port rows are built from: the element's flow inputs and outputs
+## (label and data type) and its exposed parameter names. Two equal signatures
+## build the same rows; a different one means a mode setting changed the ports.
+func port_signature() -> Array:
+	if _element == null or settings == null:
+		return []
+	var meta := getMeta()
+	var ins := []
+	for in_data in meta.get( "ins", [] ):
+		ins.append( [ str( in_data.get( "label", "" ) ), int( in_data.get( "data_type", FlowData.DataType.Invalid ) ), str( in_data.get( "name", "" ) ) ] if in_data is Dictionary else null )
+	var outs := []
+	for out_data in meta.get( "outs", [] ):
+		outs.append( [ str( out_data.get( "label", "" ) ), int( out_data.get( "data_type", FlowData.DataType.Invalid ) ) ] if out_data is Dictionary else null )
+	var params := []
+	for param in getExposedParams():
+		params.append( [ str( param.name ), int( param.get( "data_type", FlowData.DataType.Invalid ) ) ] )
+	return [ ins, outs, params, show_disconnected_inputs ]
 
 func refreshLocalizedText() -> void:
 	title = getLocalizedTitle()
@@ -746,6 +788,13 @@ func initFromScript():
 		print( "exposed_params: %s" % exposed_params.size())
 		print( "args_ports_by_name: %s" % args_ports_by_name)
 
+	# Links to flow inputs or outputs that this build removes (a mode setting
+	# turned off an optional input, say) would otherwise stay attached to
+	# whatever port takes that index next. Parameter links were detached above
+	# and are reattached by name below.
+	if flow_editor:
+		_drop_links_to_removed_ports( flow_editor, num_ins, num_outs )
+
 	# Total inputs are flow in streams + exposed parameters of the node
 	var num_inputs = num_ins + exposed_params.size()
 	num_ports = max( num_inputs, num_outs )
@@ -849,7 +898,11 @@ func initFromScript():
 		# Reconnect nodes
 		for arg_name in connected_inputs_by_name.keys():
 			var old_data = connected_inputs_by_name[ arg_name ]
-			var old_port = old_data.port
+			if not args_ports_by_name.has( arg_name ):
+				# The input is gone (a mode setting removed it): its links
+				# stay disconnected instead of landing on another port.
+				flow_editor.queueSave()
+				continue
 			var new_port = args_ports_by_name[ arg_name ].port
 			for old_conn in old_data.conns:
 				var from_node = old_conn[0]
@@ -858,8 +911,29 @@ func initFromScript():
 			flow_editor.queueSave()
 		flow_editor.refreshSignalsInputArgs( self )
 
+	_built_port_signature = port_signature()
+	_built_num_flow_ins = num_ins
+	_built_num_outs = num_outs
+
 	if _element != null and _element.has_method( "widget_init" ):
 		_element.widget_init( self )
+
+## Disconnects links into flow inputs [num_ins, previous count) and out of
+## outputs [num_outs, previous count). Only runs after a first build.
+func _drop_links_to_removed_ports( flow_editor, num_ins : int, num_outs : int ) -> void:
+	var dropped := false
+	if _built_num_flow_ins > num_ins:
+		for port in range( num_ins, _built_num_flow_ins ):
+			for conn in flow_editor.get_connected_sources( name, port ).duplicate():
+				flow_editor.disconnect_nodes( conn[0], conn[1], name, port )
+				dropped = true
+	if _built_num_outs > num_outs and "gedit" in flow_editor and flow_editor.gedit != null:
+		for conn in flow_editor.gedit.get_connection_list():
+			if conn.from_node == name and conn.from_port >= num_outs:
+				flow_editor.disconnect_nodes( conn.from_node, conn.from_port, conn.to_node, conn.to_port )
+				dropped = true
+	if dropped and flow_editor.has_method( "queueSave" ):
+		flow_editor.queueSave()
 
 func refreshConnectionFlags( ):
 	var editor = getEditor()

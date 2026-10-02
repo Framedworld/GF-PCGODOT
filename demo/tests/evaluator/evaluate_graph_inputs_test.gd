@@ -106,9 +106,9 @@ func test_coerce_null_is_null() -> void:
 	assert_object(FlowNodeIO._coerce_input_data(null, "x")).is_null()
 
 func test_coerce_unsupported_type_is_null() -> void:
-	# Dictionaries, Vector2 and StringName are not wrappable today.
+	# Dictionaries and StringName are not wrappable today. Vector2 is since WP7
+	# (editor_type_plumbing_test.gd covers it and the other extended values).
 	assert_object(FlowNodeIO._coerce_input_data({"a": 1}, "x")).is_null()
-	assert_object(FlowNodeIO._coerce_input_data(Vector2(1, 2), "x")).is_null()
 	assert_object(FlowNodeIO._coerce_input_data(&"name", "x")).is_null()
 
 

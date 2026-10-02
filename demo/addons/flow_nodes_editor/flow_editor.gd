@@ -2618,6 +2618,18 @@ func _is_specific_output_node(node: FlowNodeWidget) -> bool:
 		return not _is_multi_port_flow_node(node)
 	return false
 
+## Slot type used to decide whether two typed ports connect: Int64 counts as
+## Int and Double as Float (node settings are GDScript int / float, so their
+## parameter ports are typed Int / Float, and an Int64 or Double graph input
+## feeds them as is). Every other type only matches itself.
+static func connection_type_family( slot_type : int ) -> int:
+	match slot_type:
+		FlowData.DataType.Int64:
+			return FlowData.DataType.Int
+		FlowData.DataType.Double:
+			return FlowData.DataType.Float
+	return slot_type
+
 func canConnect( src : FlowNodeWidget, src_port : int, dst : FlowNodeWidget, dst_port : int ):
 	# Discard self connections and null values
 	if dst == src or src == null or dst == null:
@@ -2637,7 +2649,7 @@ func canConnect( src : FlowNodeWidget, src_port : int, dst : FlowNodeWidget, dst
 	# When both ports have an explicit non-zero type they must match exactly.
 	# A zero (default/untyped) port is treated as a wildcard and connects to anything.
 	if src_type != 0 and dst_type != 0:
-		if src_type != dst_type:
+		if connection_type_family( src_type ) != connection_type_family( dst_type ):
 			push_warning( "Node types do not match %d vs %d" % [ src_type, dst_type ])
 			return false
 

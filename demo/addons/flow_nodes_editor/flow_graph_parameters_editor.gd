@@ -16,6 +16,22 @@ const PARAMETER_TYPES := [
 	FlowData.DataType.Vector,
 	FlowData.DataType.String,
 	FlowData.DataType.Resource,
+	FlowData.DataType.Int64,
+	FlowData.DataType.Double,
+	FlowData.DataType.Vector2,
+	FlowData.DataType.Vector4,
+	FlowData.DataType.Quaternion,
+	FlowData.DataType.Color,
+	FlowData.DataType.Transform,
+]
+
+## Types whose value editor is too wide for the name row; it goes on its own
+## row under the name, as Vector always did.
+const WIDE_VALUE_TYPES := [
+	FlowData.DataType.Vector,
+	FlowData.DataType.Vector4,
+	FlowData.DataType.Quaternion,
+	FlowData.DataType.Transform,
 ]
 
 var graph_resource: FlowGraphResource
@@ -109,7 +125,7 @@ func _make_parameter_row(param: GraphInputParameter, index: int) -> Control:
 
 	row.add_child(_make_type_button(param))
 
-	if include_value and param.data_type != FlowData.DataType.Vector:
+	if include_value and not is_wide_value_type(param.data_type):
 		var value_control := _make_value_control(param)
 		if value_control != null:
 			value_control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -130,7 +146,7 @@ func _make_parameter_row(param: GraphInputParameter, index: int) -> Control:
 	)
 	row.add_child(remove_button)
 
-	if include_value and param.data_type == FlowData.DataType.Vector:
+	if include_value and is_wide_value_type(param.data_type):
 		var vector_control := _make_value_control(param)
 		if vector_control != null:
 			vector_control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -183,7 +199,7 @@ func _make_value_control(param: GraphInputParameter) -> Control:
 		prop.hint,
 		prop.hint_string,
 		prop.usage,
-		param.data_type == FlowData.DataType.Vector,
+		is_wide_value_type(param.data_type),
 		""
 	)
 	if editor == null:
@@ -331,21 +347,12 @@ func _type_label(data_type: int) -> String:
 	return str(data_type)
 
 
+static func is_wide_value_type(data_type: int) -> bool:
+	return WIDE_VALUE_TYPES.has(data_type)
+
+
 func _value_property_name(data_type: int) -> String:
-	match data_type:
-		FlowData.DataType.Bool:
-			return "cte_bool"
-		FlowData.DataType.Int:
-			return "cte_int"
-		FlowData.DataType.Float:
-			return "cte_float"
-		FlowData.DataType.Vector:
-			return "cte_vector"
-		FlowData.DataType.String:
-			return "cte_string"
-		FlowData.DataType.Resource:
-			return "cte_resource"
-	return ""
+	return GraphInputParameter.value_property_name(data_type)
 
 
 func _property_info(object: Object, property_name: String) -> Dictionary:
@@ -415,6 +422,20 @@ func _ue_type_color(data_type: int) -> Color:
 			return Color("f12cff")
 		FlowData.DataType.Resource:
 			return Color("1685ff")
+		FlowData.DataType.Int64:
+			return Color("1f9e8a")
+		FlowData.DataType.Double:
+			return Color("9be35a")
+		FlowData.DataType.Vector2:
+			return Color("e8c547")
+		FlowData.DataType.Vector4:
+			return Color("ff9f3f")
+		FlowData.DataType.Quaternion:
+			return Color("a29bfe")
+		FlowData.DataType.Color:
+			return Color("3f6fff")
+		FlowData.DataType.Transform:
+			return Color("ff6a00")
 	return Color("7a8494")
 
 

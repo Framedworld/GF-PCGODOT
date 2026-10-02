@@ -784,15 +784,25 @@ static func build_execution_order(node_list: Array, instances_by_name: Dictionar
 # stream is named after the input param, so graph-input constants work at
 # runtime. Falsy primitives (0, 0.0, "") are valid values — hence the explicit
 # null/type checks instead of truthiness.
-static func _coerce_input_data(val, input_name: String):
+#
+# Supported raw values: bool, int, float, String, Vector2 (and Vector2i),
+# Vector3, Vector4, Quaternion, Color, Transform3D and Resources. The stream
+# type comes from the value (FlowNodeBase.getFlowDataTypeFromObject). When the
+# caller knows the graph parameter's type (`param_type`) and the value feeds it
+# as is (FlowNodeBase.valueMatchesFlowDataType: an int for an Int64 parameter, a
+# float for a Double one, a Vector4 for a Quaternion one), the parameter's type
+# is used instead. An int fed into a Float parameter still arrives as Int.
+static func _coerce_input_data(val, input_name: String, param_type: int = FlowData.DataType.Invalid):
 	if val == null:
 		return null
 	if val is FlowData.Data:
 		return val
 	var data_type = FlowNodeBase.getFlowDataTypeFromObject(val)
 	if data_type == FlowData.DataType.Invalid:
-		push_warning("evaluate_graph: input '%s' got unsupported runtime value of type %s — expected FlowData.Data or float/int/bool/String/Vector3/Color" % [input_name, type_string(typeof(val))])
+		push_warning("evaluate_graph: input '%s' got unsupported runtime value of type %s — expected FlowData.Data or bool/int/float/String/Vector2/Vector3/Vector4/Quaternion/Color/Transform3D/Resource" % [input_name, type_string(typeof(val))])
 		return null
+	if param_type != FlowData.DataType.Invalid and param_type != data_type and FlowNodeBase.valueMatchesFlowDataType(val, param_type):
+		data_type = param_type
 	# An input named like a canonical attribute (density, seed, ...) takes that
 	# attribute's numeric type, so `{"density": 1}` still registers as Float.
 	data_type = FlowData.canonical_numeric_type(input_name, data_type)

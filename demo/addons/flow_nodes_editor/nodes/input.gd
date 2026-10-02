@@ -147,7 +147,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 					if arg_data != null:
 						set_output(i, arg_data)
 						continue
-				elif FlowNodeBase.getFlowDataTypeFromObject( ctx_value ) == param.data_type:
+				elif FlowNodeBase.valueMatchesFlowDataType( ctx_value, param.data_type ):
 					new_value = ctx_value
 			var container = output.streams[ param.name ].container
 			container.resize( 1 )
@@ -182,7 +182,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 				if arg_data != null:
 					set_output(0, arg_data)
 					return
-			elif FlowNodeBase.getFlowDataTypeFromObject( ctx_value ) == input.data_type:
+			elif FlowNodeBase.valueMatchesFlowDataType( ctx_value, input.data_type ):
 				new_value = ctx_value
 
 		var container =	output.streams[ settings.name ].container

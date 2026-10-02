@@ -498,35 +498,47 @@ static func editorDisplayName(property_name: String) -> String:
 		parts[i] = parts[i].capitalize()
 	return " ".join(parts)
 
+# --- Type mappings (ports, graph parameters, runtime values) -------------------
+# Every FlowData.DataType value has a port colour. The GDScript-type mappings
+# cover every type that has one Variant type of its own. Int64 and Double share
+# TYPE_INT / TYPE_FLOAT with Int and Float, so a raw int or float maps to Int /
+# Float; valueMatchesFlowDataType() accepts it for Int64 / Double. Resource,
+# NodeMesh and NodePath have no GDScript type.
+
+## Port (slot) colour of each data type. The historical colours are unchanged.
+## The extended types: Vector2 / Vector4 / Quaternion next to Vector's purple,
+## Transform orange, Int64 slate and Double lime (next to the numeric grey).
+const FLOW_DATA_TYPE_COLORS := {
+	FlowData.DataType.Bool: Color("ef4444"),
+	FlowData.DataType.Int: Color("c8c8c8"),
+	FlowData.DataType.Float: Color("c8c8c8"),
+	FlowData.DataType.Vector: Color("a855f7"),
+	FlowData.DataType.Color: Color("eab308"),
+	FlowData.DataType.String: Color("3b82f6"),
+	FlowData.DataType.Resource: Color("22c55e"),
+	FlowData.DataType.NodeMesh: Color("22c55e"),
+	FlowData.DataType.NodePath: Color("14b8a6"),
+	FlowData.DataType.Quaternion: Color("f472b6"),
+	FlowData.DataType.Vector2: Color("d8b4fe"),
+	FlowData.DataType.Vector4: Color("7e22ce"),
+	FlowData.DataType.Transform: Color("f97316"),
+	FlowData.DataType.Int64: Color("94a3b8"),
+	FlowData.DataType.Double: Color("a3e635"),
+}
+
+## Port colour of untyped flow ports (and of Invalid).
+const FLOW_DEFAULT_PORT_COLOR := Color("22d3ee")
+
 static func getColorForFlowDataType( data_type : FlowData.DataType ) -> Color:
-	match( data_type ):
-		FlowData.DataType.Bool:
-			return Color("ef4444")
-		FlowData.DataType.Int:
-			return Color("c8c8c8")
-		FlowData.DataType.Float:
-			return Color("c8c8c8")
-		FlowData.DataType.Vector:
-			return Color("a855f7")
-		FlowData.DataType.Color:
-			return Color("eab308")
-		FlowData.DataType.String:
-			return Color("3b82f6")
-		FlowData.DataType.Resource:
-			return Color("22c55e")
-		FlowData.DataType.NodeMesh:
-			return Color("22c55e")
-		FlowData.DataType.NodePath:
-			return Color("14b8a6")
-	return Color("22d3ee") # Default cyan flow color
+	return FLOW_DATA_TYPE_COLORS.get( data_type, FLOW_DEFAULT_PORT_COLOR )
 
 static func getGdScriptTypeForFlowDataType( data_type : FlowData.DataType ) -> int:
 	match( data_type ):
 		FlowData.DataType.Bool:
 			return TYPE_BOOL
-		FlowData.DataType.Int:
+		FlowData.DataType.Int, FlowData.DataType.Int64:
 			return TYPE_INT
-		FlowData.DataType.Float:
+		FlowData.DataType.Float, FlowData.DataType.Double:
 			return TYPE_FLOAT
 		FlowData.DataType.String:
 			return TYPE_STRING
@@ -534,6 +546,14 @@ static func getGdScriptTypeForFlowDataType( data_type : FlowData.DataType ) -> i
 			return TYPE_VECTOR3
 		FlowData.DataType.Color:
 			return TYPE_COLOR
+		FlowData.DataType.Quaternion:
+			return TYPE_QUATERNION
+		FlowData.DataType.Vector2:
+			return TYPE_VECTOR2
+		FlowData.DataType.Vector4:
+			return TYPE_VECTOR4
+		FlowData.DataType.Transform:
+			return TYPE_TRANSFORM3D
 	return TYPE_NIL
 
 static func getFlowDataTypeFromGdScriptType( gd_type : int  ) -> FlowData.DataType:
@@ -550,15 +570,68 @@ static func getFlowDataTypeFromGdScriptType( gd_type : int  ) -> FlowData.DataTy
 			return FlowData.DataType.Vector
 		TYPE_COLOR:
 			return FlowData.DataType.Color
+		TYPE_QUATERNION:
+			return FlowData.DataType.Quaternion
+		TYPE_VECTOR2:
+			return FlowData.DataType.Vector2
+		TYPE_VECTOR4:
+			return FlowData.DataType.Vector4
+		TYPE_TRANSFORM3D:
+			return FlowData.DataType.Transform
 	return FlowData.DataType.Invalid
 
+## Data type of a runtime value: the GDScript-type mapping, plus Vector2i
+## (stored as Vector2) and Resources. An int is Int and a float is Float; use
+## valueMatchesFlowDataType() to accept them for Int64 / Double.
 static func getFlowDataTypeFromObject( obj  ) -> FlowData.DataType:
 	var data_type = getFlowDataTypeFromGdScriptType( typeof(obj) )
 	if data_type != FlowData.DataType.Invalid:
 		return data_type
+	if typeof( obj ) == TYPE_VECTOR2I:
+		return FlowData.DataType.Vector2
 	if obj is Resource:
 		return FlowData.DataType.Resource
 	return data_type
+
+## The mapping getFlowDataTypeFromObject() had before the extended attribute
+## types. scan_nodes and get_property_from_object_path import scene metas and
+## properties with it, so values of type Vector2, Vector4, Quaternion or
+## Transform3D are still skipped there and their output does not change.
+static func getLegacyFlowDataTypeFromObject( obj ) -> FlowData.DataType:
+	match typeof( obj ):
+		TYPE_BOOL:
+			return FlowData.DataType.Bool
+		TYPE_INT:
+			return FlowData.DataType.Int
+		TYPE_FLOAT:
+			return FlowData.DataType.Float
+		TYPE_STRING:
+			return FlowData.DataType.String
+		TYPE_VECTOR3:
+			return FlowData.DataType.Vector
+		TYPE_COLOR:
+			return FlowData.DataType.Color
+	if obj is Resource:
+		return FlowData.DataType.Resource
+	return FlowData.DataType.Invalid
+
+## True when a raw runtime value can feed a value of `data_type` as is: its
+## own type (getFlowDataTypeFromObject), an int for Int64, a float for Double,
+## a Vector4 for Quaternion. For Bool, Int, Float, String, Vector, Color and
+## Resource this is exactly the old `getFlowDataTypeFromObject( value ) ==
+## data_type` test.
+static func valueMatchesFlowDataType( value, data_type : FlowData.DataType ) -> bool:
+	var own := getFlowDataTypeFromObject( value )
+	if own == data_type:
+		return true
+	match data_type:
+		FlowData.DataType.Int64:
+			return own == FlowData.DataType.Int
+		FlowData.DataType.Double:
+			return own == FlowData.DataType.Float
+		FlowData.DataType.Quaternion:
+			return own == FlowData.DataType.Vector4
+	return false
 
 func exposedAsInputNode( prop ):
 	if prop.name == "graph":
@@ -641,6 +714,13 @@ func getSettingValue( ctx : FlowData.EvaluationContext, in_name : String, defaul
 						return new_value
 	return value
 
+## Types whose fill value newStream() writes through FlowData.Data.writeValue
+## (the historical types keep their plain fill()).
+const _NEW_STREAM_TYPED_FILL := [
+	FlowData.DataType.Quaternion, FlowData.DataType.Vector2, FlowData.DataType.Vector4,
+	FlowData.DataType.Transform,
+]
+
 func newStream( size : int, new_name : String, init_value, data_type : FlowData.DataType ):
 	var new_container = FlowData.Data.newContainerOfType( data_type )
 	new_container.resize( size )
@@ -675,9 +755,21 @@ func newStream( size : int, new_name : String, init_value, data_type : FlowData.
 				var typed_container : Array = new_container
 				for idx in size:
 					typed_container[idx] = fn.call(idx)
+			FlowData.DataType.Quaternion, FlowData.DataType.Vector2, FlowData.DataType.Vector4, FlowData.DataType.Transform, FlowData.DataType.Int64, FlowData.DataType.Double, FlowData.DataType.NodeMesh, FlowData.DataType.NodePath:
+				# Typed writer: converts Quaternion to its Vector4 storage,
+				# Vector2i to Vector2, Basis to Transform3D, and reports values
+				# the container cannot hold.
+				for idx in size:
+					FlowData.Data.writeValue( new_container, idx, fn.call(idx), data_type )
 			_:
 				push_error( "newStream(%d) type not supported" % [ data_type ])
 				return null
+	elif _NEW_STREAM_TYPED_FILL.has( data_type ):
+		# Same conversions for a fill value (a Quaternion fill into the
+		# PackedVector4Array storage, for instance).
+		if size > 0:
+			FlowData.Data.writeValue( new_container, 0, init_value, data_type )
+			new_container.fill( new_container[0] )
 	else:
 		new_container.fill( init_value )
 	return {
