@@ -34,6 +34,9 @@ const OutputMode = LoopNodeSettings.OutputMode
 const PARAM_INDEX := "iteration_index"
 const PARAM_COUNT := "iteration_count"
 const PARAM_KEY := "iteration_key"
+## Declared data type of the key when it is not the Variant's own (an Int64 or
+## Double partition value); Get Loop Key stores the key with it.
+const PARAM_KEY_TYPE := "iteration_key_type"
 
 var _connected_graph: FlowGraphResource = null
 # Entries mode: every entry of the Stream pin, gathered by run().
@@ -221,9 +224,10 @@ static func key_less( a, b ) -> bool:
 
 # --- Iterations ---------------------------------------------------------------------
 
-# One iteration: { "item": Data, "key": Variant, "attrs": Dictionary }.
-static func _iteration( item : FlowData.Data, key, attrs : Dictionary = {} ) -> Dictionary:
-	return { "item": item, "key": key, "attrs": attrs }
+# One iteration: { "item": Data, "key": Variant, "attrs": Dictionary, "key_type": int }.
+# key_type is the key's declared DataType, or Invalid when the Variant says it all.
+static func _iteration( item : FlowData.Data, key, attrs : Dictionary = {}, key_type : int = FlowData.DataType.Invalid ) -> Dictionary:
+	return { "item": item, "key": key, "attrs": attrs, "key_type": key_type }
 
 ## The iterations of `in_data` in Points, Partitions or Chunks mode, or of
 ## `entries` in Entries mode. Returns { "iterations": Array, "error": String }.
@@ -290,7 +294,7 @@ func _partition_iterations( in_data : FlowData.Data ) -> Dictionary:
 		# so the body can read it with "@data.<attribute>" or a binding.
 		if not item.data_attrs.has( attr_name ):
 			item.set_data_attr( attr_name, key, key_type )
-		iterations.append( _iteration( item, key, _data_attr_values( item ) ) )
+		iterations.append( _iteration( item, key, _data_attr_values( item ), key_type ) )
 	return { "iterations": iterations, "error": "" }
 
 static func _data_attr_values( data : FlowData.Data ) -> Dictionary:
@@ -460,6 +464,8 @@ func execute( ctx : FlowData.EvaluationContext ):
 		params[ PARAM_INDEX ] = idx
 		params[ PARAM_COUNT ] = count
 		params[ PARAM_KEY ] = iteration.key
+		if iteration.get( "key_type", FlowData.DataType.Invalid ) != FlowData.DataType.Invalid:
+			params[ PARAM_KEY_TYPE ] = iteration.key_type
 
 		# Per-iteration seed (docs/_round2/WP8.md): derived from the loop's graph
 		# seed and the iteration key; seed 0 stays 0 (legacy). The child context

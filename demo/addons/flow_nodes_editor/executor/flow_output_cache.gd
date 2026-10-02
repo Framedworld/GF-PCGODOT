@@ -104,7 +104,9 @@ static func run_cached(node : FlowNodeBase, ctx : FlowData.EvaluationContext, in
 	var stored := { "bulks": _copy_bulks(node.generated_bulks), "fingerprints": fingerprints, "errors": messages }
 	_mutex.lock()
 	_entries[key] = stored
-	while _entries.size() > max_entries:
+	# A negative capacity behaves like zero: without the emptiness check this
+	# loop would index an empty key array and never end.
+	while not _entries.is_empty() and _entries.size() > max_entries:
 		_entries.erase(_entries.keys()[0])
 	_mutex.unlock()
 

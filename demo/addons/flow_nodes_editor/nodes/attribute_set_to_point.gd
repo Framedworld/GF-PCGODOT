@@ -93,6 +93,9 @@ func execute(_ctx : FlowData.EvaluationContext):
 		return
 
 	var out_data = in_data.duplicate()
+	# The Euler rotation written below is the new orientation: an inherited
+	# rotation_quat stream would still win over it (getTransformsStream prefers it).
+	out_data.streams.erase(FlowData.AttrRotationQuat)
 	var err = out_data.registerStream(FlowData.AttrPosition, pos_result.container, FlowData.DataType.Vector)
 	if err:
 		setError(err)
@@ -132,6 +135,9 @@ func _from_transform(in_data : FlowData.Data, num_points : int) -> void:
 		rotations[i] = FlowData.quatToEuler(xf.basis.get_rotation_quaternion())
 		sizes[i] = xf.basis.get_scale()
 	var out_data = in_data.duplicate()
+	# An inherited rotation_quat stream wins over the Euler rotation, so it would
+	# keep the old orientation: drop it, the Euler stream carries the transform's.
+	out_data.streams.erase(FlowData.AttrRotationQuat)
 	var err = out_data.registerStream(FlowData.AttrPosition, positions, FlowData.DataType.Vector)
 	if not err:
 		err = out_data.registerStream(FlowData.AttrRotation, rotations, FlowData.DataType.Vector)

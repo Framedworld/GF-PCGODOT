@@ -66,23 +66,37 @@ func execute( ctx : FlowData.EvaluationContext ):
 			setError( "Attribute '%s' (%s) can't be selected on axis %s" % [ settings.input_attribute, Ops.type_label( read.data_type ), AttributeSelectSettings.eAxis.keys()[settings.axis] ] )
 			return
 		keys.append( k )
-	var order : Array = range( n )
+	# NaN keys have no place in the numeric order (both < and == are false), so
+	# Min, Max and Median would depend on the input arrangement. They sort after
+	# every finite key, in index order, and Min / Max / Median look at the finite
+	# entries only; when every key is NaN the first entry is selected.
+	var finite : Array = []
+	var nan_keys : Array = []
+	for i in range( n ):
+		if typeof( keys[i] ) == TYPE_FLOAT and is_nan( keys[i] ):
+			nan_keys.append( i )
+		else:
+			finite.append( i )
 	# Stable: equal keys keep their original order, so ties pick the first entry.
-	order.sort_custom( func( a, b ): return keys[a] < keys[b] or ( keys[a] == keys[b] and a < b ) )
+	finite.sort_custom( func( a, b ): return keys[a] < keys[b] or ( keys[a] == keys[b] and a < b ) )
+	var order : Array = finite + nan_keys
+	var candidates : int = finite.size() if not finite.is_empty() else n
 	var selected : int
 	match settings.operation:
 		AttributeSelectSettings.eOperation.Min:
 			selected = order[0]
 		AttributeSelectSettings.eOperation.Max:
 			# First of the entries sharing the maximum key.
-			var max_key = keys[ order[n - 1] ]
-			selected = order[n - 1]
+			selected = order[candidates - 1]
+			var max_key = keys[ selected ]
 			for i in range( n ):
 				if keys[i] == max_key:
 					selected = i
 					break
 		_:
-			selected = order[ ( n - 1 ) >> 1 ]
+			selected = order[ ( candidates - 1 ) >> 1 ]
+	if finite.is_empty():
+		selected = 0
 
 	var out_set := FlowData.Data.new()
 	out_set.tags = in_data.tags.duplicate()
