@@ -83,12 +83,34 @@ func _translate_ue_attribute_names( expr : String, names : Array ) -> String:
 			resolved = raw_name
 		elif lower_lookup.has( raw_name.to_lower() ):
 			resolved = lower_lookup[ raw_name.to_lower() ]
+		else:
+			# UE selector aliases ($Scale -> size, $BoundsMin -> bounds_min, ...)
+			# when the canonical stream is bound.
+			var alias := FlowData.resolveSelectorAlias( "$" + raw_name )
+			if alias != "" and names.has( alias ):
+				resolved = alias
 		out += resolved
 		last = m.get_end()
 	out += expr.substr( last )
 	return out
 
-const _NUMERIC_TYPES := [ FlowData.DataType.Bool, FlowData.DataType.Int, FlowData.DataType.Float ]
+const _NUMERIC_TYPES := [ FlowData.DataType.Bool, FlowData.DataType.Int, FlowData.DataType.Float, FlowData.DataType.Int64, FlowData.DataType.Double ]
+
+## Result types the base mapping (getFlowDataTypeFromGdScriptType) does not
+## know: they register with their explicit type (a Vector4 result would
+## otherwise infer as Quaternion).
+const _EXTRA_RESULT_TYPES := {
+	TYPE_VECTOR2: FlowData.DataType.Vector2,
+	TYPE_VECTOR4: FlowData.DataType.Vector4,
+	TYPE_QUATERNION: FlowData.DataType.Quaternion,
+	TYPE_TRANSFORM3D: FlowData.DataType.Transform,
+}
+
+func _result_data_type( result ) -> FlowData.DataType:
+	var flow_data_type = getFlowDataTypeFromGdScriptType( typeof( result ) )
+	if flow_data_type == FlowData.DataType.Invalid:
+		flow_data_type = _EXTRA_RESULT_TYPES.get( typeof( result ), FlowData.DataType.Invalid )
+	return flow_data_type
 
 ## When the output stream already exists as Bool/Int/Float and the result is
 ## numeric too, keep the existing stream's type (the result is converted into
@@ -107,7 +129,7 @@ func evaluateAndSaveResult( idx : int, values : Array ):
 	var result = _expression.execute(values)
 	if not _expression.has_execute_failed():
 		if _container == null:
-			var flow_data_type = getFlowDataTypeFromGdScriptType( typeof( result ))
+			var flow_data_type = _result_data_type( result )
 			if flow_data_type != FlowData.DataType.Invalid:
 				var result_type = flow_data_type
 				flow_data_type = _output_type_for_result( flow_data_type )
@@ -116,8 +138,10 @@ func evaluateAndSaveResult( idx : int, values : Array ):
 					# Coerced numeric: pre-convert the fill value for the typed container.
 					match flow_data_type:
 						FlowData.DataType.Bool: init_value = 1 if bool( result ) else 0
-						FlowData.DataType.Int: init_value = int( result )
-						FlowData.DataType.Float: init_value = float( result )
+						FlowData.DataType.Int, FlowData.DataType.Int64: init_value = int( result )
+						FlowData.DataType.Float, FlowData.DataType.Double: init_value = float( result )
+				if init_value is Quaternion:
+					init_value = FlowData.quatToVec4( init_value )
 				var stream = newStream( _in_size, settings.out_name, init_value, flow_data_type )
 				if settings.trace:
 					print( "Created container of type %d %s" % [ flow_data_type, stream ])
@@ -197,7 +221,11 @@ func execute( ctx : FlowData.EvaluationContext ):
 	if _container != null:
 		if settings.trace:
 			print( "Registering stream %s with %s" % [ settings.out_name, _container ])
-		var err_msg = _out_data.registerStream( settings.out_name, _container )
+		var err_msg
+		if FlowData.Data.isExtendedType( _data_type ) or _data_type == FlowData.DataType.Quaternion:
+			err_msg = _out_data.registerStream( settings.out_name, _container, _data_type )
+		else:
+			err_msg = _out_data.registerStream( settings.out_name, _container )
 		if err_msg:
 			setError( err_msg )
 

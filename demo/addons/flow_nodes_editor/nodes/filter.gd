@@ -17,7 +17,9 @@ func _init():
 func _is_numeric_stream_type(data_type : FlowData.DataType) -> bool:
 	return data_type == FlowData.DataType.Float \
 		or data_type == FlowData.DataType.Int \
-		or data_type == FlowData.DataType.Bool
+		or data_type == FlowData.DataType.Bool \
+		or data_type == FlowData.DataType.Int64 \
+		or data_type == FlowData.DataType.Double
 
 
 func _numeric_as_float(value) -> float:
@@ -31,6 +33,22 @@ func _is_numeric(value) -> bool:
 
 
 func _passes_numeric_condition(value_a, value_b, condition : int, threshold : float) -> bool:
+	# Two integers (Int / Int64) compare exactly: going through float would
+	# lose Int64 bits above 2^53. Identical results for 32-bit values.
+	if value_a is int and value_b is int and condition >= FilterNodeSettings.eCondition.Equal and condition <= FilterNodeSettings.eCondition.LessOrEqual:
+		match condition:
+			FilterNodeSettings.eCondition.Equal:
+				return value_a == value_b
+			FilterNodeSettings.eCondition.NotEqual:
+				return value_a != value_b
+			FilterNodeSettings.eCondition.Greater:
+				return value_a > value_b
+			FilterNodeSettings.eCondition.GreaterOrEqual:
+				return value_a >= value_b
+			FilterNodeSettings.eCondition.Less:
+				return value_a < value_b
+			FilterNodeSettings.eCondition.LessOrEqual:
+				return value_a <= value_b
 	match condition:
 		FilterNodeSettings.eCondition.Equal:
 			# Coerce across numeric types so 1 (int) == 1.0 (float) and true == 1.0.

@@ -11,6 +11,9 @@ extends NodeSettings
 @export var y_attribute: String = "y"
 ## The name of the float attribute stream to store the Z component in.
 @export var z_attribute: String = "z"
+## The name of the float attribute stream to store the W component in (Vector4, Quaternion and
+## Color inputs only; Color components are r, g, b, a).
+@export var w_attribute: String = "w"
 
 func _init():
 	super._init()

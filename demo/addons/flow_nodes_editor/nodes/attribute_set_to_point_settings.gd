@@ -21,6 +21,13 @@ extends NodeSettings
 		size_attribute_name = value.strip_edges()
 		emit_changed()
 
+## Optional Transform attribute. When set, the point position, rotation and size come from
+## this transform (translation, Euler rotation, scale) and the three attributes above are ignored.
+@export var transform_attribute_name : String = "":
+	set(value):
+		transform_attribute_name = value.strip_edges()
+		emit_changed()
+
 ## If enabled, uses fallback constant values if the specified attributes are missing from the input data.
 @export var use_defaults_when_missing : bool = true:
 	set(value):

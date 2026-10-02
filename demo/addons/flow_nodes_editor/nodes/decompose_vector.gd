@@ -34,6 +34,9 @@ func execute( ctx : FlowData.EvaluationContext ):
 		return
 		
 	if s_in.data_type != FlowData.DataType.Vector:
+		# Vector2 / Vector4 / Quaternion / Color: per-component floats too.
+		if _decompose_other(s_in, out_data, size):
+			return
 		setError("Input attribute %s is not a Vector3" % settings.in_attribute)
 		return
 		
@@ -62,3 +65,30 @@ func execute( ctx : FlowData.EvaluationContext ):
 		out_data.registerStream(settings.z_attribute, out_z, FlowData.DataType.Float)
 		
 	set_output(0, out_data)
+
+# Decomposes a Vector2, Vector4, Quaternion or Color stream. Returns false for
+# any other type (the caller reports the historical error).
+func _decompose_other(s_in : Dictionary, out_data : FlowData.Data, size : int) -> bool:
+	var width := 0
+	match s_in.data_type:
+		FlowData.DataType.Vector2:
+			width = 2
+		FlowData.DataType.Vector4, FlowData.DataType.Quaternion, FlowData.DataType.Color:
+			width = 4
+	if width == 0:
+		return false
+	var names := [settings.x_attribute, settings.y_attribute, settings.z_attribute, settings.w_attribute]
+	var container = s_in.container
+	for k in range(width):
+		if String(names[k]) == "":
+			continue
+		var out := PackedFloat32Array()
+		out.resize(size)
+		for i in range(size):
+			out[i] = container[FlowData.bcast_idx(container.size(), i)][k]
+		var err = out_data.registerStream(names[k], out, FlowData.DataType.Float)
+		if err:
+			setError(err)
+			return true
+	set_output(0, out_data)
+	return true

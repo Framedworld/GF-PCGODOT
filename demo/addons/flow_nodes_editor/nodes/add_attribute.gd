@@ -56,6 +56,18 @@ func execute( ctx : FlowData.EvaluationContext ):
 			new_val = getSettingValue( ctx, "cte_string" )
 		FlowData.DataType.Resource:
 			new_val = getSettingValue( ctx, "cte_resource" )
+		FlowData.DataType.Quaternion:
+			new_val = FlowData.quatToVec4( getSettingValue( ctx, "cte_quaternion" ) )
+		FlowData.DataType.Vector2:
+			new_val = getSettingValue( ctx, "cte_vector2" )
+		FlowData.DataType.Vector4:
+			new_val = getSettingValue( ctx, "cte_vector4" )
+		FlowData.DataType.Transform:
+			new_val = getSettingValue( ctx, "cte_transform" )
+		FlowData.DataType.Int64:
+			new_val = int( getSettingValue( ctx, "cte_int64" ) )
+		FlowData.DataType.Double:
+			new_val = float( getSettingValue( ctx, "cte_double" ) )
 		_:
 			setError( "Data type %s is not supported by Add Attribute" % FlowData.DataType.keys()[settings.data_type] )
 			return

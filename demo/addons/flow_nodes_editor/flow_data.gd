@@ -19,6 +19,13 @@ enum DataType {
 	NodePath,
 	Color,
 	Quaternion,		# Rotation as a unit quaternion, stored as a Vector4 (x,y,z,w)
+	# Extended attribute types (UE PCG parity). Values are explicit so saved
+	# graphs keep their meaning; keys()[value] stays valid for 0..Double.
+	Vector2 = 10,	# PackedVector2Array
+	Vector4 = 11,	# PackedVector4Array. Inference maps PackedVector4Array to Quaternion, so register Vector4 explicitly
+	Transform = 12,	# Array[Transform3D] (typed Array)
+	Int64 = 13,		# PackedInt64Array
+	Double = 14,	# PackedFloat64Array
 	Invalid = 999
 }
 
@@ -88,11 +95,40 @@ static func canonical_type_error( name : String, data_type : DataType ) -> Strin
 ## (Int <-> Float), so an inferred `{"density": 1}` or `seed = 5.0` registers.
 static func canonical_numeric_type( name : String, data_type : DataType ) -> DataType:
 	var expected = CANONICAL_ATTRIBUTE_TYPES.get( StringName( name ), null )
-	if expected == DataType.Float and data_type == DataType.Int:
+	if expected == DataType.Float and ( data_type == DataType.Int or data_type == DataType.Int64 or data_type == DataType.Double ):
 		return DataType.Float
-	if expected == DataType.Int and data_type == DataType.Float:
+	if expected == DataType.Int and ( data_type == DataType.Float or data_type == DataType.Int64 or data_type == DataType.Double ):
 		return DataType.Int
 	return data_type
+
+## UE-style `$Name` selector aliases (case-insensitive) for the canonical
+## streams. They only add names: a stream literally named "$Foo" still wins,
+## and every other selector resolves exactly as before. Component access works
+## on an alias ("$Position.X" reads position.X).
+const SELECTOR_ALIASES := {
+	"$position": "position",
+	"$rotation": "rotation",
+	"$scale": "size",
+	"$density": "density",
+	"$seed": "seed",
+	"$boundsmin": "bounds_min",
+	"$boundsmax": "bounds_max",
+	"$steepness": "steepness",
+	"$color": "color",
+	"$index": "index",
+}
+
+## The canonical name `selector` aliases ("$Scale.x" -> "size.x"), or "" when
+## it is not an alias.
+static func resolveSelectorAlias( selector : String ) -> String:
+	if not selector.begins_with( "$" ):
+		return ""
+	var dot := selector.find( "." )
+	var root := selector if dot == -1 else selector.substr( 0, dot )
+	var target = SELECTOR_ALIASES.get( root.to_lower(), null )
+	if target == null:
+		return ""
+	return String( target ) + ( "" if dot == -1 else selector.substr( dot ) )
 
 static func _data_type_label( data_type : DataType ) -> String:
 	var key = DataType.find_key( data_type )
@@ -343,6 +379,16 @@ class Data:
 				return PackedColorArray()
 			DataType.Quaternion:
 				return PackedVector4Array()
+			DataType.Vector2:
+				return PackedVector2Array()
+			DataType.Vector4:
+				return PackedVector4Array()
+			DataType.Transform:
+				return Array([], TYPE_TRANSFORM3D, "", null)
+			DataType.Int64:
+				return PackedInt64Array()
+			DataType.Double:
+				return PackedFloat64Array()
 			_:
 				push_error( "newContainerOfType(%d) type not supported" % [ data_type ])
 		return null
@@ -382,6 +428,36 @@ class Data:
 					typed_container[index] = FlowData.quatToVec4( value )
 				else:
 					typed_container[index] = value
+			DataType.Vector2:
+				var typed_container : PackedVector2Array = container
+				if value is Vector2 or value is Vector2i:
+					typed_container[index] = Vector2( value )
+				else:
+					push_error( "writeValue(Vector2): cannot store a %s" % type_string( typeof( value ) ) )
+			DataType.Vector4:
+				var typed_container : PackedVector4Array = container
+				if value is Vector4 or value is Vector4i:
+					typed_container[index] = Vector4( value )
+				elif value is Quaternion:
+					typed_container[index] = FlowData.quatToVec4( value )
+				elif value is Color:
+					typed_container[index] = Vector4( value.r, value.g, value.b, value.a )
+				else:
+					push_error( "writeValue(Vector4): cannot store a %s" % type_string( typeof( value ) ) )
+			DataType.Transform:
+				var typed_container : Array = container
+				if value is Transform3D:
+					typed_container[index] = value
+				elif value is Basis:
+					typed_container[index] = Transform3D( value, Vector3.ZERO )
+				else:
+					push_error( "writeValue(Transform): cannot store a %s" % type_string( typeof( value ) ) )
+			DataType.Int64:
+				var typed_container : PackedInt64Array = container
+				typed_container[index] = int(value)
+			DataType.Double:
+				var typed_container : PackedFloat64Array = container
+				typed_container[index] = float(value)
 			_:
 				push_error( "writeValue(%d) type not supported" % [ data_type ])
 	
@@ -402,7 +478,65 @@ class Data:
 			return FlowData.DataType.String
 		elif container is PackedByteArray:
 			return FlowData.DataType.Bool
+		elif container is PackedVector2Array:
+			return FlowData.DataType.Vector2
+		elif container is PackedInt64Array:
+			return FlowData.DataType.Int64
+		elif container is PackedFloat64Array:
+			return FlowData.DataType.Double
+		elif container is Array and container.get_typed_builtin() == TYPE_TRANSFORM3D:
+			return FlowData.DataType.Transform
 		return FlowData.DataType.Invalid
+
+	## True when `container` is the storage newContainerOfType( data_type )
+	## creates. Resource / NodeMesh / NodePath accept any Array (historically
+	## untyped arrays are registered for them); Transform accepts a typed
+	## Array[Transform3D] or an untyped Array holding only Transform3D values;
+	## Vector4 and Quaternion share PackedVector4Array.
+	static func containerMatchesType( container, data_type : DataType ) -> bool:
+		match data_type:
+			DataType.Bool:
+				return container is PackedByteArray
+			DataType.Int:
+				return container is PackedInt32Array
+			DataType.Float:
+				return container is PackedFloat32Array
+			DataType.Vector:
+				return container is PackedVector3Array
+			DataType.String:
+				return container is PackedStringArray
+			DataType.Resource, DataType.NodeMesh, DataType.NodePath:
+				return container is Array
+			DataType.Color:
+				return container is PackedColorArray
+			DataType.Quaternion, DataType.Vector4:
+				return container is PackedVector4Array
+			DataType.Vector2:
+				return container is PackedVector2Array
+			DataType.Transform:
+				if not ( container is Array ):
+					return false
+				if container.get_typed_builtin() == TYPE_TRANSFORM3D:
+					return true
+				if container.is_typed():
+					return false
+				for element in container:
+					if not ( element is Transform3D ):
+						return false
+				return true
+			DataType.Int64:
+				return container is PackedInt64Array
+			DataType.Double:
+				return container is PackedFloat64Array
+		return false
+
+	## The extended attribute types (Vector2, Vector4, Transform, Int64, Double).
+	## registerStream refuses a container that does not match one of these
+	## types instead of storing a mistyped stream.
+	static func isExtendedType( data_type : DataType ) -> bool:
+		return data_type == DataType.Vector2 or data_type == DataType.Vector4 \
+			or data_type == DataType.Transform or data_type == DataType.Int64 \
+			or data_type == DataType.Double
 
 	## One-element Data holding `value` in stream `name` (e.g. to feed a graph
 	## input or a runtime parameter). The type is inferred from the value when
@@ -440,6 +574,10 @@ class Data:
 				return DataType.Color
 			TYPE_QUATERNION, TYPE_VECTOR4:
 				return DataType.Quaternion
+			TYPE_VECTOR2, TYPE_VECTOR2I:
+				return DataType.Vector2
+			TYPE_TRANSFORM3D:
+				return DataType.Transform
 		if value is Resource:
 			return DataType.Resource
 		if value is Node:
@@ -465,7 +603,7 @@ class Data:
 			var root = findStream( parts[0] )
 			if root == null or getSubStreamIndex( parts[1] ) == -1:
 				return null
-			if root.data_type != DataType.Vector and root.data_type != DataType.Color:
+			if getSubStreamIndex( parts[1] ) >= _componentCount( root.data_type ):
 				return null
 		return findStream( name )
 
@@ -573,6 +711,10 @@ class Data:
 			return "%s.X" % FlowData.AttrRotation
 		if name == "Roll":
 			return "%s.Z" % FlowData.AttrRotation
+		if name.begins_with( "$" ) and not streams.has( name ):
+			var alias := FlowData.resolveSelectorAlias( name )
+			if alias != "":
+				return alias
 		return name
 		
 	func getSubStreamIndex(  sub_comp : String ):
@@ -587,16 +729,30 @@ class Data:
 			return 3
 		return -1
 	
+	## Number of addressable components (.x/.y/.z/.w, .r/.g/.b/.a) of a stream type.
+	static func _componentCount( data_type : DataType ) -> int:
+		match data_type:
+			DataType.Vector:
+				return 3
+			DataType.Color, DataType.Vector4, DataType.Quaternion:
+				return 4
+			DataType.Vector2:
+				return 2
+		return 0
+
 	func getSubStream( stream : Dictionary, sub_comp : String ):
 		var subcomp_idx = getSubStreamIndex( sub_comp )
 		if subcomp_idx == -1:
 			push_error( "Invalid sub_stream name %s" % sub_comp )
 			return null
-		if stream.data_type != DataType.Vector and stream.data_type != DataType.Color:
-			push_error( "getSubStream.Parent stream must be of type Vector or Color" )
+		if _componentCount( stream.data_type ) == 0:
+			push_error( "getSubStream.Parent stream must be of type Vector, Vector2, Vector4, Quaternion or Color" )
 			return null
 		if stream.data_type == DataType.Vector and subcomp_idx == 3:
 			push_error( "Vector parent does not support W/A component" )
+			return null
+		if subcomp_idx >= _componentCount( stream.data_type ):
+			push_error( "%s parent does not support component %s" % [ FlowData._data_type_label( stream.data_type ), sub_comp ] )
 			return null
 		var big_container = stream.container
 		var new_container = PackedFloat32Array()
@@ -613,10 +769,12 @@ class Data:
 		var subcomp_idx = getSubStreamIndex( sub_comp )
 		if subcomp_idx == -1:
 			return "Invalid sub stream name %s" % sub_comp
-		if stream.data_type != DataType.Vector and stream.data_type != DataType.Color:
-			return "setSubStream.Parent stream must be of type Vector or Color"
+		if _componentCount( stream.data_type ) == 0:
+			return "setSubStream.Parent stream must be of type Vector, Vector2, Vector4, Quaternion or Color"
 		if stream.data_type == DataType.Vector and subcomp_idx == 3:
 			return "Vector parent does not support W/A component"
+		if subcomp_idx >= _componentCount( stream.data_type ):
+			return "%s parent does not support component %s" % [ FlowData._data_type_label( stream.data_type ), sub_comp ]
 		var big_container = stream.container
 		if sub_container.size() != big_container.size():
 			return "Container sizes do not match (%d vs %d)" % [sub_container.size(), big_container.size()]
@@ -748,6 +906,19 @@ class Data:
 				push_error( "registerStream: " + canonical_error )
 				return canonical_error
 
+			# A container that is not the declared type's storage is refused when
+			# either side is an extended type (Vector2, Vector4, Transform, Int64,
+			# Double), so a mistyped stream fails here instead of downstream.
+			if not containerMatchesType( container, data_type ):
+				var mismatch := "registerStream: '%s' declared %s but the container is a %s; registration refused" % [
+					name, FlowData._data_type_label( data_type ), type_string( typeof( container ) ) ]
+				if isExtendedType( data_type ) or isExtendedType( _inferContainerType( container ) ):
+					push_error( mismatch )
+					return mismatch
+				# Historical types keep registering (third-party nodes may rely on
+				# it) but no longer silently.
+				push_warning( mismatch.replace( "; registration refused", "" ) )
+
 			if streams.has(name) and streams[name].data_type != data_type:
 				push_warning("Stream name conflict: '%s' already exists with data_type %d, overwriting with data_type %d" % [name, streams[name].data_type, data_type])
 
@@ -822,7 +993,15 @@ class Data:
 				new_container = PackedVector4Array( prev_stream.container )
 			DataType.String:
 				new_container = PackedStringArray( prev_stream.container )
-			_:  # Resource
+			DataType.Vector2:
+				new_container = PackedVector2Array( prev_stream.container )
+			DataType.Vector4:
+				new_container = PackedVector4Array( prev_stream.container )
+			DataType.Int64:
+				new_container = PackedInt64Array( prev_stream.container )
+			DataType.Double:
+				new_container = PackedFloat64Array( prev_stream.container )
+			_:  # Resource, NodeMesh, NodePath, Transform (Array containers keep their element type)
 				new_container = prev_stream.container.duplicate()	
 		prev_stream.container = new_container
 		return new_container
@@ -911,7 +1090,48 @@ class Data:
 				for idx in range( new_size ):
 					new_container[idx] = old_container[ indices[idx] ]
 				return new_container
-				
+
+			DataType.Vector2:
+				var old_container : PackedVector2Array = old_stream.container
+				var new_container := PackedVector2Array()
+				new_container.resize( new_size )
+				for idx in range( new_size ):
+					new_container[idx] = old_container[ indices[idx] ]
+				return new_container
+
+			DataType.Vector4:
+				var old_container : PackedVector4Array = old_stream.container
+				var new_container := PackedVector4Array()
+				new_container.resize( new_size )
+				for idx in range( new_size ):
+					new_container[idx] = old_container[ indices[idx] ]
+				return new_container
+
+			DataType.Transform:
+				var old_container : Array = old_stream.container
+				var new_container : Array = newContainerOfType( DataType.Transform )
+				new_container.resize( new_size )
+				for idx in range( new_size ):
+					new_container[idx] = old_container[ indices[idx] ]
+				return new_container
+
+			DataType.Int64:
+				var old_container : PackedInt64Array = old_stream.container
+				var new_container := PackedInt64Array()
+				new_container.resize( new_size )
+				for idx in range( new_size ):
+					new_container[idx] = old_container[ indices[idx] ]
+				return new_container
+
+			DataType.Double:
+				var old_container : PackedFloat64Array = old_stream.container
+				var new_container := PackedFloat64Array()
+				new_container.resize( new_size )
+				for idx in range( new_size ):
+					new_container[idx] = old_container[ indices[idx] ]
+				return new_container
+
+		push_error( "filteredStream: stream '%s' has unsupported data_type %d" % [ old_stream.get( "name", "" ), old_stream.data_type ] )
 		return null
 
 	func duplicate() -> Data:
