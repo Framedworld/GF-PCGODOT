@@ -147,8 +147,14 @@ func raw_value( col : int, row : int ):
 
 # --- Cell text ----------------------------------------------------------------
 
+## `v` with `digits` decimals. Negative zero, and negatives that round to zero,
+## show as an unsigned zero (a zero rotation is often -0.0); the data keeps its
+## value.
 static func fmt_real( v : float, digits : int = 3 ) -> String:
-	return ( "%1." + str( digits ) + "f" ) % v
+	var text : String = ( "%1." + str( digits ) + "f" ) % v
+	if text.begins_with( "-" ) and text.substr( 1 ).replace( "0", "" ).replace( ".", "" ).is_empty():
+		return text.substr( 1 )
+	return text
 
 ## Text of the cell at column `col`, data row `row`.
 func cell_text( col : int, row : int ) -> String:

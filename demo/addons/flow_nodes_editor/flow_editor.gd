@@ -1022,9 +1022,12 @@ func _update_graph_loading_sweep(delta: float) -> void:
 	graph_loading_sweep.position = Vector2(graph_loading_sweep_offset - sweep_width, 0.0)
 
 ## Reloads a FlowGraphResource from disk if it has a valid path, bypassing cache.
-## Returns the refreshed resource, or the original if it has no path (unsaved).
+## Returns the refreshed resource, or the original if it has no path (unsaved)
+## or is a sub-resource embedded in a scene ("<scene>::<id>"): such a path has
+## no file of its own (ResourceLoader.exists accepts it while the scene is
+## cached, but load() fails), and the scene owns its state.
 func _reload_resource_from_disk(res: FlowGraphResource) -> FlowGraphResource:
-	if res == null or res.resource_path == "":
+	if res == null or res.resource_path == "" or not _is_direct_resource_save_path(res.resource_path):
 		return res
 	if not ResourceLoader.exists(res.resource_path):
 		return res
@@ -1714,6 +1717,9 @@ func _disconnect_native_inspector() -> void:
 func _inspect_in_native(target: Object) -> void:
 	native_inspector_target = target
 	if target == null or not is_instance_valid(target):
+		return
+	# The editor inspector exists only in the editor (headless dock tests).
+	if not Engine.is_editor_hint():
 		return
 	var native_inspector := EditorInterface.get_inspector()
 	if native_inspector != null and native_inspector.get_edited_object() == target:
@@ -3665,12 +3671,14 @@ func collapse_selected_to_subgraph():
 			})
 
 	var after_frames = []
-	for frame in before_state.frames:
-		if not frame.name in before_state.selected_names:
+	for before_frame in before_state.frames:
+		if not before_frame.name in before_state.selected_names:
 			var attached : Array[StringName] = []
-			for node_name in frame.attached:
+			for node_name in before_frame.attached:
 				if not selected_node_names.has(node_name):
 					attached.append(node_name)
+			# A copy: before_state is the undo state and keeps its attachments.
+			var frame : Dictionary = before_frame.duplicate()
 			frame.attached = attached
 			after_frames.append(frame)
 
@@ -3975,6 +3983,12 @@ func ensure_resource_links_connected() -> int:
 
 func prepare_graph_for_interaction() -> void:
 	_purge_invalid_frame_attachments()
+	# repair_graph_integrity() restores nodes and links from the resource. An
+	# edit still waiting for the debounced save (a delete, an add-node undo) is
+	# newer than the resource: write it first, or a click within the debounce
+	# brings the removed nodes back.
+	if save_pending and current_resource and not graph_reload_in_progress:
+		saveResource()
 	repair_graph_integrity()
 
 
@@ -4398,18 +4412,64 @@ func get_element_map() -> Dictionary:
 		node._sync_element_name()
 		elements[node.name] = node.element
 	return elements
+## Content kept for its spawner's pool by removeGeneratedNodes(). What the
+## evaluation did not hand out again is freed by _release_unclaimed_pooled_content().
+var _pooled_content_kept : Array[Node] = []
+
 func removeGeneratedNodes():
+	_pooled_content_kept.clear()
 	if not resource_owner:
 		return
 	# Remove instances from prev execution
 	var nodes_to_remove = []
 	for child in resource_owner.get_children():
 		if child.has_meta( "flow_owner" ):
+			if _is_content_for_spawn_pool( child ):
+				_pooled_content_kept.append( child )
+				continue
 			nodes_to_remove.append(child)
 	#print( "Removing %d generated comps" % [nodes_to_remove.size()])
 	for child in nodes_to_remove:
 		resource_owner.remove_child( child )
 		child.queue_free()
+
+## True when `content` was spawned with pooling on (FlowSpawnPool.KEY_META) by
+## a spawner of this graph that still pools: present, enabled,
+## reuse_instances and clear_previous_instances on. The spawner collects it
+## when it runs (FlowSpawnPool.collect), as at runtime. Anything else is freed
+## before the evaluation, as before.
+func _is_content_for_spawn_pool( content : Node ) -> bool:
+	if not content.has_meta( FlowSpawnPool.KEY_META ) or content.is_queued_for_deletion():
+		return false
+	var meta = content.get_meta( "flow_owner" )
+	var producer_name := ""
+	if meta is Dictionary:
+		producer_name = String( meta.get( "node", "" ) )
+	elif meta is String or meta is StringName:
+		producer_name = String( meta )
+	var producer := gedit_nodes_by_name.get( StringName( producer_name ) ) as FlowNodeWidget
+	if producer == null or not is_instance_valid( producer ) or producer.settings == null:
+		return false
+	var settings = producer.settings
+	if settings.disabled or not ( "reuse_instances" in settings ) or not settings.reuse_instances:
+		return false
+	if "clear_previous_instances" in settings and not settings.clear_previous_instances:
+		return false
+	return producer.element.isOwnFlowContent( meta, ctx, content )
+
+## Frees the content removeGeneratedNodes() kept for a pool when the evaluation
+## did not reuse it: its spawner errored, got no points, or did not run.
+func _release_unclaimed_pooled_content() -> void:
+	for content in _pooled_content_kept:
+		if not is_instance_valid( content ) or content.is_queued_for_deletion():
+			continue
+		if FlowNodeBase.isSpawnedThisSession( content, ctx ):
+			continue
+		var parent := content.get_parent()
+		if parent:
+			parent.remove_child( content )
+		content.queue_free()
+	_pooled_content_kept.clear()
 
 func getDirtyNodes() -> Array[ FlowNodeWidget ]:
 	return getAllNodes().filter( func( node : FlowNodeWidget ) -> bool:
@@ -4592,6 +4652,7 @@ func _flush_data_inspector_refresh() -> void:
 	data_inspector_refresh_pending = false
 
 func _finish_eval_graph(eval_state: Dictionary) -> void:
+	_release_unclaimed_pooled_content()
 	regen_pending = false
 	#print( "regen_pending is now false")
 	_flush_data_inspector_refresh()
@@ -4945,6 +5006,21 @@ func _clear_active_nodes() -> void:
 
 func load_graph_state(state: Dictionary):
 	clear_graph()
+	# The restored state becomes the graph. Write it to the resource before
+	# rebuilding: repair_graph_integrity() (run at the end of the rebuild and on
+	# every click) restores nodes and links the resource holds but the dock
+	# lacks, and the resource still holds the state of the last debounced save.
+	# Undo then brought back the reroute it removed, and a collapse kept the
+	# nodes it replaced.
+	if current_resource and state.has("nodes"):
+		current_resource.data = {
+			"type": state.get("type", "flow_graph_nodes"),
+			"version": state.get("version", FlowGraphMigrations.CURRENT_VERSION),
+			"min_pos": state.get("min_pos", Vector2.ZERO),
+			"nodes": state.nodes,
+			"links": state.get("links", []),
+			"frames": state.get("frames", []),
+		}.duplicate(true)
 	if state.has("new_name_counter"):
 		new_name_counter = state.new_name_counter
 	if state.has("min_pos"):
@@ -4985,13 +5061,21 @@ func load_graph_state(state: Dictionary):
 	queueSave()
 	queueRegen()
 
+## {name, before, after} of the last snapshot action recorded by
+## record_undo_action (also without an undo manager, for headless tests): its
+## do and undo methods are load_graph_state(after) and load_graph_state(before).
+var last_recorded_undo_action : Dictionary = {}
+
 func record_undo_action(action_name: String, before_state: Dictionary):
+	if not current_resource:
+		return
+	var after_state = get_graph_snapshot()
+	last_recorded_undo_action = {"name": action_name, "before": before_state, "after": after_state}
 	var ur = undo_redo
-	if ur and current_resource:
+	if ur:
 		var context = EditorInterface.get_edited_scene_root()
 		if not context:
 			context = current_resource
-		var after_state = get_graph_snapshot()
 		ur.create_action(action_name, 0, context)
 		ur.add_do_method(self, "load_graph_state", after_state)
 		ur.add_undo_method(self, "load_graph_state", before_state)

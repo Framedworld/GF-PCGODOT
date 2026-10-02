@@ -505,19 +505,30 @@ static func saveToResource( editor : Control ):
 	current_resource.view_offset = gedit.scroll_offset
 	current_resource.new_name_counter = editor.new_name_counter
 
-## Editor load: upgrades an old graph resource in memory to the current format and
-## marks it dirty, so the next save writes the current version. Returns true when the
-## resource data changed.
+## Editor load: upgrades an old graph resource in memory to the current format and,
+## when a migration changed its nodes, marks it dirty so the next save writes them.
+## An upgrade that only bumps the version stamp leaves the graph unmodified: the
+## stamp is written with the next real save (nodes_as_dict always writes the
+## current version), and a freshly opened tab must not show as modified. Returns
+## true when the resource data changed.
 static func migrate_resource_for_editor(editor: Control, resource: FlowGraphResource) -> bool:
 	if resource == null or resource.data.is_empty():
 		return false
 	var migrated: Dictionary = FlowGraphMigrations.migrate(resource.data)
 	if is_same(migrated, resource.data):
 		return false
+	var content_changed := not _same_except_version(migrated, resource.data)
 	resource.data = migrated
-	if editor != null and editor.has_method("queueSave"):
+	if content_changed and editor != null and editor.has_method("queueSave"):
 		editor.queueSave()
 	return true
+
+static func _same_except_version(a: Dictionary, b: Dictionary) -> bool:
+	var a_rest := a.duplicate()
+	var b_rest := b.duplicate()
+	a_rest.erase("version")
+	b_rest.erase("version")
+	return a_rest == b_rest
 
 static func loadFromResource( editor : Control ):
 	var current_resource = editor.current_resource
