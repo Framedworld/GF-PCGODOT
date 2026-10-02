@@ -42,6 +42,11 @@ const UNBOUNDED := 0
 ## Generation radius of the Unbounded level when generation_radius has no
 ## entry for 0 (256 world units, measured to the world bounds footprint).
 const DEFAULT_UNBOUNDED_RADIUS := 256.0
+## Runtime mode considers at most this many cells per level around each source
+## (a square window centred on the source). A generation radius that would
+## cover more is clamped to that window, with a warning, so a huge radius
+## cannot queue millions of cells.
+const MAX_RUNTIME_CELLS_PER_LEVEL := 16384
 
 ## A cell finished generating (its component emitted `generated`).
 signal cell_generated(level : int, coord : Vector2i)
@@ -64,7 +69,13 @@ signal all_generated
 ## The generated area, global space. Cells cover it on XZ; its Y range is the
 ## height of every cell.
 @export var world_bounds : AABB = AABB(Vector3(-128.0, -64.0, -128.0), Vector3(256.0, 128.0, 256.0))
-@export var generation_mode : GenerationMode = GenerationMode.Manual
+@export var generation_mode : GenerationMode = GenerationMode.Manual :
+	set(value):
+		generation_mode = value
+		# Switched to Runtime after _ready: start the per-frame scheduler
+		# (_ready starts it for the mode the world was loaded with).
+		if value == GenerationMode.Runtime and is_node_ready() and is_inside_tree() and not Engine.is_editor_hint() and graph != null:
+			set_process(true)
 
 @export_group("Runtime Generation")
 ## Generation radius per level: grid size (int) -> radius in world units, 0 for
@@ -127,12 +138,16 @@ class CellRecord:
 	## Requested through the manual API or OnLoad: never cleaned up by the
 	## runtime scheduler.
 	var manual : bool = false
+	## The last run of this cell finished: outputs, captured and variables are
+	## valid. False while it is queued or generating, and after a cancelled run.
+	var complete : bool = false
 
 var _cells : Dictionary = {}		# Vector3i key -> CellRecord
 var _active : Array = []			# records in Generating, time-sliced
 var _pool : Array = []				# pooled FlowGraphNode3D components (out of the tree)
 var _rr : int = 0
 var _was_busy : bool = false
+var _cap_warned : Dictionary = {}	# level -> true once the radius cap warned
 
 # --- Inspector buttons ------------------------------------------------------------------
 
@@ -198,8 +213,13 @@ func get_cell_at(world_pos : Vector3, level : int) -> Vector2i:
 ## Keys Vector3i(level, x, z) of the coarser cells (every coarser level of the
 ## graph, Unbounded included) that contain cell (level, coord), coarsest first.
 func get_parent_cells(level : int, coord : Vector2i) -> Array[Vector3i]:
+	return _parent_keys(get_levels(), level, coord)
+
+# get_parent_cells with the levels already looked up: a lookup of the compiled
+# graph hashes the whole graph data, so per-cell loops pass them in.
+static func _parent_keys(levels : PackedInt32Array, level : int, coord : Vector2i) -> Array[Vector3i]:
 	var result : Array[Vector3i] = []
-	for parent_level in get_levels():
+	for parent_level in levels:
 		if FlowWorldGrid.is_coarser(parent_level, level):
 			result.append(FlowWorldCell.key_of(parent_level, FlowWorldGrid.parent_coord(coord, level, parent_level)))
 	return result
@@ -284,7 +304,7 @@ func generate_cell(level : int, coord : Vector2i, force : bool = false) -> Dicti
 	if record != null:
 		record.manual = true
 		if record.state == CellState.CleaningUp:
-			record.state = CellState.Generated
+			_revive(record)
 		if record.state == CellState.Generating:
 			_active.erase(record)
 			record.run.run()
@@ -338,8 +358,11 @@ func queue_bounds(aabb : AABB) -> void:
 				record = _new_record(level, coord)
 				record.distance = _center_distance(center, level, coord)
 			elif record.state == CellState.CleaningUp:
-				record.state = CellState.Generated
+				_revive(record)
 			record.manual = true
+	# OnLoad stops processing once idle: resume the per-frame driver.
+	if generation_mode != GenerationMode.Manual and is_inside_tree() and not Engine.is_editor_hint():
+		set_process(true)
 
 # --- Scheduler -------------------------------------------------------------------------------
 
@@ -399,12 +422,15 @@ func get_generation_sources() -> Array:
 	var raw : Array = source_provider.call() if source_provider.is_valid() else _collect_sources()
 	var result : Array = []
 	for entry in raw:
-		if entry is Vector3:
+		# Test objects for validity first: `is` on a freed instance is a
+		# script error (a provider may hand out a node freed since).
+		if typeof(entry) == TYPE_OBJECT:
+			if is_instance_valid(entry) and entry is Node3D:
+				result.append(_source_entry(entry))
+		elif entry is Vector3:
 			result.append({ "position": entry, "radius_scale": 1.0 })
 		elif entry is Dictionary:
 			result.append({ "position": entry.get("position", Vector3.ZERO), "radius_scale": float(entry.get("radius_scale", 1.0)) })
-		elif entry is Node3D and is_instance_valid(entry):
-			result.append(_source_entry(entry))
 	return result
 
 ## Generation radius of a level (see generation_radius).
@@ -420,8 +446,9 @@ func get_generation_radius(level : int) -> float:
 func _compiled() -> FlowCompiledGraph:
 	return FlowCompiledGraph.for_graph(graph) if graph != null else null
 
+# The Unbounded level has a single cell, (0, 0), whatever coordinate is asked.
 static func _key(level : int, coord : Vector2i) -> Vector3i:
-	return FlowWorldCell.key_of(level, coord)
+	return FlowWorldCell.key_of(level, coord if level != UNBOUNDED else Vector2i.ZERO)
 
 func _new_record(level : int, coord : Vector2i) -> CellRecord:
 	var record := CellRecord.new()
@@ -464,8 +491,12 @@ func _start(record : CellRecord, time_sliced : bool) -> void:
 	cell.variables = variables
 	if record.component == null:
 		record.component = _acquire_component(record)
+	else:
+		# Forced or resumed regeneration: the world settings may have changed.
+		_configure_component(record.component)
 	record.run = record.component.begin_cell(cell, preseeded, time_sliced)
 	record.state = CellState.Generating
+	record.complete = false
 
 func _complete(record : CellRecord) -> void:
 	var run := record.run
@@ -476,7 +507,14 @@ func _complete(record : CellRecord) -> void:
 		record.variables = run.variables
 		record.errors = run.errors
 	record.state = CellState.Generated
+	record.complete = true
 	cell_generated.emit(record.level, record.coord)
+
+# A cell waiting for cleanup is wanted again: it stays Generated when its last
+# run finished; a cell whose run was cancelled goes back to the queue (its
+# component, with any partial content, is reused by the next run).
+func _revive(record : CellRecord) -> void:
+	record.state = CellState.Generated if record.complete else CellState.Queued
 
 func _cleanup(record : CellRecord) -> void:
 	_active.erase(record)
@@ -503,6 +541,16 @@ func _acquire_component(record : CellRecord) -> FlowGraphNode3D:
 	else:
 		comp = FlowGraphNode3D.new()
 		components_created += 1
+	_configure_component(comp)
+	comp.name = FlowWorldGrid.cell_name(record.level, record.coord)
+	comp.set_meta(&"flow_cell", record.key)
+	comp.transform = Transform3D.IDENTITY
+	if comp.get_parent() == null:
+		add_child(comp)
+	return comp
+
+# Copies the world's generation settings onto a cell component.
+func _configure_component(comp : FlowGraphNode3D) -> void:
 	comp.generate_on_ready = false
 	comp.transient_output = true
 	comp.async_generation = false
@@ -513,12 +561,6 @@ func _acquire_component(record : CellRecord) -> FlowGraphNode3D:
 	comp.overrides = overrides
 	comp.threaded = threaded
 	comp.output_cache = output_cache
-	comp.name = FlowWorldGrid.cell_name(record.level, record.coord)
-	comp.set_meta(&"flow_cell", record.key)
-	comp.transform = Transform3D.IDENTITY
-	if comp.get_parent() == null:
-		add_child(comp)
-	return comp
 
 func _release_component(comp : FlowGraphNode3D) -> void:
 	if not is_instance_valid(comp):
@@ -537,13 +579,14 @@ func _release_component(comp : FlowGraphNode3D) -> void:
 # missing queues that cell (it is then kept alive by its queued child).
 func _fill_active() -> void:
 	var limit := maxi(1, max_concurrent_cells)
+	var levels := get_levels()
 	while _active.size() < limit:
 		var best : CellRecord = null
 		for key in _cells.keys():
 			var record : CellRecord = _cells.get(key)
 			if record == null or record.state != CellState.Queued:
 				continue
-			if not _parents_ready(record):
+			if not _parents_ready(record, levels):
 				continue
 			if best == null or _before(record, best):
 				best = record
@@ -553,9 +596,9 @@ func _fill_active() -> void:
 		_active.append(best)
 		last_tick_started += 1
 
-func _parents_ready(record : CellRecord) -> bool:
+func _parents_ready(record : CellRecord, levels : PackedInt32Array) -> bool:
 	var ready := true
-	for parent_key in get_parent_cells(record.level, record.coord):
+	for parent_key in _parent_keys(levels, record.level, record.coord):
 		var parent : CellRecord = _cells.get(parent_key)
 		if parent == null:
 			parent = _new_record(parent_key.x, Vector2i(parent_key.y, parent_key.z))
@@ -563,7 +606,9 @@ func _parents_ready(record : CellRecord) -> bool:
 			parent.manual = record.manual
 			ready = false
 		elif parent.state == CellState.CleaningUp:
-			parent.state = CellState.Generated
+			_revive(parent)
+			if parent.state != CellState.Generated:
+				ready = false
 		elif parent.state != CellState.Generated:
 			ready = false
 	return ready
@@ -608,10 +653,24 @@ func _cells_near(p : Vector3, r : float, level : int) -> Array[Vector2i]:
 	var result : Array[Vector2i] = []
 	if level <= 0 or r < 0.0 or is_inf(r):
 		return result if not is_inf(r) else FlowWorldGrid.cells_in(world_bounds, level, world_bounds)
-	var x0 := maxi(int(ceil((p.x - r) / level)) - 1, int(floor(world_bounds.position.x / level)))
-	var x1 := mini(int(floor((p.x + r) / level)), int(ceil(world_bounds.end.x / level)) - 1)
-	var z0 := maxi(int(ceil((p.z - r) / level)) - 1, int(floor(world_bounds.position.z / level)))
-	var z1 := mini(int(floor((p.z + r) / level)), int(ceil(world_bounds.end.z / level)) - 1)
+	# Clamp to the world's cell range before converting to int: (p -/+ r) / level
+	# can be far outside the int64 range for a huge finite radius.
+	var x0 := int(maxf(ceilf((p.x - r) / level) - 1.0, floorf(world_bounds.position.x / level)))
+	var x1 := int(minf(floorf((p.x + r) / level), ceilf(world_bounds.end.x / level) - 1.0))
+	var z0 := int(maxf(ceilf((p.z - r) / level) - 1.0, floorf(world_bounds.position.z / level)))
+	var z1 := int(minf(floorf((p.z + r) / level), ceilf(world_bounds.end.z / level) - 1.0))
+	if float(x1 - x0 + 1) * float(z1 - z0 + 1) > float(MAX_RUNTIME_CELLS_PER_LEVEL):
+		# Keep the window of cells nearest the source (clamped into the world).
+		var half := (int(sqrt(float(MAX_RUNTIME_CELLS_PER_LEVEL))) - 1) / 2
+		var cx := int(minf(maxf(floorf(p.x / level), float(x0)), float(x1)))
+		var cz := int(minf(maxf(floorf(p.z / level), float(z0)), float(z1)))
+		x0 = maxi(x0, cx - half)
+		x1 = mini(x1, cx + half)
+		z0 = maxi(z0, cz - half)
+		z1 = mini(z1, cz + half)
+		if not _cap_warned.has(level):
+			_cap_warned[level] = true
+			push_warning("FlowWorld3D: generation radius %s at grid size %d covers more than %d cells around a source; only the %d x %d cells nearest each source are generated (MAX_RUNTIME_CELLS_PER_LEVEL)." % [r, level, MAX_RUNTIME_CELLS_PER_LEVEL, 2 * half + 1, 2 * half + 1])
 	for cz in range(z0, z1 + 1):
 		for cx in range(x0, x1 + 1):
 			var bounds := get_cell_bounds(level, Vector2i(cx, cz))
@@ -646,8 +705,24 @@ func _update_runtime_targets() -> void:
 		if record == null:
 			record = _new_record(key.x, Vector2i(key.y, key.z))
 		elif record.state == CellState.CleaningUp:
-			record.state = CellState.Generated
+			_revive(record)
 		record.distance = wanted[key]
+	# Cells of a level the graph no longer has (the graph was edited) are
+	# dropped like cells no source wants; the per-level pass below never
+	# visits them. Manual cells are kept, as on every level.
+	for key in _cells.keys():
+		var record : CellRecord = _cells.get(key)
+		if record == null or record.manual or levels.has(record.level) or record.state == CellState.CleaningUp:
+			continue
+		if record.state == CellState.Queued:
+			_cells.erase(key)
+			continue
+		if record.run != null:
+			_active.erase(record)
+			record.run.cancel()
+			record.run = null
+			record.complete = false
+		record.state = CellState.CleaningUp
 	# Cleanup, finest level first.
 	var pinned := {}
 	var ordered_levels := Array(levels)
@@ -666,7 +741,7 @@ func _update_runtime_targets() -> void:
 						keep = true
 						break
 			if keep:
-				for parent_key in get_parent_cells(record.level, record.coord):
+				for parent_key in _parent_keys(levels, record.level, record.coord):
 					pinned[parent_key] = true
 				continue
 			if record.state == CellState.Queued:
@@ -676,4 +751,5 @@ func _update_runtime_targets() -> void:
 					_active.erase(record)
 					record.run.cancel()
 					record.run = null
+					record.complete = false
 				record.state = CellState.CleaningUp

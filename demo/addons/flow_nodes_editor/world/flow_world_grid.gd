@@ -24,11 +24,17 @@ extends RefCounted
 ## component's bounds); on the Unbounded level they are the world bounds.
 
 const UNBOUNDED := 0
+## Largest grid size (2^30). Level ids are stored in PackedInt32Array, so a
+## larger power of two would wrap; larger (or infinite) sizes are clamped.
+const MAX_GRID_SIZE := 1 << 30
 
-## Nearest power of two >= 1 (same rounding as GridSizeNodeSettings: ties go up).
+## Nearest power of two >= 1 (same rounding as GridSizeNodeSettings: ties go
+## up), at most MAX_GRID_SIZE.
 static func snap_grid_size(value : float) -> int:
 	if value <= 1.0:
 		return 1
+	if not (value < float(MAX_GRID_SIZE)):
+		return MAX_GRID_SIZE
 	var exp_floor := int(floor(log(value) / log(2.0)))
 	var lower := pow(2.0, exp_floor)
 	var upper := pow(2.0, exp_floor + 1)
