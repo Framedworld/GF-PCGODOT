@@ -1,6 +1,6 @@
 # PCGODOT
 
-[![Godot Engine](https://img.shields.io/badge/Godot-4.4%2B-%23478cbf?style=flat&logo=godot-engine&logoColor=white)](https://godotengine.org)
+[![Godot Engine](https://img.shields.io/badge/Godot-4.6%2B-%23478cbf?style=flat&logo=godot-engine&logoColor=white)](https://godotengine.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 **Unreal PCG-style node-graph procedural content for Godot 4.** Build scatter systems, spline fences, dungeons, and full level-generation pipelines in a visual graph editor docked inside the Godot editor — with the data model, hotkeys, and node vocabulary Unreal PCG users already know.
@@ -19,7 +19,26 @@ https://github.com/user-attachments/assets/fe29dea7-82c0-481c-a022-46050b05642d
 
 **Read [docs/COMING_FROM_UNREAL_PCG.md](docs/COMING_FROM_UNREAL_PCG.md).** It has a 5-minute orientation, a hotkey table (D/A/E work exactly as in UE), a concept dictionary (`$Density` → `density`, `$Seed` → `seed`, `@Last` → `@last`, ...), a full UE-node → PCGODOT-node dictionary, and three classic UE tutorials (forest scatter, density-noise clumping, spline fence) translated node by node. The add-node search popup understands UE node names — type "Static Mesh Spawner" and you'll find it.
 
-For what does **not** translate yet (GPU execution, partition cells saved as level data, an editor-viewport generation source, verified Terrain3D / HTerrain support, ...), see the honest gap list in [docs/PARITY_ROADMAP.md](docs/PARITY_ROADMAP.md#remaining-gaps).
+For what does **not** translate yet (GPU execution, partition cells saved as level data, an editor-viewport generation source, ...), see the honest gap list in [docs/PARITY_ROADMAP.md](docs/PARITY_ROADMAP.md#remaining-gaps).
+
+---
+
+## What's new
+
+**Parity round 2** brings the addon's architecture and vocabulary much closer to Unreal PCG (design contract: [docs/PARITY_ROUND2.md](docs/PARITY_ROUND2.md)):
+
+* A compiled, cached **executor** with opt-in threaded execution and an output cache (same output as a plain run).
+* **Spatial data** (splines, surfaces, volumes and their composites) as first-class wire data, drawn in the 3D viewport.
+* **Hierarchical and runtime generation** with `FlowWorld3D`, and **terrain adapters** (heightmaps, meshes, Terrain3D, HTerrain) that carry paint-layer weights.
+* New **attribute types** (Vector2, Vector4, Transform, Int64, Double), many new nodes, richer **spawners** (collision, selectors, spline meshes, pooling) and **loops** (per entry, partition or chunk).
+* A **node conformance harness** and a [manual editor check](docs/MANUAL_EDITOR_CHECK.md) for what headless tests cannot see.
+
+**Updating a project that vendors the addon**
+
+* Round 2 did not change any golden or seed-zero baseline entry. Behaviour changes made for production feedback and the review fixes are listed in [docs/DEPRECATIONS.md](docs/DEPRECATIONS.md); work through every row dated after your last sync.
+* Node scripts are stateless `RefCounted` **elements** now; the editor shows them through a separate `FlowNodeWidget`. Keep `extends FlowNodeBase` in your own nodes, and do not call `free()` on a node element.
+* Graphs saved by earlier versions are migrated in memory when they load (graph format v2) and are written in the new format on the next save.
+* The docked editor needs **Godot 4.6 or newer**.
 
 ---
 
@@ -44,7 +63,7 @@ For what does **not** translate yet (GPU execution, partition cells saved as lev
 
 ## Quick Start
 
-1. Clone the repo and open the **`demo/`** folder as a project in **Godot 4.4 or newer**.
+1. Clone the repo and open the **`demo/`** folder as a project in **Godot 4.6 or newer** (the docked editor uses `EditorDock`, which first shipped in 4.6; the native library itself loads from 4.4).
 2. Open any scene in `demo/demos/` (start with `demo_sample_points.tscn` or `demo_random_subscenes.tscn`).
 3. Click the `FlowGraphNode3D` in the scene tree — the **Data Flow** panel opens at the bottom of the editor with the node graph.
 4. Right-click the canvas (or `Shift+A`) to add nodes; press `D` on a node to see its points in 3D, `A` to inspect its data table, `F` to zoom-fit.
@@ -273,6 +292,7 @@ through `FlowNodeRegistry.template_aliases`, and saved graphs are upgraded by
 | **Mesh-surface sampling** with hard-edge rejection ![Sampling Mesh](demo/addons/flow_nodes_editor/doc/demo_sample_mesh.png) | **Weighted subscene scatter** along curves ![Random Subscenes](demo/addons/flow_nodes_editor/doc/demo_random_subscenes.png) |
 | **Distance → density** gradients ![Distance to Density](demo/addons/flow_nodes_editor/doc/demo_distance.png) | **Collapse to subgraph** ![Subgraph Collapse](demo/addons/flow_nodes_editor/doc/demo_subgraph_popup.png) |
 | **Procedural colonnade + rubble** ![Helical Colonnade](demo/addons/flow_nodes_editor/doc/demo_flashy_colonnade_v2.png) | **Per-instance colors** (Fall Guys hexagons) ![Fall Guys Hexagons](demo/addons/flow_nodes_editor/doc/demo_spawn_nodes_v2.png) |
+| **Hierarchical world** — a `FlowWorld3D` streams trees (64 m cells) and rocks (16 m cells) around a moving generation source ![Hierarchical world](demo/addons/flow_nodes_editor/doc/demo_hierarchical.jpg) | **Viewport debug draw for shapes** — heightfield, mesh surface, spline polygon and a Difference composite (press `D`) ![Debug draw of shapes](demo/addons/flow_nodes_editor/doc/debug_draw_shapes.png) |
 
 ---
 
@@ -317,6 +337,8 @@ godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreH
 `executor/executor_modes_golden_test.gd` runs the whole golden set threaded and with the output cache cold and warm, and requires the same hashes as the plain run. The **node conformance harness** (`executor/conformance/`) runs every registered template, with default settings and synthetic inputs (points with every attribute type, empty and single-point data, attribute sets, one Data per shape class), and fails on input mutation, non-determinism, a worker-thread result that differs from the main thread, or a cache hit that differs from a fresh run; new nodes are covered as soon as they have a traits row. `godot --headless --path . -s res://tests/executor/conformance/tools/conformance_report.gd` prints its per-template table. What the headless suites cannot see (drawing, mouse, inspector, undo, the 3D viewport) is in the [manual editor check](docs/MANUAL_EDITOR_CHECK.md). `demo/tests/perf/executor_benchmark.gd`, `loop_benchmark.gd`, `cleanup_benchmark.gd` and `node_benchmark.gd` are benchmark scripts, not tests: `godot --headless --path . -s res://tests/perf/executor_benchmark.gd`. `node_benchmark.gd` times node cases, data-layer primitives and the executor phases at 1k, 10k and 100k points, and `exact_fingerprint.gd` prints a SHA-256 of the raw output of every golden graph and node, to check that an optimization changes no bit. The wave C performance pass that introduced them took the 47-node scenario of `executor_benchmark.gd` from about 12.7 to about 9.4 ms per evaluation; the per-node numbers are in [docs/_round2/WP13-P1.md](docs/_round2/WP13-P1.md).
 
 CI runs the same `res://tests` tree in the `gdunit_validate` job with the freshly built Linux GDExtension. The **golden-output harness** (`demo/tests/golden`) evaluates every graph in `demo/graphs`, `demo/demos` (including the graphs embedded in demo scenes) and the root sample graphs, and compares a per-node hash of every output stream, the spawned-node count and the node errors against the checked-in `baseline.json`; a failure names the graph, node, port and stream that drifted. After an intended output change, regenerate it with `FLOW_GOLDEN_UPDATE=1` and review the diff. Game projects can vendor the harness and point it at their own graphs with `FLOW_GOLDEN_GRAPH_DIRS` / `FLOW_GOLDEN_BASELINE` to check a re-baseline of the addon before and after; see [demo/tests/golden/README.md](demo/tests/golden/README.md).
+
+**Tested on:** CI runs the suite on Godot 4.6 and 4.7 (Linux). The parity round 2 branch was also run on Windows 11 with Godot 4.7.1: the full suite (2,699 cases, 0 failures; the golden and seed-zero baselines pass off Linux as `PLATFORM_NOISE` warnings), real-editor automation of the dock, Data Inspector, undo/redo and viewport debug draw, and the Terrain3D v1.0.2 and HTerrain 1.8.1 adapters against the real plugins.
 
 ---
 

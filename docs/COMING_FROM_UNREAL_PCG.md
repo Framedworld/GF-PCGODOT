@@ -33,7 +33,7 @@ For things that genuinely do not translate yet, see [PARITY_ROADMAP.md](PARITY_R
 | **Level actors** | Scene nodes. `MeshInstance3D` ≈ Static Mesh Component, `Path3D` ≈ Spline Component, `PackedScene` ≈ Blueprint/actor template. |
 | **ISM/HISM instances** | `MultiMeshInstance3D` (what `spawn_meshes` emits — one per unique mesh, or with `mesh_entries` one per mesh and render settings group). |
 
-**First session:** open the `demo/` project in Godot 4.4+, open any `demos/demo_*.tscn` scene, click the `FlowGraphNode3D`, and the Data Flow panel opens with the graph. Right-click the canvas and type a UE node name — the search popup knows the UE vocabulary ("Static Mesh Spawner", "Surface Sampler", "Transform Points", ...) via aliases.
+**First session:** open the `demo/` project in Godot 4.6+, open any `demos/demo_*.tscn` scene, click the `FlowGraphNode3D`, and the Data Flow panel opens with the graph. Right-click the canvas and type a UE node name — the search popup knows the UE vocabulary ("Static Mesh Spawner", "Surface Sampler", "Transform Points", ...) via aliases.
 
 ---
 
