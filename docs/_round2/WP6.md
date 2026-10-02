@@ -31,11 +31,19 @@ regeneration).
    - `sample_terrain_layers` gains `layer_source = TerrainAdapter`: it reads the
      weights from a terrain through its adapter instead of mask textures.
 
-**The Terrain3D and HTerrain adapters were never run against the real
-plugins.** No plugin is installed in the build container. They were tested
-against fake classes that implement exactly the methods listed below, which
-are the methods I recalled from the plugin APIs. A short manual check with each
-real plugin is needed before claiming support.
+**The Terrain3D and HTerrain adapters were first tested only against fakes; a
+later real-plugin run found one bug and then passed.** The build container has
+no plugin, so the package shipped with fake classes that implement the methods
+listed below. A later run against the real plugins (Terrain3D v1.0.2-stable and HTerrain 1.8.1 (master), unmodified, Godot 4.7.1 on Windows) found that the
+HTerrain snapshot called `get_height_at` with two ints where the real
+`HTerrainData.get_height_at` takes one `Vector2i`; every snapshot cell raised a
+script error and `get_surface_data` returned no surface. That is fixed, and the
+fake now has the real signature, so the contract test fails on the old call.
+After the fix both adapters sampled correct heights and layer weights in that
+run (Terrain3D: 3249 points, no wrong weights; HTerrain: 828 points uncentered
+and 3290 centered with a map scale and node offset, no wrong weights), and a
+scene holding both plugins reports the ambiguity as designed. Not covered: other
+plugin versions, Linux and macOS, and performance on large terrains.
 
 ## 1. Overlap mode
 
@@ -170,7 +178,7 @@ NaN. Terrain3D reports NaN over holes and outside its regions.
 | `FlowTerrain3DAdapter` | a Terrain3D-like node (duck typed) | live `data.get_height` | control map (`get_texture_id`) | heightfield snapshot at `vertex_spacing` (capped by `max_resolution`) with layer snapshot |
 | `FlowHTerrainAdapter` | an HTerrain-like node (duck typed) | live `get_interpolated_height_at` in cell space | splat maps, four layers per map | heightfield snapshot in cell space, placed by the internal transform, splat images kept as they are |
 
-### Assumed plugin APIs (nothing was run against the real plugins)
+### Plugin APIs the adapters call (checked against the real plugins on Windows; the fakes follow them)
 
 Every call is guarded with `has_method` or an `in` property check. Neither
 adapter names a plugin class, so both load without the plugins and work with
@@ -254,7 +262,7 @@ These replace the existing rows of the same UE node.
 
 | UE node | Here | Status | Notes |
 |---|---|---|---|
-| Get Landscape Data | `get_surface_data` (legacy: `scan_meshes`) | 1:1 | Surface data with height-field semantics from terrain `MeshInstance3D`s, `HeightMapShape3D` collision shapes, a heightmap Image, or, with `source = Terrain`, a terrain plugin node through a terrain adapter. Terrain3D and HTerrain are detected by their methods (unmodified plugin classes work), or named with `terrain_node_path`; ambiguity is reported. The surface carries the terrain's paint-layer weights, so Surface Sampler writes `layer_<name>` on every point. The plugin adapters were tested against fakes of the plugin APIs, not the real plugins. |
+| Get Landscape Data | `get_surface_data` (legacy: `scan_meshes`) | 1:1 | Surface data with height-field semantics from terrain `MeshInstance3D`s, `HeightMapShape3D` collision shapes, a heightmap Image, or, with `source = Terrain`, a terrain plugin node through a terrain adapter. Terrain3D and HTerrain are detected by their methods (unmodified plugin classes work), or named with `terrain_node_path`; ambiguity is reported. The surface carries the terrain's paint-layer weights, so Surface Sampler writes `layer_<name>` on every point. The plugin adapters are tested against fakes in the suite and were checked once against the real plugins (Terrain3D v1.0.2-stable and HTerrain 1.8.1 (master), unmodified, Godot 4.7.1 on Windows). |
 | Landscape layer weights (sampling a landscape writes layer weights; Get Landscape Data layer settings) | `surface_sampler` / `to_point` on terrain surface data, or `sample_terrain_layers` | 1:1 | Terrain surfaces (Get Surface Data, Terrain source, or a heightmap image with splat layers) write one Float weight per layer, `layer_<name>`, onto sampled points. `sample_terrain_layers` reads the same weights for any points, from mask textures (`layer_source = Textures`) or from a terrain adapter (`TerrainAdapter`): Terrain3D control map, HTerrain splat maps, splat images on HeightMapShape3D, mesh or image terrains. Filter with `density_filter` / `attribute_filter_range`. |
 | Difference | `difference` | 1:1 | As in WP2, plus `overlap_mode`. With `BoundsBox` (the default) a point tested against spatial data is its bounds box, not its centre: a large point whose bounds reach into a volume is removed (Binary) or attenuated by the covered fraction shaped by its steepness, as Unreal treats point-versus-volume and as point-versus-point already did here. The result is exact for axis-aligned boxes and spheres; other shapes are tested at 15 fixed samples. `PointCenter` keeps the centre test. |
 | Intersection / Inner Intersection | `intersection` (or `difference`, operation = Intersection) | 1:1 | Same `overlap_mode`. With BoundsBox a point is kept if its bounds overlap the shape. |

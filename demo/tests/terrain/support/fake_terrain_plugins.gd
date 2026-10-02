@@ -115,9 +115,11 @@ class FakeHTerrainData extends Resource:
 		_count("get_interpolated_height_at")
 		return _raw(clampf(pos.x, 0.0, resolution - 1), clampf(pos.z, 0.0, resolution - 1))
 
-	func get_height_at(x : int, y : int) -> float:
+	## Real signature (HTerrainData 1.8): one Vector2i in pixels. The fake used to
+	## take two ints, which hid a bug in the adapter that only the real plugin showed.
+	func get_height_at(pos_pixels : Vector2i) -> float:
 		_count("get_height_at")
-		return _raw(clampi(x, 0, resolution - 1), clampi(y, 0, resolution - 1))
+		return _raw(clampi(pos_pixels.x, 0, resolution - 1), clampi(pos_pixels.y, 0, resolution - 1))
 
 	func get_map_count(map_type : int) -> int:
 		_count("get_map_count")

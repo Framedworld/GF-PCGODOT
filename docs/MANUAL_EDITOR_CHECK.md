@@ -167,7 +167,7 @@ Open `demos/demo_hierarchical.tscn`.
 
 ## Optional: terrain plugins (outside the 40 minutes)
 
-The Terrain3D and HTerrain adapters were tested only against fake classes. Do this only in a project that has the plugin installed.
+The Terrain3D and HTerrain adapters are tested against fake classes in the suite and were checked once against the real plugins (Terrain3D v1.0.2-stable, HTerrain 1.8.1, Godot 4.7.1, Windows). Repeat this in your own project if it uses a different plugin version or platform; do it only in a project that has the plugin installed.
 
 - [ ] **T.1 Terrain3D.** Add a Terrain3D node with at least one region and two painted textures. Add a `FlowGraphNode3D` with `get_surface_data` (`source = Terrain`, no path) → `surface_sampler` → (D and A on the sampler).
   - Expected: points lie on the terrain surface (also across region borders), and the Data Inspector has `layer_<name>` columns whose values follow the painted textures. `get_surface_data`'s `@data` shows `terrain_type = Terrain3D`.

@@ -15,7 +15,7 @@ resources); [doc/nodes_reference.md](doc/nodes_reference.md) lists them all and
 | `executor/flow_node_traits.gd` (`FlowNodeTraits`) | `[main_thread, cacheable]` per stock template. `meta_node["pure"]` and `meta_node["main_thread"]` override the table; unknown templates are main-thread and not cacheable. `tests/executor/flow_node_traits_test.gd` fails when a stock template has no row. |
 | `executor/flow_output_cache.gd` (`FlowOutputCache`) | Process-wide LRU cache of pure-node outputs (`max_entries`, `clear()`, `hits`, `misses`). |
 | `spatial/` | `FlowSpatial` and the shapes carried on `FlowData.Data.shape` (splines, surfaces, volumes, composites), `FlowSurfaceLayers` (paint-layer weights on a surface), plus `FlowSpatialSources` for the Get * Data nodes. |
-| `terrain/` | `FlowTerrainAdapter` and its adapters: `HeightMapShape3D`, heightmap `Image` (with `FlowTerrainSplatLayer` splat images), `MeshInstance3D`, and Terrain3D / HTerrain by duck typing. The two plugin adapters call only methods they check with `has_method`, and were tested against fakes (`tests/terrain/support/fake_terrain_plugins.gd`), not the real plugins. |
+| `terrain/` | `FlowTerrainAdapter` and its adapters: `HeightMapShape3D`, heightmap `Image` (with `FlowTerrainSplatLayer` splat images), `MeshInstance3D`, and Terrain3D / HTerrain by duck typing. The two plugin adapters call only methods they check with `has_method`, and are tested against fakes (`tests/terrain/support/fake_terrain_plugins.gd`); they were also checked once against the real plugins (Terrain3D v1.0.2, HTerrain 1.8.1, Godot 4.7.1, Windows). |
 | `world/` | Hierarchical and runtime generation: `FlowWorld3D` (cells, scheduler, pool, manual API), `FlowGenerationSource`, `FlowWorldGrid` (cell math, half-open ownership), `FlowWorldCell` (one cell to evaluate) and `FlowCellRun` (a time-sliced cell run). Levels are computed by `FlowCompiledGraph` (`node_levels`, `level_plan`). |
 | `visualization/` | The Data Inspector's `TableView`, its pure model `FlowDataTableModel` (columns, cell text, sort keys, filter for every type, shape summaries), and `FlowDebugShapes`, the pure line builder behind the viewport debug draw of shapes and point bounds. |
 | `spawn/` | `FlowMeshSpawnEntry`, `FlowSpawnUtil`, `FlowSpawnPool`, `FlowSplineBend`, `FlowInstancedCollision3D`. |
@@ -181,7 +181,7 @@ with `ResourceSaver`).
 		- [X] Change density based on the distance to the spline contour
 	- [X] Bridge
 - [X] Match & Set is not taking into account the weight attr
-- [ ] Verify the HTerrain and Terrain3D adapters (`terrain/`) against the real plugins (they were tested against fakes only)
+- [ ] Re-check the HTerrain and Terrain3D adapters (`terrain/`) on other plugin versions and on Linux and macOS (one Windows run against Terrain3D v1.0.2 and HTerrain 1.8.1 passed; the suite uses fakes)
 - [ ] Subgraphs / Loops?
 - [X] Sample spline along N random positions
 - [X] Discard points too close to hard edges of a mesh

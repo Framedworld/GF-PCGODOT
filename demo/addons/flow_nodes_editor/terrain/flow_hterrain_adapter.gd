@@ -17,7 +17,7 @@ extends FlowTerrainAdapter
 ##   data.get_resolution() -> int                    samples per side
 ##   data.get_interpolated_height_at(Vector3) -> float
 ##       raw height at a fractional cell position (x, z = cell coordinates)
-##   data.get_height_at(int, int) -> float           raw height of one cell (used
+##   data.get_height_at(Vector2i) -> float           raw height of one cell (used
 ##       for the snapshot when present, else get_interpolated_height_at)
 ##   data.get_map_count(int) -> int                  number of splat maps
 ##   data.get_image(int, int) -> Image               map of a type and index
@@ -93,7 +93,7 @@ func _heightfield() -> FlowHeightfieldSurface:
 		for i in range( n ):
 			var cx := i * step
 			var cz := j * step
-			heights[j * n + i] = float( data.call( "get_height_at", cx, cz ) ) if direct else float( data.call( "get_interpolated_height_at", Vector3( cx, 0.0, cz ) ) )
+			heights[j * n + i] = float( data.call( "get_height_at", Vector2i( cx, cz ) ) ) if direct else float( data.call( "get_interpolated_height_at", Vector3( cx, 0.0, cz ) ) )
 	_snapshot = FlowHeightfieldSurface.new( heights, n, n, float( step ), Vector3.ZERO, xform )
 	return _snapshot
 
