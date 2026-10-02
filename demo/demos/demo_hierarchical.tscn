@@ -1,0 +1,73 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/flow_nodes_editor/world/flow_world_3d.gd" id="1_world"]
+[ext_resource type="Resource" path="res://graphs/graph_hierarchical.tres" id="2_nd00s"]
+[ext_resource type="Script" path="res://addons/flow_nodes_editor/world/flow_generation_source.gd" id="3_source"]
+[ext_resource type="Script" path="res://demos/demo_hierarchical_orbit.gd" id="4_orbit"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ground"]
+albedo_color = Color(0.42, 0.37, 0.26, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+material = SubResource("StandardMaterial3D_ground")
+size = Vector2(256, 256)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_marker"]
+albedo_color = Color(1, 0.25, 0.1, 1)
+emission_enabled = true
+emission = Color(1, 0.25, 0.1, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_marker"]
+material = SubResource("StandardMaterial3D_marker")
+radius = 2.0
+height = 4.0
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+
+[sub_resource type="Sky" id="Sky_sky"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_env"]
+background_mode = 2
+sky = SubResource("Sky_sky")
+ambient_light_source = 3
+
+[node name="DemoHierarchical" type="Node3D" unique_id=1823416887]
+
+[node name="Ground" type="MeshInstance3D" parent="." unique_id=129733072 groups=["hier_ground"]]
+mesh = SubResource("PlaneMesh_ground")
+
+[node name="FlowWorld3D" type="Node3D" parent="." unique_id=1066708196]
+script = ExtResource("1_world")
+graph = ExtResource("2_nd00s")
+world_bounds = AABB(-128, -16, -128, 256, 32, 256)
+generation_mode = 2
+generation_radius = {
+0: 1000.0,
+16: 40.0,
+64: 96.0
+}
+metadata/_custom_type_script = "res://addons/flow_nodes_editor/world/flow_world_3d.gd"
+
+[node name="Orbit" type="Node3D" parent="." unique_id=1056177156]
+script = ExtResource("4_orbit")
+
+[node name="Source" type="Node3D" parent="Orbit" unique_id=1342367591]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 0, 0)
+script = ExtResource("3_source")
+
+[node name="Marker" type="MeshInstance3D" parent="Orbit/Source" unique_id=1843322774]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+mesh = SubResource("SphereMesh_marker")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=824217267]
+transform = Transform3D(0.8368437, -0.15962893, 0.5236515, -0.222917, 0.7742863, 0.5922743, -0.50000036, -0.61237186, 0.6123727, 0, 18, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1423090834]
+environment = SubResource("Environment_env")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=734500905]
+transform = Transform3D(1, 0, 0, 0, 0.636, 0.772, 0, -0.772, 0.636, 0, 170, 140)
+current = true
+far = 2000.0

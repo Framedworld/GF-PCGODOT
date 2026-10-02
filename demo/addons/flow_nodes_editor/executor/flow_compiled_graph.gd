@@ -126,6 +126,19 @@ var output_nodes : PackedInt32Array = PackedInt32Array()
 ## FlowExecutor reports them on every run, as the evaluator always did.
 var errors : PackedStringArray = PackedStringArray()
 
+## Hierarchical generation (WP5): node name -> level, the grid size (a power
+## of two, int) set by the nearest grid_size marker upstream, the smallest one
+## when several markers are upstream, or 0 (FlowWorldGrid.UNBOUNDED) when no
+## marker is upstream. A grid_size marker is on its own level (or a smaller
+## upstream one). Computed at compile time from the links, the virtual
+## set_variable -> get_variable dependencies and the saved cell_size of each
+## marker (overrides and $param bindings of cell_size are not seen).
+var node_levels : Dictionary = {}
+## Grid sizes used by the graph, coarsest first (the Unbounded level excluded).
+var grid_sizes : PackedInt32Array = PackedInt32Array()
+# level -> plan Dictionary (see level_plan()).
+var _level_plans : Dictionary = {}
+
 ## Number of compilations since startup (tests and benchmarks read it).
 static var compile_count : int = 0
 
@@ -198,7 +211,123 @@ static func compile(graph : FlowGraphResource) -> FlowCompiledGraph:
 		compiled.index_by_name[desc.name] = desc.index
 		compiled.nodes.append(desc)
 	compiled.links = compiled.graph_data.get("links", [])
+	compiled._compute_levels()
 	return compiled
+
+# --- Hierarchical levels (WP5) ------------------------------------------------------
+
+const _UNBOUNDED_RANK := 0x7fffffff
+
+## Level of node `node_name` (0 = Unbounded, also for unknown names).
+func level_of(node_name) -> int:
+	return int(node_levels.get(StringName(node_name), 0))
+
+## True when the graph has at least one grid_size marker.
+func has_hierarchy() -> bool:
+	return not grid_sizes.is_empty()
+
+## Depth of a level: 0 for Unbounded, 1 for the coarsest grid size, and so on.
+func hierarchy_index(level : int) -> int:
+	if level <= 0:
+		return 0
+	var i := grid_sizes.find(level)
+	return i + 1 if i >= 0 else 0
+
+## Every level the graph uses, coarsest first, Unbounded (0) included when a
+## node is on it.
+func levels() -> PackedInt32Array:
+	var result := PackedInt32Array()
+	for node_name in node_levels:
+		if int(node_levels[node_name]) == 0:
+			result.append(0)
+			break
+	result.append_array(grid_sizes)
+	return result
+
+## Execution plan of one level, cached:
+##   "run"     : Dictionary node name -> true, the nodes executed on this level
+##   "preseed" : Array of node names on coarser levels with a link into a node
+##               of this level (their outputs are handed in from the coarser
+##               cell that contains the cell being generated)
+##   "capture" : Array of node names of this level with a link into a node of
+##               a finer level (their outputs are kept for finer cells)
+func level_plan(level : int) -> Dictionary:
+	var plan = _level_plans.get(level)
+	if plan != null:
+		return plan
+	var run := {}
+	for node_name in node_levels:
+		if int(node_levels[node_name]) == level:
+			run[node_name] = true
+	var preseed : Array = []
+	var capture : Array = []
+	for link in links:
+		var src := StringName(link.get("from_node", &""))
+		var dst := StringName(link.get("to_node", &""))
+		if not node_levels.has(src) or not node_levels.has(dst):
+			continue
+		var src_level := int(node_levels[src])
+		var dst_level := int(node_levels[dst])
+		if dst_level == level and FlowWorldGrid.is_coarser(src_level, level) and not preseed.has(src):
+			preseed.append(src)
+		if src_level == level and FlowWorldGrid.is_coarser(level, dst_level) and not capture.has(src):
+			capture.append(src)
+	plan = { "run": run, "preseed": preseed, "capture": capture }
+	_level_plans[level] = plan
+	return plan
+
+# Fixed point over the links: a node's rank is the smallest marker size among
+# itself and its upstream nodes (Unbounded ranks as +infinity). Monotone
+# decreasing, so it terminates on graphs with cycles too.
+func _compute_levels() -> void:
+	node_levels = {}
+	grid_sizes = PackedInt32Array()
+	_level_plans = {}
+	var rank := {}
+	var set_by_variable := {}
+	var get_by_variable := {}
+	for desc in nodes:
+		var r := _UNBOUNDED_RANK
+		if desc.template == "grid_size":
+			r = FlowWorldGrid.snap_grid_size(float(desc.saved_settings.get("cell_size", 64.0)))
+		rank[desc.name] = r
+		if desc.template == "set_variable" or desc.template == "get_variable":
+			var variable_name := String(desc.saved_settings.get("variable_name", "")).strip_edges()
+			if not variable_name.is_empty():
+				var bucket : Dictionary = set_by_variable if desc.template == "set_variable" else get_by_variable
+				if not bucket.has(variable_name):
+					bucket[variable_name] = []
+				bucket[variable_name].append(desc.name)
+	var edges : Array = []
+	for link in links:
+		var src := StringName(link.get("from_node", &""))
+		var dst := StringName(link.get("to_node", &""))
+		if rank.has(src) and rank.has(dst):
+			edges.append([src, dst])
+	for variable_name in get_by_variable:
+		for src in set_by_variable.get(variable_name, []):
+			for dst in get_by_variable[variable_name]:
+				edges.append([src, dst])
+	var changed := true
+	while changed:
+		changed = false
+		for edge in edges:
+			var candidate : int = rank[edge[0]]
+			if candidate < int(rank[edge[1]]):
+				rank[edge[1]] = candidate
+				changed = true
+	var sizes := {}
+	for node_name in rank:
+		var r : int = rank[node_name]
+		var level := 0 if r == _UNBOUNDED_RANK else r
+		node_levels[node_name] = level
+		if level > 0:
+			sizes[level] = true
+	var sorted : Array = sizes.keys()
+	sorted.sort()
+	sorted.reverse()
+	for size in sorted:
+		grid_sizes.append(int(size))
 
 ## Records the connection lists and execution order computed on one run's
 ## elements (`descs` and `elements` side by side, `ordered_nodes` in execution

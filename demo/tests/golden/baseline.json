@@ -20112,6 +20112,212 @@
 			"spawned": 1897.0,
 			"status": "ok"
 		},
+		"res://graphs/graph_hierarchical.tres": {
+			"node_errors": [
+				"rocks_spawn : Input not connected",
+				"rocks_xform : Input must provide position, rotation, and size streams",
+				"trees_spawn : Input not connected",
+				"trees_xform : Input must provide position, rotation, and size streams"
+			],
+			"nodes": {
+				"b16": [
+					[
+						{
+							"data_attrs": {
+								"bounds_max": {
+									"data_type": 3.0,
+									"hash": "dddf335305f8ae7d"
+								},
+								"bounds_min": {
+									"data_type": 3.0,
+									"hash": "6831146bfa0d0490"
+								},
+								"cell_x": {
+									"data_type": 1.0,
+									"hash": "5feceb66ffc86f38"
+								},
+								"cell_z": {
+									"data_type": 1.0,
+									"hash": "5feceb66ffc86f38"
+								},
+								"grid_size": {
+									"data_type": 2.0,
+									"hash": "5feceb66ffc86f38"
+								},
+								"has_bounds": {
+									"data_type": 0.0,
+									"hash": "5feceb66ffc86f38"
+								},
+								"hierarchy_level": {
+									"data_type": 1.0,
+									"hash": "5feceb66ffc86f38"
+								}
+							},
+							"kind": 3.0,
+							"size": 0.0,
+							"streams": [],
+							"tags": []
+						}
+					]
+				],
+				"b64": [
+					[
+						{
+							"data_attrs": {
+								"bounds_max": {
+									"data_type": 3.0,
+									"hash": "dddf335305f8ae7d"
+								},
+								"bounds_min": {
+									"data_type": 3.0,
+									"hash": "6831146bfa0d0490"
+								},
+								"cell_x": {
+									"data_type": 1.0,
+									"hash": "5feceb66ffc86f38"
+								},
+								"cell_z": {
+									"data_type": 1.0,
+									"hash": "5feceb66ffc86f38"
+								},
+								"grid_size": {
+									"data_type": 2.0,
+									"hash": "5feceb66ffc86f38"
+								},
+								"has_bounds": {
+									"data_type": 0.0,
+									"hash": "5feceb66ffc86f38"
+								},
+								"hierarchy_level": {
+									"data_type": 1.0,
+									"hash": "5feceb66ffc86f38"
+								}
+							},
+							"kind": 3.0,
+							"size": 0.0,
+							"streams": [],
+							"tags": []
+						}
+					]
+				],
+				"ground": [
+					[
+						{
+							"data_attrs": {
+
+							},
+							"kind": 2.0,
+							"size": 0.0,
+							"streams": [],
+							"tags": []
+						}
+					]
+				],
+				"m16": [
+					[
+						{
+							"data_attrs": {
+
+							},
+							"kind": 0.0,
+							"size": 0.0,
+							"streams": [],
+							"tags": []
+						}
+					]
+				],
+				"m64": [
+					[
+						{
+							"data_attrs": {
+
+							},
+							"kind": 0.0,
+							"size": 0.0,
+							"streams": [],
+							"tags": []
+						}
+					]
+				],
+				"out_rocks": [],
+				"out_trees": [],
+				"rocks_clear": [
+					[
+						{
+							"data_attrs": {
+
+							},
+							"kind": 0.0,
+							"size": 0.0,
+							"streams": [],
+							"tags": []
+						}
+					]
+				],
+				"rocks_cull": [
+					[
+						{
+							"data_attrs": {
+
+							},
+							"kind": 0.0,
+							"size": 0.0,
+							"streams": [],
+							"tags": []
+						}
+					]
+				],
+				"rocks_sampler": [
+					[
+						{
+							"data_attrs": {
+
+							},
+							"kind": 0.0,
+							"size": 0.0,
+							"streams": [],
+							"tags": []
+						}
+					]
+				],
+				"rocks_spawn": [],
+				"rocks_xform": [],
+				"trees_cull": [
+					[
+						{
+							"data_attrs": {
+
+							},
+							"kind": 0.0,
+							"size": 0.0,
+							"streams": [],
+							"tags": []
+						}
+					]
+				],
+				"trees_sampler": [
+					[
+						{
+							"data_attrs": {
+
+							},
+							"kind": 0.0,
+							"size": 0.0,
+							"streams": [],
+							"tags": []
+						}
+					]
+				],
+				"trees_spawn": [],
+				"trees_xform": []
+			},
+			"outputs": {
+
+			},
+			"script_errors": [],
+			"spawned": 0.0,
+			"status": "ok"
+		},
 		"res://graphs/graph_ue_forest.tres": {
 			"node_errors": [],
 			"nodes": {

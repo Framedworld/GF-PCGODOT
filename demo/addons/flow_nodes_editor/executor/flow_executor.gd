@@ -40,6 +40,11 @@ extends RefCounted
 ##                                             (Array of Array of Data); the
 ##                                             element is not run and its
 ##                                             outputs are these bulks.
+##   capture_nodes : Array                     node names whose generated bulks
+##                                             finalize() keeps in `captured`
+##                                             (name -> bulks) before the
+##                                             elements are released; used by
+##                                             hierarchical generation (WP5).
 
 enum Mode { SYNCHRONOUS, TIME_SLICED, THREADED }
 
@@ -53,6 +58,11 @@ var mode : int = Mode.SYNCHRONOUS
 var node_filter : Callable = Callable()
 ## Node name -> prepared generated bulks; those elements are not run.
 var preseeded : Dictionary = {}
+## Node names whose generated bulks finalize() copies into `captured`.
+var capture_nodes : Array = []
+## Node name -> generated bulks (Array of Array of Data) of `capture_nodes`,
+## filled by finalize(). The bulk arrays are copies; the Data are shared.
+var captured : Dictionary = {}
 
 ## The evaluation state (see build_state); empty before begin().
 var state : Dictionary = {}
@@ -133,9 +143,21 @@ func run() -> Dictionary:
 ## Phase 3, exactly once. Returns the outputs.
 func finalize() -> Dictionary:
 	if not _finalized:
+		if not capture_nodes.is_empty():
+			_capture(state.get("instances", {}))
 		outputs = finalize_state(state)
 		_finalized = true
 	return outputs
+
+func _capture(instances : Dictionary) -> void:
+	for node_name in capture_nodes:
+		var node = instances.get(node_name)
+		if node == null or node.generated_bulks.is_empty():
+			continue
+		var bulks : Array = []
+		for bulk in node.generated_bulks:
+			bulks.append(bulk.duplicate() if bulk is Array else [bulk])
+		captured[node_name] = bulks
 
 ## Synchronous evaluation in the mode the parent context asks for (threaded
 ## when it carries THREADED_META). Returns the graph outputs, {} on the
@@ -414,6 +436,12 @@ static func build_state(graph : FlowGraphResource, input_data_map : Dictionary, 
 	ctx.component_id = parent_ctx.component_id
 	ctx.overrides = parent_ctx.overrides
 	ctx.preview = parent_ctx.preview
+	# Hierarchical generation (WP5): cell bounds and level reach nested graphs.
+	ctx.bounds = parent_ctx.bounds
+	ctx.has_bounds = parent_ctx.has_bounds
+	ctx.grid_size = parent_ctx.grid_size
+	ctx.cell_coord = parent_ctx.cell_coord
+	ctx.hierarchy_level = parent_ctx.hierarchy_level
 	ctx.gedit_nodes_by_name = instances
 	ctx.runtime_params = parent_ctx.runtime_params.duplicate(true) if parent_ctx.runtime_params else {}
 	for key in runtime_params.keys():

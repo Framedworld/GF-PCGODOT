@@ -167,6 +167,23 @@ class EvaluationContext:
 	## the missing owner and emit empty Data (FlowNodeBase.is_ownerless_preview).
 	## Runtime callers, @tool scripts included, leave it false and get real errors.
 	var preview : bool = false
+	# --- Hierarchical (world) generation, set by FlowWorld3D (WP5) -------------
+	# All zero / false outside world generation. Nested subgraph and loop
+	# evaluations inherit them (FlowExecutor.build_state).
+	## Execution bounds of the current cell: the cell box intersected with the
+	## world bounds (the whole world bounds on the Unbounded level). World space.
+	var bounds : AABB = AABB()
+	## True while a FlowWorld3D cell (or its Unbounded run) is being generated.
+	var has_bounds : bool = false
+	## Cell size of the current level in world units (a power of two); 0 on the
+	## Unbounded level and outside world generation.
+	var grid_size : float = 0.0
+	## Cell coordinate on the XZ plane: floor(x / grid_size), floor(z / grid_size).
+	var cell_coord : Vector2i = Vector2i.ZERO
+	## Depth of the current level: 1 for the coarsest grid level of the graph,
+	## increasing toward finer levels; 0 on the Unbounded level and outside
+	## world generation.
+	var hierarchy_level : int = 0
 
 ## Deterministic per-point seed (UE $Seed parity): hashes the position
 ## quantized per component at *1000 (the same quantization mutate_seed.gd

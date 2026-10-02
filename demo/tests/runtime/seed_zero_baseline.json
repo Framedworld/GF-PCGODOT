@@ -51,6 +51,10 @@
 		"nodes": "30884ab941ce239c579faabe5f2e465f591d5d2f25bdf53e6c2d8c9098431bfe",
 		"result": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	},
+	"res://demos/demo_hierarchical.tscn": {
+		"nodes": "",
+		"result": ":e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+	},
 	"res://demos/demo_intersect.tscn": {
 		"nodes": "7153306e08331f16d96acd5c4e256e5e7eb7d2bcca50de8d86485ae75a24c59e",
 		"result": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -166,6 +170,10 @@
 	"res://graphs/graph_dungeon_stress_test.tres": {
 		"nodes": "5afd6498d6bc0921a480de8593bacb873ae0fce1e4b6b3ee11c8d7047c4ee2ed",
 		"result": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:c2719385f18f92d199b0ed20ce7c013296fc80c61f6785e4b4fb8f499e19126a"
+	},
+	"res://graphs/graph_hierarchical.tres": {
+		"nodes": "af727f78377753b4cd8265f77b65e61328eb4848a9f6a5420a7aea4673d2bbab",
+		"result": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	},
 	"res://graphs/graph_ue_forest.tres": {
 		"nodes": "de72366eb49c36082ace7b35e45b707be806aa2e994cb719af9bc85c185a409b",

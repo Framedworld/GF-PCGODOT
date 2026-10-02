@@ -2,9 +2,9 @@
 class_name GridSizeNodeSettings
 extends NodeSettings
 
-# Reserved context key written by the grid_size node.
-# Downstream nodes or a future partition scheduler can read this via:
-#   ctx.variables.get(GridSizeNodeSettings.CTX_KEY, 0.0)
+# Reserved context key the grid_size node still writes (deprecated: nothing
+# reads it; hierarchical generation takes the levels from FlowCompiledGraph and
+# exposes the current one as EvaluationContext.grid_size).
 const CTX_KEY := "__grid_size__cell_size"
 
 @export_group("Grid Size")
@@ -12,7 +12,9 @@ const CTX_KEY := "__grid_size__cell_size"
 ## A descriptive label for this grid size configuration.
 @export var label: String = "Grid Size"
 
-## The cell size vector (X, Y, Z) defining cell dimensions.
+## Cell size of this hierarchy level in world units, snapped to a power of two.
+## FlowWorld3D partitions the XZ plane into cells of this size for every node
+## downstream of this marker. Read from the saved graph at compile time.
 @export var cell_size: float = 64.0 :
 	set(v):
 		cell_size = _snap_to_power_of_two(v)

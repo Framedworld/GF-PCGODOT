@@ -13,6 +13,13 @@ class_name FlowGraphNode3D
 #   cleanup()                                      frees this component's spawned nodes
 #   regenerate(inputs, extra_params)               cleanup() + generate()
 #   signal generated(outputs), signal cleaned_up, var last_outputs
+#
+# Hierarchical generation (WP5, additive): FlowWorld3D creates one
+# FlowGraphNode3D per generated cell and runs it with
+#   generate_cell(cell, preseeded) -> Dictionary   one FlowWorldCell, synchronous
+#   begin_cell(cell, preseeded, time_sliced) -> FlowCellRun
+# Spawners use the cell component as ctx.owner, so cleanup(), flow_owner
+# ownership and transient_output work per cell exactly as for generate().
 
 const FlowNodeIOClass = preload("res://addons/flow_nodes_editor/flow_nodes_io.gd")
 
@@ -101,6 +108,12 @@ var _async_errors : Array = []
 var _async_eval = null
 # True while a synchronous generate() is running.
 var _generating_sync : bool = false
+
+## The FlowWorldCell of the most recent generate_cell()/begin_cell() (null for
+## a component that never generated a cell).
+var last_cell : FlowWorldCell = null
+# Cell run in flight (begin_cell), null otherwise.
+var _cell_run : FlowCellRun = null
 
 # You can also use get_property_list() for more control
 func _get_property_list():
@@ -205,6 +218,7 @@ func generate( inputs : Dictionary = {}, extra_params : Dictionary = {} ) -> Dic
 	# A synchronous run supersedes an in-flight async one; finish it first so
 	# its node instances are freed.
 	_finish_async_now( false )
+	_cancel_cell_run()
 	var ctx := _make_context( extra_params )
 	_generating_sync = true
 	# Root evaluation starts the recursion guard at depth 0; nested
@@ -224,6 +238,7 @@ func generate_async( inputs : Dictionary = {}, extra_params : Dictionary = {} ) 
 	# If a previous async run is still in flight, the new run supersedes it;
 	# flush it so its node instances are freed (no `generated` for it).
 	_finish_async_now( false )
+	_cancel_cell_run()
 	var ctx := _make_context( extra_params )
 	var input_map := _merged_inputs( inputs )
 	_async_errors = FlowNodeIOClass.start_error_log( ctx )
@@ -236,11 +251,71 @@ func generate_async( inputs : Dictionary = {}, extra_params : Dictionary = {} ) 
 		return
 	set_process(true)
 
+## Evaluates one cell of hierarchical generation synchronously and returns its
+## outputs. Only the nodes of the cell's level run (cell.run_nodes); nodes of
+## coarser levels whose outputs they consume are taken from `preseeded` (node
+## name -> generated bulks, Array of Array of FlowData.Data) and not run. The
+## context carries the cell bounds, grid size, coordinate and hierarchy level
+## (EvaluationContext.bounds / has_bounds / grid_size / cell_coord /
+## hierarchy_level) and the graph variables of the coarser cells. Runs threaded
+## when `threaded` is set and through FlowOutputCache when `output_cache` is
+## set, exactly like generate(). Stores last_outputs, last_errors and last_cell
+## and emits `generated`. Does not clean up earlier output.
+func generate_cell( cell : FlowWorldCell, preseeded : Dictionary = {} ) -> Dictionary:
+	var run := begin_cell( cell, preseeded, false )
+	if run == null:
+		return {}
+	return run.run()
+
+## Starts a cell evaluation and returns its FlowCellRun without running any
+## node. With `time_sliced` the caller drives it with run.step(budget_ms) (one
+## element per step(0)); otherwise run.run() executes it (threaded when
+## `threaded` is set). A cell run in flight on this component is cancelled
+## first. Returns null without a graph.
+func begin_cell( cell : FlowWorldCell, preseeded : Dictionary = {}, time_sliced : bool = false ) -> FlowCellRun:
+	if not graph or cell == null:
+		return null
+	_finish_async_now( false )
+	_cancel_cell_run()
+	var ctx := _make_context( {} )
+	cell.apply_to_context( ctx )
+	var error_log := FlowNodeIOClass.start_error_log( ctx )
+	var executor := FlowExecutor.new()
+	if time_sliced:
+		executor.mode = FlowExecutor.Mode.TIME_SLICED
+	elif ctx.get_meta( FlowExecutor.THREADED_META, false ):
+		executor.mode = FlowExecutor.Mode.THREADED
+	executor.node_filter = cell.node_filter()
+	executor.preseeded = preseeded
+	executor.capture_nodes = cell.capture_nodes
+	last_cell = cell
+	var started := executor.begin( graph, _merged_inputs( {} ), ctx, {}, 0 )
+	var run := FlowCellRun.new( self, cell, executor if started else null, ctx, error_log )
+	_cell_run = run
+	return run
+
+## True while a cell evaluation started by begin_cell() is unfinished.
+func is_generating_cell() -> bool:
+	return _cell_run != null and not _cell_run.is_done()
+
+func _cancel_cell_run() -> void:
+	if _cell_run != null and not _cell_run.is_done():
+		_cell_run.cancel()
+	_cell_run = null
+
+# FlowCellRun callback: a finished run publishes like generate() does.
+func _on_cell_run_finished( run : FlowCellRun, completed : bool ) -> void:
+	if run == _cell_run:
+		_cell_run = null
+	if completed:
+		_on_generation_finished( run.outputs, run.errors )
+
 ## Free every spawned node this component owns (flow_owner meta naming this
 ## component, or content saved by an earlier session under this node) and emit
 ## `cleaned_up`. Safe to call when nothing was generated.
 func cleanup() -> void:
 	_finish_async_now( false )
+	_cancel_cell_run()
 	var my_id := get_instance_id()
 	var doomed : Array[Node] = []
 	_collect_owned( self, my_id, true, doomed )
@@ -265,7 +340,7 @@ func regenerate( inputs : Dictionary = {}, extra_params : Dictionary = {} ) -> D
 
 ## True while a generate() call or an async generation is in progress.
 func is_generating() -> bool:
-	return _generating_sync or ( _async_eval != null and not _async_eval.is_done() )
+	return _generating_sync or ( _async_eval != null and not _async_eval.is_done() ) or is_generating_cell()
 
 # Collects spawned subtree roots under `node` that belong to component `my_id`.
 # Inside this component's own subtree (`own_subtree`), legacy String metas and

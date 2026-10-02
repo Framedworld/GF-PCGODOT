@@ -178,6 +178,10 @@ const TABLE := {
 	"runtime_quality_select": [true, false],   # reads runtime_params
 	# Thread-safe but not a pure function of settings and inputs (depends on bulk position).
 	"filter_data_by_index": [false, false],
+	# WP5 hierarchical generation: read the cell bounds from the context (not
+	# part of the FlowOutputCache key), so not cacheable; read-only, threadable.
+	"get_execution_bounds": [false, false],
+	"cull_points_outside_bounds": [false, false],
 	# Round 2 additions. Pure: threadable and cacheable.
 	"apply_scale_to_bounds": [false, true],
 	"attribute_cast": [false, true],
