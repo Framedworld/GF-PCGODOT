@@ -237,6 +237,8 @@ func _normalize_input_data(data: FlowData.Data, input_name: String, input_type: 
 	for stream_name in data.streams:
 		var stream = data.streams[stream_name]
 		target.registerStream(stream_name, stream.container, stream.data_type)
+	# Tags, per-data attributes, kind and shape come along with the streams.
+	target.copy_meta_from(data)
 	if target.hasStreamOfType(input_name, input_type):
 		return target
 	if not target.hasStream(input_name):

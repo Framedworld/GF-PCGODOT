@@ -269,6 +269,56 @@ class Data:
 	var data_attrs : Dictionary = {}
 	# Spatial data type lattice marker. Defaults to Points so absent == today.
 	var kind : Kind = Kind.Points
+	# Deferred spatial description (a FlowSpatial: spline, surface, volume, composite)
+	# carried alongside — or instead of — point streams. null for plain point data.
+	# Shapes are immutable value objects, so copies share the reference.
+	var shape = null
+
+	## Copies everything that is not a per-point stream from `src`: tags, per-data
+	## attributes, the kind marker and the spatial shape. EVERY site that rebuilds a
+	## Data from another one (filter, duplicate, graph boundaries, output nodes) must
+	## go through this, so new metadata added here reaches all of them at once.
+	func copy_meta_from( src : Data ) -> Data:
+		tags = src.tags.duplicate()
+		data_attrs = src.data_attrs.duplicate( true )
+		kind = src.kind
+		shape = src.shape
+		return self
+
+	## Stable hash of the whole Data: stream order, names, types and contents, tags,
+	## per-data attributes, kind and shape. Equal content gives an equal hash across
+	## processes for plain values; object-valued elements hash by resource path (or
+	## instance id when unsaved), so two Data are only "equal" if they reference the
+	## same objects. Used as a cache key, never for security.
+	func content_hash() -> int:
+		var h : int = hash( [ int(kind), last_added_stream_name, Array( tags ) ] )
+		for stream_name in streams:
+			var stream : Dictionary = streams[stream_name]
+			h = hash( [ h, stream_name, int(stream.data_type), _container_content_hash( stream.container ) ] )
+		for attr_name in data_attrs:
+			var rec = data_attrs[attr_name]
+			var value = rec.get( "value", null ) if rec is Dictionary else rec
+			h = hash( [ h, attr_name, _value_content_hash( value ) ] )
+		if shape != null and shape.has_method( "content_hash" ):
+			h = hash( [ h, shape.content_hash() ] )
+		return h
+
+	static func _value_content_hash( value ) -> int:
+		if value is Object:
+			if not is_instance_valid( value ):
+				return 0
+			if value is Resource and value.resource_path != "":
+				return hash( value.resource_path )
+			return value.get_instance_id()
+		return hash( value )
+
+	static func _container_content_hash( container ) -> int:
+		if container is Array:
+			var h : int = container.size()
+			for element in container:
+				h = hash( [ h, _value_content_hash( element ) ] )
+			return h
+		return hash( container )
 
 
 	static func newContainerOfType( data_type : DataType ):
@@ -870,9 +920,7 @@ class Data:
 			s.streams[name] = streams[name].duplicate()
 			s.streams[name]["container"] = streams[name]["container"].duplicate()
 		s.last_added_stream_name = last_added_stream_name
-		s.tags = tags.duplicate()
-		s.data_attrs = data_attrs.duplicate( true )
-		s.kind = kind
+		s.copy_meta_from( self )
 		return s
 
 	# Schema-preserving, row-empty clone: every stream is present with the same
@@ -886,9 +934,7 @@ class Data:
 		for old_stream in streams.values():
 			var new_container = newContainerOfType( old_stream.data_type )
 			s.registerStream( old_stream.name, new_container, old_stream.data_type )
-		s.tags = tags.duplicate()
-		s.data_attrs = data_attrs.duplicate( true )
-		s.kind = kind
+		s.copy_meta_from( self )
 		return s
 
 	func filter( indices : PackedInt32Array ) -> Data:
@@ -896,11 +942,9 @@ class Data:
 		for old_stream in streams.values():
 			var new_container = filteredStream( old_stream, indices )
 			new_data.registerStream( old_stream.name, new_container, old_stream.data_type )
-		new_data.tags = tags.duplicate()
-		# Per-data attributes are domain-level metadata, not per-point: filtering
-		# the point set does not change them, so carry them through verbatim.
-		new_data.data_attrs = data_attrs.duplicate( true )
-		new_data.kind = kind
+		# Tags, per-data attributes, kind and shape are domain-level metadata, not
+		# per-point: filtering the point set does not change them.
+		new_data.copy_meta_from( self )
 		return new_data
 
 	func dump( title : String ):

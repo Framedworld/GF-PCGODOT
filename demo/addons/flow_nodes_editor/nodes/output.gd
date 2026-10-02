@@ -137,9 +137,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			# Carry the whole Data across the graph boundary, not just its
 			# streams (docs/RUNTIME_API_P0.md §6): per-data attributes, tags and
 			# the kind marker survive subgraph outputs and component outputs.
-			target_data.data_attrs = in_data.data_attrs.duplicate(true)
-			target_data.tags = in_data.tags.duplicate()
-			target_data.kind = in_data.kind
+			target_data.copy_meta_from(in_data)
 
 			if in_data.streams.size() == 0:
 				set_output( 0, target_data )

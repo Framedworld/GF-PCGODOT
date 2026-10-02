@@ -1308,10 +1308,8 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 					# main stream of that attribute's type.
 					if FlowData.canonical_type_error(specific_input_name, main_stream.data_type) == "":
 						target_data.registerStream(specific_input_name, main_stream.container, main_stream.data_type)
-				# Carry per-data domain attributes, tags and kind across the subgraph boundary.
-				target_data.data_attrs = val.data_attrs.duplicate()
-				target_data.tags = val.tags.duplicate()
-				target_data.kind = val.kind
+				# Carry per-data domain attributes, tags, kind and shape across the subgraph boundary.
+				target_data.copy_meta_from(val)
 				node.set_output(0, target_data)
 		elif node.node_template == "input":
 			# Generic multi-port inputs node
@@ -1331,9 +1329,7 @@ static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Di
 							var main_stream = val.streams[main_stream_name]
 							if FlowData.canonical_type_error(param.name, main_stream.data_type) == "":
 								target_data.registerStream(param.name, main_stream.container, main_stream.data_type)
-						target_data.data_attrs = val.data_attrs.duplicate()
-						target_data.tags = val.tags.duplicate()
-						target_data.kind = val.kind
+						target_data.copy_meta_from(val)
 					else:
 						var new_value = param.get_default_value()
 						var container = target_data.addStream(param.name, param.data_type)
