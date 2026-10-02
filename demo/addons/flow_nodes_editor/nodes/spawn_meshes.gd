@@ -167,7 +167,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		if not parents_res.ok:
 			return
 		point_parents = parents_res.parents
-	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents, spawn_parent )
+	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents + previousContentParents( ctx ), spawn_parent )
 	var pool : FlowSpawnPool = null
 	if settings.clear_previous_instances:
 		if settings.reuse_instances:
@@ -247,6 +247,10 @@ func execute( ctx : FlowData.EvaluationContext ):
 			multimesh = mmi.multimesh
 			multimesh.instance_count = 0
 			multimesh.use_colors = false
+			# Godot keeps visible_instance_count across count changes.
+			multimesh.visible_instance_count = -1
+		if reused:
+			FlowSpawnUtil.reset_reused_instance( mmi )
 		multimesh.mesh = res
 		multimesh.transform_format = MultiMesh.TransformFormat.TRANSFORM_3D
 		if has_colors:
@@ -274,7 +278,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		if reused:
 			FlowSpawnUtil.claim_spawned( self, mmi, owner_of_mmis, ctx )
 			continue
-		group_parent.add_child( mmi )
+		FlowSpawnUtil.add_spawned_child( group_parent, mmi )
 		assignSpawnOwner( mmi, owner_of_mmis, ctx )
 		if pool != null:
 			FlowSpawnPool.tag( mmi, pool_key )
@@ -350,7 +354,7 @@ func _execute_entries( ctx : FlowData.EvaluationContext, in_data : FlowData.Data
 		point_parents = parents_res.parents
 	var scene_owner := FlowSpawnUtil.scene_owner_for( root )
 
-	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents, spawn_parent )
+	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents + previousContentParents( ctx ), spawn_parent )
 	var pool : FlowSpawnPool = null
 	if settings.clear_previous_instances:
 		if settings.reuse_instances:
@@ -393,6 +397,10 @@ func _execute_entries( ctx : FlowData.EvaluationContext, in_data : FlowData.Data
 
 		var multimesh : MultiMesh = mmi.multimesh if reused and mmi.multimesh != null else MultiMesh.new()
 		multimesh.instance_count = 0
+		# Godot keeps visible_instance_count across count changes.
+		multimesh.visible_instance_count = -1
+		if reused:
+			FlowSpawnUtil.reset_reused_instance( mmi )
 		multimesh.mesh = entry.mesh
 		multimesh.transform_format = MultiMesh.TransformFormat.TRANSFORM_3D
 		multimesh.use_colors = has_colors
@@ -423,7 +431,7 @@ func _execute_entries( ctx : FlowData.EvaluationContext, in_data : FlowData.Data
 			FlowSpawnUtil.clear_collision( mmi )
 			FlowSpawnUtil.claim_spawned( self, mmi, scene_owner, ctx )
 		else:
-			parent.add_child( mmi )
+			FlowSpawnUtil.add_spawned_child( parent, mmi )
 			assignSpawnOwner( mmi, scene_owner, ctx )
 			if pool != null:
 				FlowSpawnPool.tag( mmi, pool_key )

@@ -44,7 +44,11 @@ static func collect( element, parents : Array, ctx, filter : Callable = Callable
 				continue
 			if child.is_queued_for_deletion():
 				continue
-			if not element.isOwnFlowContent( child.get_meta( "flow_owner" ), ctx ):
+			# Spawned earlier in this evaluation (another bulk or loop
+			# iteration): not previous output, keep it.
+			if element.isSpawnedThisSession( child, ctx ):
+				continue
+			if not element.isOwnFlowContent( child.get_meta( "flow_owner" ), ctx, child ):
 				continue
 			if filter.is_valid() and not filter.call( child ):
 				continue

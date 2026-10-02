@@ -496,6 +496,10 @@ static func build_state(graph : FlowGraphResource, input_data_map : Dictionary, 
 	for option in [THREADED_META, OUTPUT_CACHE_META]:
 		if parent_ctx.has_meta(option):
 			ctx.set_meta(option, parent_ctx.get_meta(option))
+	# One spawn session per top-level evaluation, shared by nested ones
+	# (FlowNodeBase.SPAWN_SESSION_META).
+	var spawn_session = parent_ctx.get_meta(FlowNodeBase.SPAWN_SESSION_META) if parent_ctx.has_meta(FlowNodeBase.SPAWN_SESSION_META) else {}
+	ctx.set_meta(FlowNodeBase.SPAWN_SESSION_META, spawn_session)
 	if use_cache:
 		ctx.set_meta(FlowOutputCache.FINGERPRINT_MEMO_META, {})
 	# Nested evaluations share the root's error log. A custom node that builds its

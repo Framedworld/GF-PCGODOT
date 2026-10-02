@@ -4512,6 +4512,8 @@ func _begin_eval_graph() -> Dictionary:
 	ctx.eval_id += 1
 	ctx.variables.clear()
 	_sync_owner_evaluation_settings()
+	# A fresh spawn session per evaluation (FlowNodeBase.SPAWN_SESSION_META).
+	ctx.set_meta(FlowNodeBase.SPAWN_SESSION_META, {})
 
 	var time_start = Time.get_ticks_usec()
 

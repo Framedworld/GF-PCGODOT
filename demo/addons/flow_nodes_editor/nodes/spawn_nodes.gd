@@ -56,7 +56,9 @@ func _resolve_class_name_for_point(idx : int, variants : Array[String], selector
 
 	return variants[idx % variants.size()]
 
-func _instantiate_class_or_script(class_name_to_spawn : String) -> Node:
+# Returns whatever the class or script instantiates (not necessarily a Node);
+# the caller checks for Node3D.
+func _instantiate_class_or_script(class_name_to_spawn : String) -> Object:
 	if class_name_to_spawn == "":
 		return null
 	var is_script_path = class_name_to_spawn.begins_with("res://") and class_name_to_spawn.ends_with(".gd")
@@ -104,7 +106,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		if not parents_res.ok:
 			return
 		point_parents = parents_res.parents
-	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents, spawn_parent )
+	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents + previousContentParents( ctx ), spawn_parent )
 	var pool : FlowSpawnPool = null
 	if settings.clear_previous_instances:
 		if settings.reuse_instances:
@@ -185,7 +187,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			node3d = pool.take( pool_key, parent ) as Node3D
 		var reused := node3d != null
 		if not reused:
-			var node : Node = _instantiate_class_or_script(class_name_to_spawn)
+			var node : Object = _instantiate_class_or_script(class_name_to_spawn)
 
 			if not node:
 				_release_pool( pool )
@@ -194,17 +196,20 @@ func execute( ctx : FlowData.EvaluationContext ):
 
 			node3d = node as Node3D
 			if not node3d:
-				node.queue_free()
+				if node is Node:
+					node.queue_free()
+				elif not ( node is RefCounted ):
+					node.free()
 				_release_pool( pool )
 				setError("Instantiated node '%s' is not a Node3D subclass" % class_name_to_spawn)
 				return
 
 		node3d.transform = transforms.atIndex( idx )
-		node3d.name = "%s_%04d" % [class_name_to_spawn.get_file().get_basename(), idx]
+		FlowSpawnUtil.set_spawned_name( node3d, "%s_%04d" % [class_name_to_spawn.get_file().get_basename(), idx] )
 		if reused:
 			FlowSpawnUtil.claim_spawned( self, node3d, owner_of_spawned_nodes, ctx )
 		else:
-			parent.add_child( node3d )
+			FlowSpawnUtil.add_spawned_child( parent, node3d )
 			assignSpawnOwner( node3d, owner_of_spawned_nodes, ctx )
 			tagFlowContent( node3d, ctx )
 			if pool != null:

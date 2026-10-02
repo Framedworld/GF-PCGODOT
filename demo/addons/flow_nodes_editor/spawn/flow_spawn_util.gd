@@ -52,9 +52,92 @@ static func claim_spawned( element, node : Node, scene_owner : Node, ctx ) -> vo
 		return
 	element.assignSpawnOwner( node, scene_owner, ctx )
 
+## A pooled MultiMeshInstance3D must draw like a fresh one: its instance
+## transforms are relative to it, so a transform or visibility changed since
+## the previous generation would move or hide every instance.
+static func reset_reused_instance( node : Node3D ) -> void:
+	node.transform = Transform3D.IDENTITY
+	node.visible = true
+
 ## Assign the scene owner to a helper child (collision body, shape) of spawned content.
 static func own_child( element, node : Node, scene_owner : Node, ctx ) -> void:
 	element.assignSpawnOwner( node, scene_owner, ctx )
+
+## Adds spawned content `node` under `parent` so that its name is unique among
+## its siblings and never a fast-path "@Class@N" auto-name.
+##
+## Godot's default add_child() names a node whose name is taken (or empty)
+## "@<Class>@<N>" from a process-global counter without checking the siblings.
+## Such names are saved with the scene, and the counter restarts in the next
+## session, so a later auto-name can equal a saved sibling's name: the parent
+## then holds two children with one name, lookups by name return the wrong node
+## and its name index loses an entry. A named node whose name is taken (by a
+## user node, another component's content in a shared parent, or another
+## spawner of the same graph) gets the first free "<name>_<k>", k >= 2
+## (see unique_child_name). An unnamed node keeps the auto-name, as before,
+## unless a sibling holds an auto-name the counter has not reached yet (one
+## loaded from a saved scene); then it gets a readable name.
+static func add_spawned_child( parent : Node, node : Node ) -> void:
+	if String( node.name ) != "":
+		node.name = unique_child_name( parent, String( node.name ), node )
+		parent.add_child( node )
+	elif _auto_name_may_collide( parent ):
+		parent.add_child( node, true )
+	else:
+		parent.add_child( node )
+
+## Renames spawned content `node` (a pooled node already under its parent, or a
+## node about to be added with add_spawned_child) to `wanted`, or to the first
+## free "<wanted>_<k>" when a sibling holds that name.
+static func set_spawned_name( node : Node, wanted : String ) -> void:
+	node.name = wanted
+	var parent := node.get_parent()
+	if parent != null:
+		node.name = unique_child_name( parent, String( node.name ), node )
+
+## `wanted` when no child of `parent` other than `node` has that name, else the
+## first free "<wanted>_<k>" with k >= 2. Deterministic, and one lookup per
+## candidate (Godot's readable naming instead counts the trailing number up
+## through every taken name, quadratic when two spawners share a parent).
+static func unique_child_name( parent : Node, wanted : String, node : Node = null ) -> String:
+	var holder := parent.get_node_or_null( NodePath( wanted ) )
+	if holder == null or holder == node:
+		return wanted
+	var k := 2
+	while true:
+		var candidate := "%s_%d" % [ wanted, k ]
+		holder = parent.get_node_or_null( NodePath( candidate ) )
+		if holder == null or holder == node:
+			return candidate
+		k += 1
+	return wanted
+
+# True when a child of `parent` has an "@Class@N" name with N past the current
+# auto-name counter, so a later fast-path name could equal it.
+static func _auto_name_may_collide( parent : Node ) -> bool:
+	var counter := -1
+	for child in parent.get_children( true ):
+		var child_name := String( child.name )
+		if not child_name.begins_with( "@" ):
+			continue
+		if counter < 0:
+			counter = _auto_name_counter()
+		if child_name.get_slice( "@", 2 ).to_int() > counter:
+			return true
+	return false
+
+# The number of the most recent fast-path auto-name (the next one is higher).
+static func _auto_name_counter() -> int:
+	var probe := Node.new()
+	var a := Node.new()
+	a.name = "Probe"
+	probe.add_child( a )
+	var b := Node.new()
+	b.name = "Probe"
+	probe.add_child( b )
+	var counter := String( b.name ).get_slice( "@", 2 ).to_int()
+	probe.free()
+	return counter
 
 # --- Spawn parents -------------------------------------------------------------
 
@@ -181,8 +264,11 @@ static func prepare_property_overrides( element, in_data, overrides : Dictionary
 ##   "Child/Light:light_energy"          property of a descendant
 ##   "%Mesh:material_override:albedo_color"  unique-name lookup, nested property
 ## A path whose node part is a plain name that is also a property of root
-## ("position:x") is read as a property path on root.
-static func resolve_property_target( root : Node, path : String ) -> Array:
+## ("position:x") is read as a property path on root. With `instance_scoped`
+## (spawned instances) a "%Name" match must lie inside root: Godot falls back to
+## root's owner scene when root owns no such unique node. Without it (Apply On
+## Actor targets, which live in the scene) Godot's lookup is used as is.
+static func resolve_property_target( root : Node, path : String, instance_scoped : bool = true ) -> Array:
 	if root == null or path == "":
 		return []
 	var node : Node = root
@@ -200,6 +286,10 @@ static func resolve_property_target( root : Node, path : String ) -> Array:
 		else:
 			node = root.get_node_or_null( NodePath( names ) )
 			prop = subs
+			# "%Name" falls back to root's owner scene when root owns no such
+			# unique node; stay inside the instance.
+			if instance_scoped and node != null and names.begins_with( "%" ) and node != root and not root.is_ancestor_of( node ):
+				node = null
 	if node == null or prop == "":
 		return []
 	if not has_property( node, prop.get_slice( ":", 0 ) ):
@@ -215,9 +305,9 @@ static func has_property( obj : Object, prop : String ) -> bool:
 ## Applies the prepared overrides for point `idx` to the instance rooted at `root`.
 ## Problems (unresolved paths, values that cannot convert) are collected in
 ## `problems` (path -> message) so the caller reports each one once.
-static func apply_property_overrides( root : Node, prepared : Array, idx : int, problems : Dictionary ) -> void:
+static func apply_property_overrides( root : Node, prepared : Array, idx : int, problems : Dictionary, instance_scoped : bool = true ) -> void:
 	for item in prepared:
-		var target := resolve_property_target( root, item.path )
+		var target := resolve_property_target( root, item.path, instance_scoped )
 		if target.is_empty():
 			problems[ item.path ] = "Property override path '%s' does not resolve on '%s'" % [ item.path, root.name ]
 			continue
@@ -555,7 +645,9 @@ static func custom_data_at( prepared : Array, i : int ) -> Color:
 ## local offset of that shape: { shape, offset }. Empty when the mode is None or
 ## the mesh yields no shape.
 static func build_collision_shape( mesh : Mesh, mode : int ) -> Dictionary:
-	if mesh == null:
+	# A mesh without geometry yields no shape (Convex would otherwise make an
+	# empty hull after engine errors, BoxFromBounds a 1 mm box at the origin).
+	if mesh == null or mesh.get_surface_count() == 0:
 		return {}
 	match mode:
 		FlowMeshSpawnEntry.eCollisionMode.BoxFromBounds:

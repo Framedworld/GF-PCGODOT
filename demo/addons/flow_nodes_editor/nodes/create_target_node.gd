@@ -16,6 +16,8 @@ extends FlowNodeBase
 ## component and name instead of recreating it.
 
 const META_TARGET_NAME := &"flow_target_name"
+## Groups this node added to the container (removed again when dropped from `groups`).
+const META_TARGET_GROUPS := &"flow_target_groups"
 
 func _init():
 	meta_node = {
@@ -33,11 +35,29 @@ func _find_existing( parent : Node, node_name : String, ctx ) -> Node3D:
 	for child in parent.get_children():
 		if not ( child is Node3D ) or child.is_queued_for_deletion():
 			continue
-		if not child.has_meta( "flow_owner" ) or not isOwnFlowContent( child.get_meta( "flow_owner" ), ctx ):
+		if not child.has_meta( "flow_owner" ) or not isOwnFlowContent( child.get_meta( "flow_owner" ), ctx, child ):
 			continue
 		if String( child.get_meta( META_TARGET_NAME, "" ) ) == node_name:
 			return child
 	return null
+
+# Containers this node made in earlier generations under another parent or
+# name (parent_path or node_name edited since): freed with their content, so
+# they do not stay next to the current one. Containers of the current
+# generation (several bulks, loop iterations) are kept.
+func _remove_previous_containers( parent : Node, target : Node3D, ctx ) -> void:
+	for p in FlowSpawnUtil.unique_parents( previousContentParents( ctx ), parent ):
+		var doomed : Array[Node] = []
+		for child in p.get_children():
+			if child == target or not child.has_meta( META_TARGET_NAME ) or not child.has_meta( "flow_owner" ):
+				continue
+			if child.is_queued_for_deletion() or isSpawnedThisSession( child, ctx ):
+				continue
+			if isOwnFlowContent( child.get_meta( "flow_owner" ), ctx, child ):
+				doomed.append( child )
+		for child in doomed:
+			p.remove_child( child )
+			child.queue_free()
 
 func _output( in_data, target : Node3D ) -> FlowData.Data:
 	var attr : String = settings.attribute_name.strip_edges()
@@ -77,19 +97,39 @@ func execute( ctx : FlowData.EvaluationContext ):
 		target.name = node_name
 		tagFlowContent( target, ctx )
 		target.set_meta( META_TARGET_NAME, node_name )
-		parent.add_child( target )
+		FlowSpawnUtil.add_spawned_child( parent, target )
 	else:
 		tagFlowContent( target, ctx )
+	_remove_previous_containers( parent, target, ctx )
 
 	if settings.owner_policy == CreateTargetNodeSettings.eOwnerPolicy.Transient:
 		target.owner = null
 	else:
 		FlowSpawnUtil.claim_spawned( self, target, FlowSpawnUtil.scene_owner_for( root ), ctx )
 
+	# Groups this node added on an earlier run (META_TARGET_GROUPS) and no
+	# longer lists leave the reused container; groups it found already set
+	# (the user's) are never removed.
+	var wanted := {}
 	for group in settings.groups:
 		var g := String( group ).strip_edges()
-		if g != "" and not target.is_in_group( g ):
+		if g != "":
+			wanted[ g ] = true
+	var added := PackedStringArray()
+	for g in PackedStringArray( target.get_meta( META_TARGET_GROUPS, PackedStringArray() ) ):
+		if wanted.has( g ):
+			added.append( g )
+		elif target.is_in_group( g ):
+			target.remove_from_group( g )
+	for g in wanted:
+		if not target.is_in_group( g ):
 			target.add_to_group( g, true )
+			added.append( g )
+	if added.is_empty():
+		if target.has_meta( META_TARGET_GROUPS ):
+			target.remove_meta( META_TARGET_GROUPS )
+	else:
+		target.set_meta( META_TARGET_GROUPS, added )
 
 	if Engine.is_editor_hint():
 		editor_mark_scene_unsaved()

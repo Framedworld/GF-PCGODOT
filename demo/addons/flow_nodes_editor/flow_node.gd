@@ -378,6 +378,32 @@ func note_spawned_content( node : Node ) -> void:
 func note_untracked_content() -> void:
 	_untracked_content = true
 
+## True when `node` is content this component spawned in this session (recorded
+## by note_spawned_content), or when it stamped content without records. A copy
+## of the content (Node.duplicate(), a packed scene instanced again) is not.
+func owns_flow_content( node : Node ) -> bool:
+	return _untracked_content or ( node != null and _spawned_content.has( node.get_instance_id() ) )
+
+## Distinct parents of the live content recorded for this component whose
+## flow_owner meta names spawner `node_name`. A spawner clears and pools under
+## these too, so content it spawned under a parent it no longer uses (a moved
+## spawn_parent_attribute value, an edited spawn_parent_path) does not stay.
+func recorded_content_parents( node_name : String ) -> Array:
+	var parents := {}
+	for id in _spawned_content:
+		if not is_instance_id_valid( id ):
+			continue
+		var node := instance_from_id( id ) as Node
+		if node == null or node.is_queued_for_deletion() or not node.has_meta( "flow_owner" ):
+			continue
+		var meta = node.get_meta( "flow_owner" )
+		if not ( meta is Dictionary ) or String( meta.get( "node", "" ) ) != node_name:
+			continue
+		var parent := node.get_parent()
+		if parent != null:
+			parents[ parent ] = true
+	return parents.keys()
+
 ## Number of content records cleanup() will look through (tests, diagnostics).
 func recorded_content_count() -> int:
 	return _spawned_content.size()
@@ -432,7 +458,7 @@ func _collect_owned( node : Node, my_id : int, own_subtree : bool, doomed : Arra
 			var mine := false
 			if meta is Dictionary:
 				var comp := int( meta.get( "component", 0 ) )
-				mine = comp == my_id or ( own_subtree and FlowNodeBase.isStaleFlowComponent( comp ) )
+				mine = comp == my_id or ( own_subtree and FlowNodeBase.isStaleFlowComponent( comp, child, self ) )
 			else:
 				mine = own_subtree
 			if mine:

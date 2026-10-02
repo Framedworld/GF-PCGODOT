@@ -129,7 +129,7 @@ func execute(ctx : FlowData.EvaluationContext):
 		# Property overrides resolve from the target actor itself (not
 		# target_child_path), like Spawn Scenes resolves from the instance root.
 		if not overrides.is_empty() and targets[target_idx] is Node:
-			FlowSpawnUtil.apply_property_overrides(targets[target_idx], overrides, i, override_problems)
+			FlowSpawnUtil.apply_property_overrides(targets[target_idx], overrides, i, override_problems, false)
 	FlowSpawnUtil.report_override_problems(self, override_problems)
 
 	if Engine.is_editor_hint():

@@ -41,8 +41,10 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var owner_of_spawned_nodes : Node = scene_root if scene_root else root
 
 	var path := Path3D.new()
-	root.add_child( path )
 	path.name = "Spline"
+	# Readable add: a taken name becomes "Spline2", as the rename after
+	# add_child() always gave, without a transient "@Path3D@N" auto-name.
+	root.add_child( path, true )
 	# Owner must be set AFTER the node is inside the tree or it never persists
 	assignSpawnOwner( path, owner_of_spawned_nodes, ctx )
 	tagFlowContent( path, ctx )

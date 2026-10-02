@@ -21,7 +21,7 @@
 	},
 	"res://demos/demo_dungeon.tscn": {
 		"nodes": "5afd6498d6bc0921a480de8593bacb873ae0fce1e4b6b3ee11c8d7047c4ee2ed",
-		"result": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:0be1a035d038601a030e280cc2f56f22ebd77f94029e667d57daa463f61a31cd"
+		"result": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:b45cd53728ecf425f6c93f575f42836412db0b3ee74ef7eab52e5bba5c86bf46"
 	},
 	"res://demos/demo_expression.tscn": {
 		"nodes": "785e701b151fc7a0fb4825dbb8c84a9457b7321ca087e3451fcf371b8e417068",
@@ -169,7 +169,7 @@
 	},
 	"res://graphs/graph_dungeon_stress_test.tres": {
 		"nodes": "5afd6498d6bc0921a480de8593bacb873ae0fce1e4b6b3ee11c8d7047c4ee2ed",
-		"result": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:c2719385f18f92d199b0ed20ce7c013296fc80c61f6785e4b4fb8f499e19126a"
+		"result": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:e2c12632837e5a05a5ab1bd703611d9a52b5375cf5aab9d425c43d7073ea093a"
 	},
 	"res://graphs/graph_hierarchical.tres": {
 		"nodes": "af727f78377753b4cd8265f77b65e61328eb4848a9f6a5420a7aea4673d2bbab",
@@ -213,7 +213,7 @@
 	},
 	"res://graphs/subgraph_dungeon_upper_level.tres": {
 		"nodes": "17d1d908b927fe9a14c1b693c08e0a8aac6769d8afd8ad2235cc3fca95e6063d",
-		"result": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:58a2b50a1cc8d0a98b748c7f890f4e98ca649e61baf9475a0dcec56da2981445"
+		"result": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:17531a756f3208544cc78c1766ffb9c6099052ebaf571dcab6cdd71e409dd6f7"
 	},
 	"res://graphs/subgraph_dungeon_wall.tres": {
 		"nodes": "62c28e7e6929ea936d077d052b7de6f416143b5f62e4ced6bf72e5da2bc6a5c3",

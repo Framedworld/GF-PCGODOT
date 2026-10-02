@@ -149,7 +149,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		if not parents_res.ok:
 			return
 		point_parents = parents_res.parents
-	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents, spawn_parent )
+	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents + previousContentParents( ctx ), spawn_parent )
 	var pool : FlowSpawnPool = null
 	if settings.clear_previous_instances:
 		if settings.reuse_instances:
@@ -236,11 +236,11 @@ func execute( ctx : FlowData.EvaluationContext ):
 				setError("Instanced scene is not a Node3D at index %d" % idx)
 				return
 		node.transform = transforms.atIndex( idx )
-		node.name = "Scene_%04d" % idx
+		FlowSpawnUtil.set_spawned_name( node, "Scene_%04d" % idx )
 		if reused:
 			FlowSpawnUtil.claim_spawned( self, node, owner_of_spawned_nodes, ctx )
 		else:
-			parent.add_child( node )
+			FlowSpawnUtil.add_spawned_child( parent, node )
 			assignSpawnOwner( node, owner_of_spawned_nodes, ctx )
 			tagFlowContent( node, ctx )
 			if pool != null:

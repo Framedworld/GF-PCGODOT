@@ -217,12 +217,14 @@ func execute( ctx : FlowData.EvaluationContext ):
 		parent = FlowSpawnUtil.resolve_single_parent( self, in_data, settings.spawn_parent_attribute, root, parent )
 	var scene_owner := FlowSpawnUtil.scene_owner_for( root )
 
+	var clear_parents : Array = FlowSpawnUtil.unique_parents( previousContentParents( ctx ), parent )
 	var pool : FlowSpawnPool = null
 	if settings.clear_previous_instances:
 		if settings.reuse_instances:
-			pool = FlowSpawnPool.collect( self, [ parent ], ctx, func( child ): return child is MeshInstance3D )
+			pool = FlowSpawnPool.collect( self, clear_parents, ctx, func( child ): return child is MeshInstance3D )
 		else:
-			removeInstancedSegments( parent, ctx )
+			for p in clear_parents:
+				removeInstancedSegments( p, ctx )
 
 	var options := {
 		"forward_axis": settings.forward_axis,
@@ -249,7 +251,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		var reused := mi != null
 		if not reused:
 			mi = MeshInstance3D.new()
-		mi.name = "SplineMesh_%04d" % k
+		FlowSpawnUtil.set_spawned_name( mi, "SplineMesh_%04d" % k )
 		mi.mesh = bent
 		mi.transform = to_parent * seg.transform
 		mi.material_override = null
@@ -260,7 +262,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			FlowSpawnUtil.claim_spawned( self, mi, scene_owner, ctx )
 		else:
 			tagFlowContent( mi, ctx )
-			parent.add_child( mi )
+			FlowSpawnUtil.add_spawned_child( parent, mi )
 			assignSpawnOwner( mi, scene_owner, ctx )
 			if pool != null:
 				FlowSpawnPool.tag( mi, pool_key )

@@ -187,7 +187,8 @@ static func bend_mesh( mesh : Mesh, curve : Curve3D, from_offset : float, to_off
 	var out := ArrayMesh.new()
 	for s in range( mesh.get_surface_count() ):
 		var arrays := mesh.surface_get_arrays( s )
-		if arrays.is_empty() or arrays[ Mesh.ARRAY_VERTEX ] == null:
+		# A 2D-vertex surface (PackedVector2Array) cannot be bent in 3D.
+		if arrays.is_empty() or not ( arrays[ Mesh.ARRAY_VERTEX ] is PackedVector3Array ):
 			continue
 		var prim : int = Mesh.PRIMITIVE_TRIANGLES
 		if mesh is ArrayMesh:
@@ -238,8 +239,11 @@ static func mesh_key( mesh : Mesh ) -> Array:
 ## asking for the same segment; do not modify it.
 static func bent_mesh_cached( mesh : Mesh, curve : Curve3D, from_offset : float, to_offset : float, options : Dictionary = {} ) -> ArrayMesh:
 	var o := _opts( options )
-	var key := hash( [ mesh_key( mesh ), curve_hash( curve ), from_offset, to_offset,
-		int( o.forward_axis ), int( o.tangent_mode ), int( o.up_mode ), o.scale_start, o.scale_end ] )
+	# The key is the field array itself (Dictionary keys compare by value), not
+	# a 32-bit hash() of it: two segments whose hashes collide must not share
+	# a slot.
+	var key := [ mesh_key( mesh ), curve_hash( curve ), from_offset, to_offset,
+		int( o.forward_axis ), int( o.tangent_mode ), int( o.up_mode ), o.scale_start, o.scale_end ]
 	if _cache.has( key ):
 		cache_hits += 1
 		_cache_order.erase( key )

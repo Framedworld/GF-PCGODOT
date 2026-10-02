@@ -317,12 +317,38 @@ func flowOwnerMeta( ctx ) -> Dictionary:
 ## Stamps the `flow_owner` meta on spawned content `node` (a subtree root) and
 ## records it on the evaluation's component, so FlowGraphNode3D.cleanup() finds
 ## it through its spawn parent without scanning the scene. Every stock spawner
-## tags its content through this.
+## tags its content through this. Also records it in the evaluation's spawn
+## session (see SPAWN_SESSION_META).
 func tagFlowContent( node : Node, ctx ) -> void:
 	node.set_meta( "flow_owner", _flowOwnerMetaValue( ctx ) )
 	var comp = _flowComponentObject( ctx )
 	if comp != null:
 		comp.note_spawned_content( node )
+	var session = _spawnSession( ctx )
+	if session is Dictionary:
+		session[ node.get_instance_id() ] = true
+
+## EvaluationContext meta holding the spawn session of one top-level
+## evaluation: instance id -> true for every content node tagged in it. The
+## executor creates it for a top-level evaluation and hands the same Dictionary
+## to nested subgraph and loop evaluations (the editor starts one per
+## evaluation). A spawner's clear step skips content of the current session, so
+## a spawner fed several bulks, or called once per loop iteration or subgraph
+## call, keeps what it spawned earlier in the same generation and only replaces
+## the content of earlier generations. Without a session (an element run by
+## hand) every run replaces the previous one, as before.
+const SPAWN_SESSION_META := &"flow_spawn_session"
+
+static func _spawnSession( ctx ):
+	if ctx == null or not ctx.has_meta( SPAWN_SESSION_META ):
+		return null
+	return ctx.get_meta( SPAWN_SESSION_META )
+
+## True when `node` was tagged as content earlier in the current evaluation
+## (see SPAWN_SESSION_META).
+static func isSpawnedThisSession( node : Node, ctx ) -> bool:
+	var session = _spawnSession( ctx )
+	return session is Dictionary and session.has( node.get_instance_id() )
 
 func _flowOwnerMetaValue( ctx ) -> Dictionary:
 	return { "component" : flowComponentId( ctx ), "node" : String( name ) }
@@ -338,35 +364,67 @@ static func _flowComponentObject( ctx ) -> Object:
 		return null
 	return comp
 
-## A component id that no longer names a live object: content saved into a
-## scene by an earlier session (instance ids do not survive reloads).
-static func isStaleFlowComponent( component_id : int ) -> bool:
-	return component_id == 0 or not is_instance_id_valid( component_id )
+## A component id that no longer names the component that spawned the content:
+## content saved into a scene by an earlier session (instance ids do not survive
+## reloads). With `content` and `component_root` given, content inside
+## `component_root`'s subtree is also stale when the id names a live object that
+## is not a Node3D (a reused id), or a live component that did not spawn this
+## node: a copy made together with its component (Node.duplicate(), the
+## editor's Duplicate, a packed scene instanced again while the original lives),
+## whose meta still names the original.
+static func isStaleFlowComponent( component_id : int, content : Node = null, component_root : Node = null ) -> bool:
+	if component_id == 0 or not is_instance_id_valid( component_id ):
+		return true
+	if content == null or component_root == null or not is_instance_valid( component_root ) \
+			or component_id == component_root.get_instance_id() or not component_root.is_ancestor_of( content ):
+		return false
+	var comp = instance_from_id( component_id )
+	if not ( comp is Node3D ):
+		return true
+	if comp.has_method( "owns_flow_content" ):
+		return not comp.owns_flow_content( content )
+	return false
+
+## Parents of the content this node spawned for the evaluation's component in
+## this session (FlowGraphNode3D.recorded_content_parents), or []. Spawners add
+## them to the parents they clear, so content under a parent the current run no
+## longer uses is replaced too.
+func previousContentParents( ctx ) -> Array:
+	var comp = _flowComponentObject( ctx )
+	if comp == null or not comp.has_method( "recorded_content_parents" ):
+		return []
+	return comp.recorded_content_parents( String( name ) )
 
 ## True when `meta` (a `flow_owner` value) marks content spawned by this node
 ## for the evaluation's component. Accepts the legacy String form (node name
 ## only) and stale component ids, so content saved by older versions or earlier
-## sessions is still cleared.
-func isOwnFlowContent( meta, ctx ) -> bool:
+## sessions is still cleared. Pass the content node as `content` so that a copy
+## of content made together with its component is recognised (see
+## isStaleFlowComponent).
+func isOwnFlowContent( meta, ctx, content : Node = null ) -> bool:
 	if meta is String or meta is StringName:
 		return String( meta ) == String( name )
 	if meta is Dictionary:
 		if String( meta.get( "node", "" ) ) != String( name ):
 			return false
 		var comp := int( meta.get( "component", 0 ) )
-		return comp == flowComponentId( ctx ) or isStaleFlowComponent( comp )
+		var root : Node = ctx.owner if ctx != null and ctx.owner != null and is_instance_valid( ctx.owner ) else null
+		return comp == flowComponentId( ctx ) or isStaleFlowComponent( comp, content, root )
 	return false
 
 ## Remove the content this node spawned under `parent` for the evaluation's
-## component (see isOwnFlowContent), optionally narrowed by `filter`. Nodes are
-## detached immediately, so the fresh spawn keeps its names, and freed at the
-## end of the frame.
+## component (see isOwnFlowContent) in earlier evaluations (content of the
+## current one stays, see SPAWN_SESSION_META), optionally narrowed by `filter`.
+## Nodes are detached immediately, so the fresh spawn keeps its names, and freed
+## at the end of the frame.
 func removeOwnFlowContent( parent : Node, ctx, filter : Callable = Callable() ) -> void:
 	var doomed : Array[Node] = []
 	for child in parent.get_children():
 		if not child.has_meta( "flow_owner" ):
 			continue
-		if not isOwnFlowContent( child.get_meta( "flow_owner" ), ctx ):
+		if isSpawnedThisSession( child, ctx ):
+			continue
+		if not isOwnFlowContent( child.get_meta( "flow_owner" ), ctx, child ):
 			continue
 		if filter.is_valid() and not filter.call( child ):
 			continue
