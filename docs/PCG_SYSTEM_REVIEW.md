@@ -1,5 +1,16 @@
 # PCGODOT System Review (2026-09)
 
+> **Status, 2026-10.** This review is a historical snapshot of upstream `91471c1`. Its
+> recommendations have since been implemented on branch `claude/pcg-system-review-4tpca9`:
+> the runtime API, bindings and overrides, extension hygiene and migrations (round 1,
+> section 3 P0 and P1 items), then the architecture work in
+> [PARITY_ROUND2.md](PARITY_ROUND2.md): runtime elements split from the editor widget,
+> compiled graphs, threaded execution and output caching, spatial data, spawner parity,
+> attribute types, hierarchical and runtime generation, terrain adapters, loop parity and
+> editor integration. For the current state read [PARITY_ROADMAP.md](PARITY_ROADMAP.md) and
+> [COMING_FROM_UNREAL_PCG.md](COMING_FROM_UNREAL_PCG.md); sections below describe the
+> code as it was when reviewed.
+
 Scope: the `flow_nodes_editor` addon at upstream HEAD (`91471c1`), reviewed against
 Unreal's PCG framework and against how the two production consumers actually drive it:
 
