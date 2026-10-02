@@ -10,12 +10,8 @@ func _init():
 		"ins" : [{ "label" : "In" }],
 		"outs" : [{ "label" : "Out" }],
 		"is_final" : true,
-		"tooltip" : "Spawns a Mesh Instance on each point, applying the translation, rotation and scale.\nThe instanced mesh can be specified by point if a stream contains the mesh resource to be spawned.\nThe generates meshes are MultiMeshInstance3D.",
+		"tooltip" : "Spawns a Mesh Instance on each point, applying the translation, rotation and scale.\nThe instanced mesh can be specified by point if a stream contains the mesh resource to be spawned.\nThe generates meshes are MultiMeshInstance3D.\nMesh entries (FlowMeshSpawnEntry) add per-entry weight, material, shadows, visibility range, layers, GI, custom data and collision.",
 	}
-
-func _exit_tree():
-	#removeInstancedComponents();
-	pass
 
 func removeInstancedComponents( root : Node3D, ctx : FlowData.EvaluationContext = null ):
 	removeOwnFlowContent( root, ctx, func( child ): return child is MultiMeshInstance3D )
@@ -113,6 +109,10 @@ func execute( ctx : FlowData.EvaluationContext ):
 		set_output(0, in_data)
 		return
 
+	if not settings.mesh_entries.is_empty():
+		_execute_entries( ctx, in_data )
+		return
+
 	var meshes = null
 	if settings.mesh_attribute:
 		var stream_meshes = in_data.findStream( settings.mesh_attribute )
@@ -160,13 +160,27 @@ func execute( ctx : FlowData.EvaluationContext ):
 		
 	var spawn_parent = _resolve_spawn_parent(root)
 	var in_size = in_data.size()
+	# Optional per-point / per-data parents (Create Target Node). Empty = today.
+	var point_parents : Array = []
+	if settings.spawn_parent_attribute.strip_edges() != "":
+		var parents_res := FlowSpawnUtil.resolve_attribute_parents( self, in_data, settings.spawn_parent_attribute, root, spawn_parent )
+		if not parents_res.ok:
+			return
+		point_parents = parents_res.parents
+	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents, spawn_parent )
+	var pool : FlowSpawnPool = null
 	if settings.clear_previous_instances:
-		removeInstancedComponents( spawn_parent, ctx )
+		if settings.reuse_instances:
+			pool = FlowSpawnPool.collect( self, clear_parents, ctx, func( child ): return child is MultiMeshInstance3D )
+		else:
+			for parent in clear_parents:
+				removeInstancedComponents( parent, ctx )
 
 	# Find who is going to be the owner of the new nodes
 	# (should be the parent root of the scene, not the parent)
 	var node_tree = root.get_tree()
 	if not node_tree:
+		_release_pool( pool )
 		setError("Invalid current scene")
 		return
 
@@ -185,6 +199,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	if default_mesh != null and variants.is_empty():
 		variants = [default_mesh]
 	if variants.is_empty() and meshes == null:
+		_release_pool( pool )
 		setError("No mesh source configured. Provide mesh, mesh_attribute, or mesh_variants.")
 		return
 
@@ -200,7 +215,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		var mesh = _resolve_mesh_for_point(idx, meshes, variants, variant_weights, selector_stream, point_seeds)
 		if mesh == null:
 			continue
-		var key = mesh
+		var key = mesh if point_parents.is_empty() else [ mesh, point_parents[idx] ]
 		var mmi = mmis.get( key, null )
 		if mmi == null:
 			mmis[ key ] = []
@@ -211,18 +226,32 @@ func execute( ctx : FlowData.EvaluationContext ):
 	if has_colors:
 		var color_size = color_stream.container.size()
 		if color_size != in_size and color_size != 1:
+			_release_pool( pool )
 			setError("Color attribute '%s' must have %d values or 1 value (got %d)" % [settings.color_attribute, in_size, color_size])
 			return
 
-	for res in mmis.keys():
-		var mmi : MultiMeshInstance3D = spawnNode( MultiMeshInstance3D, ctx )
+	for group_key in mmis.keys():
+		var res = group_key if point_parents.is_empty() else group_key[0]
+		var group_parent : Node3D = spawn_parent if point_parents.is_empty() else group_key[1]
+		var pool_key := ""
+		var mmi : MultiMeshInstance3D = null
+		if pool != null:
+			pool_key = "mesh|%s|%d" % [ FlowSpawnPool.resource_key( res ), int( has_colors ) ]
+			mmi = pool.take( pool_key, group_parent ) as MultiMeshInstance3D
+		var reused := mmi != null
+		if not reused:
+			mmi = spawnNode( MultiMeshInstance3D, ctx )
 		
 		var multimesh := MultiMesh.new()
+		if reused and mmi.multimesh != null:
+			multimesh = mmi.multimesh
+			multimesh.instance_count = 0
+			multimesh.use_colors = false
 		multimesh.mesh = res
 		multimesh.transform_format = MultiMesh.TransformFormat.TRANSFORM_3D
 		if has_colors:
 			multimesh.use_colors = true
-		var ids = mmis[res]
+		var ids = mmis[group_key]
 		multimesh.instance_count = ids.size()
 		
 		# We could also create a large buffer and perform a single update
@@ -235,15 +264,177 @@ func execute( ctx : FlowData.EvaluationContext ):
 			idx += 1
 			
 		mmi.multimesh = multimesh
+		if reused:
+			mmi.material_override = null
 		if has_colors:
 			var mat = StandardMaterial3D.new()
 			mat.vertex_color_use_as_albedo = true
 			mat.roughness = 0.3
 			mmi.material_override = mat
-		spawn_parent.add_child( mmi )
+		if reused:
+			FlowSpawnUtil.claim_spawned( self, mmi, owner_of_mmis, ctx )
+			continue
+		group_parent.add_child( mmi )
 		assignSpawnOwner( mmi, owner_of_mmis, ctx )
-	
+		if pool != null:
+			FlowSpawnPool.tag( mmi, pool_key )
+	_release_pool( pool )
+
 	if Engine.is_editor_hint():
 		editor_mark_scene_unsaved()
 
+	set_output(0, in_data)
+
+func _release_pool( pool : FlowSpawnPool ) -> void:
+	if pool != null:
+		pool.release_unused()
+
+const _VERTEX_COLOR_ROUGHNESS := 0.3
+
+## Spawn path for settings.mesh_entries (FlowMeshSpawnEntry descriptors).
+## Points pick an entry (FlowSpawnUtil.select_entries); points whose entries
+## share a group key (FlowSpawnUtil.entry_group_key: mesh, material, shadow,
+## visibility range, layers, GI, custom data and collision settings) and spawn
+## parent go into one MultiMeshInstance3D. Configuration errors are reported
+## before anything is cleared.
+func _execute_entries( ctx : FlowData.EvaluationContext, in_data : FlowData.Data ) -> void:
+	var transforms := in_data.getTransformsStream()
+	if transforms == null:
+		setError("Missing transforms information")
+		return
+	var root = ctx.owner
+	if not root:
+		if Engine.is_editor_hint():
+			set_output(0, in_data)
+			return
+		setError("Failed to find root")
+		return
+	if root.get_tree() == null:
+		setError("Invalid current scene")
+		return
+	var in_size := in_data.size()
+	var entries : Array = settings.mesh_entries
+	var picks = FlowSpawnUtil.select_entries( self, in_data, entries, settings.entry_selection, settings.entry_attribute, effective_seed() )
+	if picks == null:
+		return
+
+	var color_stream = null
+	if settings.use_vertex_colors and in_data.container( settings.color_attribute ) != null:
+		color_stream = in_data.findStream( settings.color_attribute )
+	var has_colors : bool = color_stream != null and color_stream.data_type == FlowData.DataType.Color
+	if has_colors:
+		var color_size : int = color_stream.container.size()
+		if color_size != in_size and color_size != 1:
+			setError("Color attribute '%s' must have %d values or 1 value (got %d)" % [settings.color_attribute, in_size, color_size])
+			return
+
+	# Per-entry group keys and custom data, validated before anything is cleared.
+	var group_keys := {}
+	var custom_by_entry := {}
+	for e in range( entries.size() ):
+		var entry = entries[e]
+		if entry == null or entry.mesh == null:
+			continue
+		group_keys[e] = FlowSpawnUtil.entry_group_key( entry )
+		var custom = FlowSpawnUtil.prepare_custom_data( self, in_data, entry.custom_data_attributes )
+		if custom == null:
+			return
+		custom_by_entry[e] = custom
+
+	var spawn_parent = _resolve_spawn_parent(root)
+	var point_parents : Array = []
+	if settings.spawn_parent_attribute.strip_edges() != "":
+		var parents_res := FlowSpawnUtil.resolve_attribute_parents( self, in_data, settings.spawn_parent_attribute, root, spawn_parent )
+		if not parents_res.ok:
+			return
+		point_parents = parents_res.parents
+	var scene_owner := FlowSpawnUtil.scene_owner_for( root )
+
+	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents, spawn_parent )
+	var pool : FlowSpawnPool = null
+	if settings.clear_previous_instances:
+		if settings.reuse_instances:
+			pool = FlowSpawnPool.collect( self, clear_parents, ctx, func( child ): return child is MultiMeshInstance3D )
+		else:
+			for parent in clear_parents:
+				removeInstancedComponents( parent, ctx )
+
+	# group key (entry key + parent) -> { entry index, parent, ids }
+	var groups := {}
+	for idx in range( in_size ):
+		var e : int = picks[idx]
+		if e < 0 or not group_keys.has( e ):
+			continue
+		var parent : Node3D = spawn_parent if point_parents.is_empty() else point_parents[idx]
+		var key : Array = group_keys[e] + [ parent ]
+		var group = groups.get( key, null )
+		if group == null:
+			group = { "entry": e, "parent": parent, "ids": PackedInt32Array() }
+			groups[key] = group
+		group.ids.append( idx )
+
+	var shapes := {}
+	for key in groups.keys():
+		var group : Dictionary = groups[key]
+		var entry = entries[group.entry]
+		var parent : Node3D = group.parent
+		var ids : PackedInt32Array = group.ids
+		var custom : Array = custom_by_entry[group.entry]
+		var has_custom := not custom.is_empty()
+
+		var pool_key := ""
+		var mmi : MultiMeshInstance3D = null
+		if pool != null:
+			pool_key = FlowSpawnUtil.group_pool_key( key.slice( 0, key.size() - 1 ), "colors=%d" % int( has_colors ) )
+			mmi = pool.take( pool_key, parent ) as MultiMeshInstance3D
+		var reused := mmi != null
+		if not reused:
+			mmi = spawnNode( MultiMeshInstance3D, ctx )
+
+		var multimesh : MultiMesh = mmi.multimesh if reused and mmi.multimesh != null else MultiMesh.new()
+		multimesh.instance_count = 0
+		multimesh.mesh = entry.mesh
+		multimesh.transform_format = MultiMesh.TransformFormat.TRANSFORM_3D
+		multimesh.use_colors = has_colors
+		multimesh.use_custom_data = has_custom
+		multimesh.instance_count = ids.size()
+		var local_transforms : Array[Transform3D] = []
+		local_transforms.resize( ids.size() )
+		for i in range( ids.size() ):
+			var id : int = ids[i]
+			var xf := transforms.atIndex( id )
+			local_transforms[i] = xf
+			multimesh.set_instance_transform( i, xf )
+			if has_colors:
+				multimesh.set_instance_color( i, color_stream.container[ FlowData.bcast_idx( color_stream.container.size(), id ) ] )
+			if has_custom:
+				multimesh.set_instance_custom_data( i, FlowSpawnUtil.custom_data_at( custom, id ) )
+		mmi.multimesh = multimesh
+
+		mmi.material_override = null
+		if has_colors and entry.material_override == null:
+			var mat = StandardMaterial3D.new()
+			mat.vertex_color_use_as_albedo = true
+			mat.roughness = _VERTEX_COLOR_ROUGHNESS
+			mmi.material_override = mat
+		FlowSpawnUtil.apply_render_settings( mmi, entry )
+
+		if reused:
+			FlowSpawnUtil.clear_collision( mmi )
+			FlowSpawnUtil.claim_spawned( self, mmi, scene_owner, ctx )
+		else:
+			parent.add_child( mmi )
+			assignSpawnOwner( mmi, scene_owner, ctx )
+			if pool != null:
+				FlowSpawnPool.tag( mmi, pool_key )
+
+		if entry.has_collision():
+			var shape_key := [ entry.mesh, int( entry.collision_mode ) ]
+			if not shapes.has( shape_key ):
+				shapes[shape_key] = FlowSpawnUtil.build_collision_shape( entry.mesh, entry.collision_mode )
+			FlowSpawnUtil.build_collision( self, mmi, entry, shapes[shape_key], local_transforms, scene_owner, ctx )
+	_release_pool( pool )
+
+	if Engine.is_editor_hint():
+		editor_mark_scene_unsaved()
 	set_output(0, in_data)

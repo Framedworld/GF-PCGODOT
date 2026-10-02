@@ -10,13 +10,9 @@ func _init():
 		"ins" : [{ "label" : "In" }],
 		"outs" : [{ "label" : "Out" }],
 		"is_final" : true,
-		"tooltip" : "Similar to spawn meshes but a full scene is instantiated on each node.\nA set of properties can be transfered from the nodes to each instanced scene.",
+		"tooltip" : "Similar to spawn meshes but a full scene is instantiated on each node.\nA set of properties can be transfered from the nodes to each instanced scene.\nproperty_overrides maps point attributes to (nested) property paths of the instance.",
 	}
 
-func _exit_tree():
-	#removeInstancedComponents();
-	pass
-	
 func removeInstancedNodes( root : Node3D, ctx : FlowData.EvaluationContext = null ):
 	removeOwnFlowContent( root, ctx )
 
@@ -146,13 +142,27 @@ func execute( ctx : FlowData.EvaluationContext ):
 		
 	var spawn_parent = _resolve_spawn_parent(root)
 	var in_size = in_data.size()
+	# Optional per-point / per-data parents (Create Target Node). Empty = today.
+	var point_parents : Array = []
+	if settings.spawn_parent_attribute.strip_edges() != "":
+		var parents_res := FlowSpawnUtil.resolve_attribute_parents( self, in_data, settings.spawn_parent_attribute, root, spawn_parent )
+		if not parents_res.ok:
+			return
+		point_parents = parents_res.parents
+	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents, spawn_parent )
+	var pool : FlowSpawnPool = null
 	if settings.clear_previous_instances:
-		removeInstancedNodes( spawn_parent, ctx )
+		if settings.reuse_instances:
+			pool = FlowSpawnPool.collect( self, clear_parents, ctx )
+		else:
+			for parent in clear_parents:
+				removeInstancedNodes( parent, ctx )
 
 	# Find who is going to be the owner of the new nodes
 	# (shoulw be the parent root of the scene, not the parent)
 	var node_tree = root.get_tree()
 	if not node_tree:
+		_release_pool( pool )
 		setError("Invalid current scene")
 		return
 		
@@ -185,8 +195,18 @@ func execute( ctx : FlowData.EvaluationContext ):
 		variants = [settings.scene]
 	var variant_weights = _build_variant_weights()
 	if variants.is_empty() and scenes == null:
+		_release_pool( pool )
 		setError("No scene source configured. Provide scene, scene_attribute, or scene_variants.")
 		return
+
+	var overrides : Array = []
+	if not settings.property_overrides.is_empty():
+		var prepared = FlowSpawnUtil.prepare_property_overrides( self, in_data, settings.property_overrides )
+		if prepared == null:
+			_release_pool( pool )
+			return
+		overrides = prepared
+	var override_problems := {}
 
 	# Per-point seed stream (UE parity): present when a sampler emitted AttrSeed
 	var point_seeds = null
@@ -199,18 +219,32 @@ func execute( ctx : FlowData.EvaluationContext ):
 		var packed_scene : PackedScene = _resolve_scene_for_point(idx, scenes, variants, variant_weights, selector_stream, point_seeds)
 		if not packed_scene:
 			continue
-		var created = packed_scene.instantiate()
-		var node : Node3D = created as Node3D
-		if node == null:
-			if created:
-				created.queue_free()
-			setError("Instanced scene is not a Node3D at index %d" % idx)
-			return
+		var parent : Node3D = spawn_parent if point_parents.is_empty() else point_parents[idx]
+		var pool_key := ""
+		var node : Node3D = null
+		if pool != null:
+			pool_key = "scene|" + FlowSpawnPool.resource_key( packed_scene )
+			node = pool.take( pool_key, parent ) as Node3D
+		var reused := node != null
+		if not reused:
+			var created = packed_scene.instantiate()
+			node = created as Node3D
+			if node == null:
+				if created:
+					created.queue_free()
+				_release_pool( pool )
+				setError("Instanced scene is not a Node3D at index %d" % idx)
+				return
 		node.transform = transforms.atIndex( idx )
 		node.name = "Scene_%04d" % idx
-		spawn_parent.add_child( node )
-		assignSpawnOwner( node, owner_of_spawned_nodes, ctx )
-		node.set_meta("flow_owner", flowOwnerMeta( ctx ) )
+		if reused:
+			FlowSpawnUtil.claim_spawned( self, node, owner_of_spawned_nodes, ctx )
+		else:
+			parent.add_child( node )
+			assignSpawnOwner( node, owner_of_spawned_nodes, ctx )
+			node.set_meta("flow_owner", flowOwnerMeta( ctx ) )
+			if pool != null:
+				FlowSpawnPool.tag( node, pool_key )
 		var assign_target : Node = node
 		var assign_target_path = settings.assign_target_path.strip_edges()
 		if assign_target_path != "":
@@ -220,8 +254,16 @@ func execute( ctx : FlowData.EvaluationContext ):
 		for s in streams_to_assign:
 			var read_idx = idx if s.container.size() > 1 else 0
 			assign_target.set( s.node_property, s.container[ read_idx ])
-	
+		if not overrides.is_empty():
+			FlowSpawnUtil.apply_property_overrides( node, overrides, idx, override_problems )
+	_release_pool( pool )
+	FlowSpawnUtil.report_override_problems( self, override_problems )
+
 	if Engine.is_editor_hint():
 		editor_mark_scene_unsaved()
 
 	set_output(0, in_data)
+
+func _release_pool( pool : FlowSpawnPool ) -> void:
+	if pool != null:
+		pool.release_unused()

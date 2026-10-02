@@ -31,6 +31,11 @@ enum eTargetMode {
 @export var apply_transform_to_node3d : bool = false
 ## A mapping of point attribute names to target Node properties to be assigned during execution.
 @export var assign_attributes : Dictionary = {}
+## Point attribute name -> property path on each target actor, with nested paths,
+## "%Unique" names and type coercion (same syntax as Spawn Scenes'
+## property_overrides). Resolved from the target actor itself, not from
+## target_child_path.
+@export var property_overrides : Dictionary = {}
 
 func _init():
 	super._init()

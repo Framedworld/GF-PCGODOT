@@ -107,6 +107,14 @@ func execute(ctx : FlowData.EvaluationContext):
 			push_warning("Apply On Actor: stream '%s' has %d values but input has %d points — out-of-range points are skipped" % [stream_name, stream_size, in_size])
 		streams_to_assign.append({ "property": String(prop_name), "stream": stream })
 
+	var overrides : Array = []
+	if not settings.property_overrides.is_empty():
+		var prepared = FlowSpawnUtil.prepare_property_overrides(self, in_data, settings.property_overrides)
+		if prepared == null:
+			return
+		overrides = prepared
+	var override_problems := {}
+
 	for i in range(in_size):
 		var target_idx : int = i if targets.size() == in_size else i % targets.size()
 		var target = _resolve_assign_target(targets[target_idx])
@@ -118,6 +126,11 @@ func execute(ctx : FlowData.EvaluationContext):
 			var read_idx : int = FlowData.bcast_idx(stream.container.size(), i)
 			if read_idx < stream.container.size():
 				target.set(item.property, stream.container[read_idx])
+		# Property overrides resolve from the target actor itself (not
+		# target_child_path), like Spawn Scenes resolves from the instance root.
+		if not overrides.is_empty() and targets[target_idx] is Node:
+			FlowSpawnUtil.apply_property_overrides(targets[target_idx], overrides, i, override_problems)
+	FlowSpawnUtil.report_override_problems(self, override_problems)
 
 	if Engine.is_editor_hint():
 		editor_mark_scene_unsaved()

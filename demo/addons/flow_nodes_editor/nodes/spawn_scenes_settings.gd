@@ -25,6 +25,26 @@ extends NodeSettings
 ## Map of point attributes to set as properties on spawned scene root nodes.
 @export var assign_attributes: Dictionary
 
+@export_subgroup("Attribute Overrides")
+## Point attribute name -> property path on each spawned instance, applied after
+## instancing (and after assign_attributes), with type coercion. Paths:
+## "light_energy", "position:x" (nested), "Child/Light:light_energy",
+## "%Mesh:material_override:albedo_color" (unique name, nested). A leading ':'
+## forces the instance root. Unreal's Spawn Actor property overrides.
+@export var property_overrides : Dictionary = {}
+
+@export_subgroup("Placement")
+## Attribute holding the spawn parent per point (or per data, e.g. "@data.target"
+## from Create Target Node): a Node3D reference, or a NodePath/String relative to
+## the owner. Empty: spawn_parent_path is used.
+@export var spawn_parent_attribute : String = ""
+## Reuse this node's spawned scene roots from the previous generation (same
+## component, same PackedScene) instead of freeing and re-instancing them: the
+## transform, name, assigned attributes and property overrides are re-applied,
+## other runtime state of a reused instance is kept. Needs
+## clear_previous_instances. Off by default.
+@export var reuse_instances : bool = false
+
 func _init():
 	super._init()
 	resource_name = "Spawn Scenes Settings"
@@ -35,3 +55,8 @@ func exposeParam(name : String) -> bool:
 	if name == "scene_selector_attribute":
 		return scene_variants.size() > 0 and not randomize_scene_variants
 	return true
+
+func _get_attribute_selector_props() -> Array[Dictionary]:
+	return [
+		{ "prop": "spawn_parent_attribute", "port": 0 },
+	]

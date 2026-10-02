@@ -12,7 +12,7 @@ func _init():
 		"ins" : [{ "label" : "In" }],
 		"outs" : [{ "label" : "Out" }],
 		"is_final" : true,
-		"tooltip" : "Dynamically instantiates a raw Godot class or custom script node on each point.\nProperties can be transferred from point attributes to node properties.",
+		"tooltip" : "Dynamically instantiates a raw Godot class or custom script node on each point.\nProperties can be transferred from point attributes to node properties.\nproperty_overrides maps point attributes to (nested) property paths of the node.",
 	}
 
 func removeInstancedNodes( root : Node3D, ctx : FlowData.EvaluationContext = null ):
@@ -97,12 +97,26 @@ func execute( ctx : FlowData.EvaluationContext ):
 		
 	var spawn_parent = _resolve_spawn_parent(root)
 	var in_size = in_data.size()
+	# Optional per-point / per-data parents (Create Target Node). Empty = today.
+	var point_parents : Array = []
+	if settings.spawn_parent_attribute.strip_edges() != "":
+		var parents_res := FlowSpawnUtil.resolve_attribute_parents( self, in_data, settings.spawn_parent_attribute, root, spawn_parent )
+		if not parents_res.ok:
+			return
+		point_parents = parents_res.parents
+	var clear_parents : Array = FlowSpawnUtil.unique_parents( point_parents, spawn_parent )
+	var pool : FlowSpawnPool = null
 	if settings.clear_previous_instances:
-		removeInstancedNodes( spawn_parent, ctx )
+		if settings.reuse_instances:
+			pool = FlowSpawnPool.collect( self, clear_parents, ctx )
+		else:
+			for parent in clear_parents:
+				removeInstancedNodes( parent, ctx )
 
 	# Find who is going to be the owner of the new nodes
 	var node_tree = root.get_tree()
 	if not node_tree:
+		_release_pool( pool )
 		setError("Invalid current scene")
 		return
 
@@ -120,11 +134,13 @@ func execute( ctx : FlowData.EvaluationContext ):
 	if settings.node_selector_attribute.strip_edges() != "":
 		selector_stream = in_data.findStream(settings.node_selector_attribute)
 		if selector_stream != null and selector_stream.data_type != FlowData.DataType.Int and selector_stream.data_type != FlowData.DataType.Float:
+			_release_pool( pool )
 			setError("Node selector attribute '%s' must be Int or Float" % settings.node_selector_attribute)
 			return
 		if selector_stream != null:
 			var sel_size = selector_stream.container.size()
 			if sel_size != in_data.size() and sel_size != 1:
+				_release_pool( pool )
 				setError("Node selector attribute '%s' must have %d values or 1 value (got %d)" % [settings.node_selector_attribute, in_data.size(), sel_size])
 				return
 
@@ -136,9 +152,19 @@ func execute( ctx : FlowData.EvaluationContext ):
 		if stream:
 			var s_size = stream.container.size()
 			if s_size != in_size and s_size != 1:
+				_release_pool( pool )
 				setError("Assign attribute '%s' must have %d values or 1 value (got %d)" % [stream_name, in_size, s_size])
 				return
 			streams_to_assign.append( { "node_property" : node_property, "container" : stream.container } )
+
+	var overrides : Array = []
+	if not settings.property_overrides.is_empty():
+		var prepared = FlowSpawnUtil.prepare_property_overrides( self, in_data, settings.property_overrides )
+		if prepared == null:
+			_release_pool( pool )
+			return
+		overrides = prepared
+	var override_problems := {}
 
 	# Per-point seed stream (UE parity): when present, randomized variant picks
 	# derive from it instead of the index-based fallback
@@ -151,23 +177,38 @@ func execute( ctx : FlowData.EvaluationContext ):
 	# Spawn nodes
 	for idx in range( in_size ):
 		var class_name_to_spawn = _resolve_class_name_for_point(idx, variants, selector_stream, point_seeds)
-		var node : Node = _instantiate_class_or_script(class_name_to_spawn)
+		var parent : Node3D = spawn_parent if point_parents.is_empty() else point_parents[idx]
+		var pool_key := ""
+		var node3d : Node3D = null
+		if pool != null:
+			pool_key = "class|" + class_name_to_spawn
+			node3d = pool.take( pool_key, parent ) as Node3D
+		var reused := node3d != null
+		if not reused:
+			var node : Node = _instantiate_class_or_script(class_name_to_spawn)
 
-		if not node:
-			setError("Failed to instantiate '%s'" % class_name_to_spawn)
-			return
+			if not node:
+				_release_pool( pool )
+				setError("Failed to instantiate '%s'" % class_name_to_spawn)
+				return
 
-		var node3d = node as Node3D
-		if not node3d:
-			node.queue_free()
-			setError("Instantiated node '%s' is not a Node3D subclass" % class_name_to_spawn)
-			return
+			node3d = node as Node3D
+			if not node3d:
+				node.queue_free()
+				_release_pool( pool )
+				setError("Instantiated node '%s' is not a Node3D subclass" % class_name_to_spawn)
+				return
 
 		node3d.transform = transforms.atIndex( idx )
 		node3d.name = "%s_%04d" % [class_name_to_spawn.get_file().get_basename(), idx]
-		spawn_parent.add_child( node3d )
-		assignSpawnOwner( node3d, owner_of_spawned_nodes, ctx )
-		node3d.set_meta("flow_owner", flowOwnerMeta( ctx ) )
+		if reused:
+			FlowSpawnUtil.claim_spawned( self, node3d, owner_of_spawned_nodes, ctx )
+		else:
+			parent.add_child( node3d )
+			assignSpawnOwner( node3d, owner_of_spawned_nodes, ctx )
+			node3d.set_meta("flow_owner", flowOwnerMeta( ctx ) )
+			if pool != null:
+				FlowSpawnPool.tag( node3d, pool_key )
 		var assign_target : Node = node3d
 		var assign_target_path = settings.assign_target_path.strip_edges()
 		if assign_target_path != "":
@@ -179,7 +220,15 @@ func execute( ctx : FlowData.EvaluationContext ):
 		for s in streams_to_assign:
 			var read_idx = FlowData.bcast_idx( s.container.size(), idx )
 			assign_target.set( s.node_property, s.container[ read_idx ])
-	
+		if not overrides.is_empty():
+			FlowSpawnUtil.apply_property_overrides( node3d, overrides, idx, override_problems )
+	_release_pool( pool )
+	FlowSpawnUtil.report_override_problems( self, override_problems )
+
 	if Engine.is_editor_hint():
 		editor_mark_scene_unsaved()
 	set_output(0, in_data)
+
+func _release_pool( pool : FlowSpawnPool ) -> void:
+	if pool != null:
+		pool.release_unused()
