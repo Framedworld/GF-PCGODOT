@@ -52,9 +52,9 @@ This is option (2) from the brief, made element-exact. Summary statistics (min, 
 
 - `n`, `c`: element and component counts;
 - `r`: a hash of every value's 0.005 bucket. The bucket boundaries are offset by 0.381966 of a bucket so values on round decimal or power-of-two grids never sit on one;
-- `m`: the few values that were within the noise budget of a bucket boundary when the fingerprint was made (index and boundary; 10,074 values, 0.17%);
-- `d`: the noise budget, 8 float32 ulps of the stream's largest magnitude (at least ulp(1));
-- `g`: near-gimbal rotations, kept whole (1,177 elements);
+- `m`: the few values that were within the noise budget of a bucket boundary when the fingerprint was made (index and boundary; 70,319 values, 1.2%, after the budget revision below);
+- `d`: the noise budget, 64 float32 ulps of the stream's largest magnitude (at least ulp(1)), capped at 0.0015 per value (8 ulps before the budget revision below);
+- `g`: rotations with |cos(pitch)| < 0.7, kept whole (5,611 elements);
 - `lo`, `hi`: per-component min and max, used only in messages.
 
 When an exact hash differs, `GoldenTolerance.compare_entry` (`demo/tests/golden/golden_tolerance.gd`) decides:
@@ -71,7 +71,7 @@ When an exact hash differs, `GoldenTolerance.compare_entry` (`demo/tests/golden/
 
 - **Wraparound.** Buckets and boundaries are taken modulo 360/0.005 = 72,000, and 180 is a bucket centre, not a boundary. So +179.9999 and -179.9999 match. 179.995 against -179.995, which are 0.01 apart across the seam, fails. A non-rotation stream gets no wraparound.
 - **Gimbal lock.** The first end-to-end simulation exposed this. It perturbed `basisToEuler` by one ulp locally. The colonnade's rubble element 405 at pitch -89.81 then moved 0.0013 degrees in yaw and in roll, but only 0.0004 degrees as a rotation. Yaw and roll are ill-conditioned there by 1/|cos(pitch)|. So the comparison works as follows:
-  - Where |cos(pitch)| >= 0.1, components are bucketed with a budget scaled by 1/|cos(pitch)| (at most 10x).
+  - Where |cos(pitch)| >= 0.7 (0.1 before the budget revision), components are bucketed with a budget scaled by 1/|cos(pitch)| (at most 1.43x).
   - Where |cos(pitch)| < 2e-5 (pitch at ±90 up to float noise), the rotation depends only on pitch and on phi = yaw - sign(pitch)·roll, because Ry(y)·Rx(∓90)·Rz(z) = Ry(y ± z)·Rx(∓90). Those two values are bucketed. The roughly 15,700 exact-gimbal elements of the sample-mesh demos, with normals straight up, cost nothing extra.
   - In between, the element is stored whole and compared by rotation distance (quaternions in double precision). The tolerance is 2·d plus the float32 representability term, capped at 0.005 degrees. A single-component change of 0.01 moves the rotation by exactly 0.01 degrees, so it fails.
   - Trading yaw against roll at exact gimbal lock is the same rotation, and it passes.
@@ -79,7 +79,7 @@ When an exact hash differs, `GoldenTolerance.compare_entry` (`demo/tests/golden/
 ### What the tests show (`demo/tests/golden/golden_tolerance_test.gd`, 10 cases)
 
 - 1e-7 relative jitter on the colonnade's sampled rotations flips the exact hash in more than half of 200 trials and passes the tolerance check in all 200.
-- Jitter of up to ±4 float32 ulps on every float stream of the colonnade and sample_points graphs is tolerated.
+- Jitter of up to ±30 float32 ulps on every float stream of the colonnade and sample_points graphs is tolerated (±4 before the budget revision).
 - A ±0.01 change fails. This is checked on every masked value, every near-gimbal rotation component and every 37th value of five streams (rotation, random-rubble rotation, position, size and colour; about 4,000 cases).
 - A changed point count fails, both in the stream and in the summary.
 - A removed, added or retyped stream fails.
@@ -145,7 +145,7 @@ If anything still fails, the report needs only the failing lines. Each one names
 ## Files
 
 - Changed: `demo/tests/nodes/surface_sampler_test.gd`, `demo/tests/review/r1_editor_review_test.gd`, `demo/tests/editor/editor_widget_modes_test.gd`, `demo/tests/editor/editor_smoke_harness_test.gd`, `demo/tests/golden/golden_graphs_test.gd` (evaluation helpers made static and shared, comparison through the tolerance layer, sidecar modes, one new case), `demo/tests/golden/README.md`, `demo/tests/executor/executor_modes_golden_test.gd`, `demo/tests/runtime/seed_zero_backcompat_test.gd`.
-- New: `demo/tests/golden/golden_tolerance.gd`, `demo/tests/golden/golden_tolerance_test.gd`, `demo/tests/golden/baseline_tolerance.json` (490 KB).
+- New: `demo/tests/golden/golden_tolerance.gd`, `demo/tests/golden/golden_tolerance_test.gd`, `demo/tests/golden/baseline_tolerance.json` (1.24 MB after the budget revision; 490 KB before).
 - Not changed: any addon file, gdUnit4, `baseline.json`, `seed_zero_baseline.json`.
 
 Dictionary, nodes_reference and DEPRECATIONS rows: none (test infrastructure only).
@@ -166,3 +166,54 @@ Dictionary, nodes_reference and DEPRECATIONS rows: none (test infrastructure onl
 | `05e12c7` | Executor-modes and editor-smoke golden checks use it |
 | `6b10804` | Seed-zero platform-noise fallback and per-entry report |
 | (this file) | Notes |
+
+## Budget revision after the Windows retest (head `ee6d90b`)
+
+The Windows retest passed 76 streams as PLATFORM_NOISE but failed others: real noise was larger than the 8-ulp budget. The reported deviations were measured from the recorded boundary against the check window (2·d), so the noise itself lies in [deviation - d, deviation + d]:
+
+| Stream (colonnade) | Element | Deviation / window | Noise |
+|---|---|---|---|
+| `id_0002_sample` … `.rotation` | 439 roll | 4.70e-4 / 2.45e-4 deg | 3.5e-4 … 5.9e-4 deg = **23 … 39 ulps** of 177 deg |
+| `id_0008_trans_rubble` `.rotation` | 434 pitch, \|cos\| 0.34 | 7.26e-4 / 7.23e-4 | 3.6e-4 … 1.09e-3 (8 … 24 ulps before the 1/cos factor) |
+| `id_0007_dup_rubble` `.position` | 1319 z | 1.90e-5 / 1.53e-5 | 1.1e-5 … 2.7e-5 = **12 … 28 ulps** of 13.7 |
+| `id_0008_trans_rubble` … `.position` | — | bucket flips of unmasked values | > 8 ulps |
+
+The noise is not one libm ulp of the Euler result. Godot's curve baking and the Euler extraction run in float32, so it accumulates along the curve (element 439 of 475).
+
+### Changes
+
+All in `demo/tests/golden/golden_tolerance.gd`. `baseline.json` and `seed_zero_baseline.json` are byte-identical.
+
+- **`NOISE_ULPS` 8 → 64.** That is a 1.6x margin over the worst bound (39 ulps) and 2.3x over positions (28). The masked lists are built with the same budget, which covers the bucket-hash flips.
+- **New `BUDGET_CAP = 0.0015`, an absolute cap on any value's budget** (`value_budget()`). A masked value starts within 1 budget of its boundary and may end within 2, so with budget ≤ QUANTUM/3 a change of 0.005 or more always fails. 0.0015 < 0.005/3, and a test asserts this. A stream whose real noise exceeds the cap (float32 magnitudes above about 3000) fails, which is the conservative outcome.
+- **`GIMBAL_COS` 0.1 → 0.7.** With a 64-ulp budget, the 1/|cos(pitch)| scaling of bucketed Euler components up to 10x would have hit the cap: the rubble element at |cos| 0.34 has pitch noise up to 1.09e-3. Elements with |pitch| > 45.6 degrees are now compared by rotation distance, with tolerance min(2·budget + float32 term, 0.005 deg). The bucketed scale is now at most 1.43x.
+- **Sidecar rebuilt** only with `FLOW_GOLDEN_UPDATE_TOLERANCE=1`, which refuses unless the run matches `baseline.json` exactly. It now also records `budget_cap` and `gimbal_cos`. It is 1.24 MB, with 1,957 streams, 70,319 masked values (1.2%) and 5,611 whole rotations.
+
+### Tests (`golden_tolerance_test.gd`, now 13 cases)
+
+- **`test_noise_budget_is_pinned`** fails if `NOISE_ULPS` (64), `BUDGET_CAP` (0.0015), `QUANTUM`, `GIMBAL_COS` or `GIMBAL_MAX_TOL_DEG` change, if `3·BUDGET_CAP > QUANTUM`, or if the sidecar was built with other values.
+- **The noise tests now fingerprint this machine's own captured values and perturb those.** They hold on any platform, whereas on Windows the captured values already carry Windows' noise relative to the Linux sidecar. This fixes the three cases that failed there:
+  - `test_ulp_noise_flips_the_exact_hash_but_not_the_tolerance_check`: 1e-7 relative jitter.
+  - `test_30_ulp_jitter_on_every_reported_stream_is_tolerated`: ±30 ulps on every float stream of the colonnade and sample_points graphs, which must pass.
+  - `test_simulated_platform_noise_end_to_end`: a self-made baseline and sidecar, with ±30-ulp jitter on every rotation and position stream. It passes as PLATFORM_NOISE off-platform, fails on-platform, and a 0.01 change fails with a `graph=… node=… stream=…` line.
+- **`test_measured_windows_deviations_are_tolerated`** applies the reported deviations at their upper bounds, both signs, to the same elements (sample and lintel rotation 439 roll ±5.92e-4, rubble rotation 434 pitch ±1.09e-3, dup_rubble position 1319 z ±2.66e-5). All pass.
+- **`test_propagated_position_noise_is_tolerated`** applies ±30 ulps to the transformed-rubble positions, 20 trials each.
+- **`test_a_0_01_change_in_any_component_fails`** now bumps every component of every element of every float stream of both reported graphs by ±0.01, which must fail. That is more than 100k bumps, including every masked value and every whole-kept rotation. It uses `element_tokens()`, the per-element function `check()` hashes, so each bump costs O(1).
+- **Wraparound and gimbal tests are kept.**
+- **Mutation check:** setting the cap to 0.004 and the budget to 4096 ulps makes the pin, 0.01 and exact-grid tests fail.
+
+### One-off checks (not kept in the suite: 68 s)
+
+**Whole golden set:** every component of every element of all 1,957 float streams bumped by ±0.01. That is 11,551,504 bumps, covering all 70,319 masked values and all 5,611 whole rotations. 0 were missed. On Linux, every stream also matches its sidecar fingerprint.
+
+**Local reproduction of the retest.** `sample_spline`'s rotation output was multiplied by `1.0000033` (local only, reverted). That is 5.8e-4 deg at 177 deg, about 38 ulps, and it propagates through transform, duplicate and spawn to rotations and positions.
+- With the previous sidecar and 8-ulp budget, under `FLOW_GOLDEN_TOLERANCE=noise`, the golden suite failed with 39 lines of the Windows kinds. Examples:
+  - `element 180 component 1 … is 0.000345 from the value it had at baseline time (noise budget 0.000245)`;
+  - `values moved by 0.005 or more somewhere in the stream` on the lintel and rubble positions;
+  - `id_0007_dup_rubble .position element 1319 component 2`.
+- With the new sidecar, golden, seed-zero, executor-modes and editor-smoke all pass: 14 cases, 64 streams as PLATFORM_NOISE in golden and 10 sources in seed-zero.
+
+### Verification
+
+- Import check: nothing printed on 4.6 or 4.7.1.
+- Full suite `-c -a res://tests`: 2699 cases, 0 errors, 0 failures, 0 orphans, exit 0, on both 4.7.1 and 4.6.

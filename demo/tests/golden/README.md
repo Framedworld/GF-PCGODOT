@@ -119,7 +119,8 @@ near-gimbal rotations kept whole, per-component min/max for messages):
   spawn count, errors, integer or string streams such as `seed`) fails;
 - the graph is re-evaluated, the re-run must reproduce the very same exact
   hash, and every value must match the fingerprint within the stream's noise
-  budget (8 float32 ulps of its largest magnitude);
+  budget (64 float32 ulps of its largest magnitude, at most 0.0015 per value;
+  the Windows retest measured up to 39 ulps on sampled spline rotations);
 - rotation streams are compared as rotations: modulo 360 (so +179.9999 and
   -179.9999 match), at gimbal lock through pitch and yaw -+ roll, near gimbal
   lock by rotation distance;

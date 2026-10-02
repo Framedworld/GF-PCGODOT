@@ -19,7 +19,8 @@
 #   - "masked" values are those that sat within the noise budget of a bucket
 #     boundary when the fingerprint was made; their index and that boundary
 #     are stored (`m`). The budget `d` is NOISE_ULPS float32 ulps of the
-#     stream's largest magnitude (at least ulp(1));
+#     stream's largest magnitude (at least ulp(1)), never more than BUDGET_CAP
+#     per value;
 #   - `r` hashes the bucket of every other value (masked ones as a fixed token).
 #
 # A run whose values differ from the fingerprinted run by at most the budget
@@ -40,7 +41,7 @@
 #   - |cos(pitch)| < GIMBAL_EXACT_COS (pitch at +-90 up to float noise): the
 #     rotation only depends on pitch and phi = yaw - sign(pitch) * roll, so
 #     those two are bucketed; the yaw/roll split is arbitrary there;
-#   - in between (near gimbal lock): yaw and roll are ill-conditioned, so the
+#   - in between (towards gimbal lock): yaw and roll are ill-conditioned, so the
 #     element is stored whole (`g`) and compared by rotation distance
 #     (rotation_distance_deg), tolerance min(2 * d + float32 term, 0.005 deg).
 #
@@ -60,15 +61,28 @@ const QUANTUM := 0.005
 ## decimal and power-of-two values (0.125, 2.5, ...) that graphs produce
 ## exactly, so exact values are never masked.
 const OFFSET := 0.381966
-## Per-stream noise budget in float32 ulps of the stream's largest magnitude.
-const NOISE_ULPS := 8.0
+## Per-stream noise budget in float32 ulps of the stream's largest magnitude
+## (at least ulp(1)). Measured Windows-vs-Linux noise on sampled spline
+## rotations reached 23..39 ulps (curve baking and Euler extraction in
+## float32 accumulate it), and positions derived from them 12..28 ulps;
+## 64 leaves a 1.6x margin over the worst. Pinned by a test: do not raise it
+## without new measurements.
+const NOISE_ULPS := 64.0
+## Absolute cap on any value's budget. A masked value passes while it stays
+## within 2 * budget of its recorded boundary, having been within 1 * budget
+## of it; so with budget <= QUANTUM / 3 a change of QUANTUM (0.005) or more
+## always fails, masked or not. 0.0015 < 0.005 / 3. A stream whose real noise
+## exceeds the cap (float32 magnitudes above ~3000) fails, conservatively.
+const BUDGET_CAP := 0.0015
 ## Vector3 streams holding Euler angles in degrees: compared as rotations.
 const ANGLE_STREAMS : Array[String] = ["rotation"]
 const ANGLE_PERIOD_BUCKETS := 72000 # 360 / QUANTUM
-## Below this |cos(pitch)| (pitch within ~5.7 degrees of +-90) an element is
-## near gimbal lock; above it the per-component budget is scaled by
-## 1 / |cos(pitch)| (at most 10x).
-const GIMBAL_COS := 0.1
+## Below this |cos(pitch)| (|pitch| above ~45.6 degrees) an element is kept
+## whole and compared by rotation distance; above it the per-component budget
+## is scaled by 1 / |cos(pitch)| (at most 1.43x), because yaw, roll and pitch
+## extracted from a float32 basis all get noisier by that factor and a larger
+## scale would run into BUDGET_CAP.
+const GIMBAL_COS := 0.7
 ## Below this |cos(pitch)| (pitch within ~0.001 degrees of +-90) an element is
 ## at gimbal lock: compared through (pitch, yaw - sign(pitch) * roll).
 const GIMBAL_EXACT_COS := 0.00002
@@ -175,6 +189,12 @@ static func _ulp32(magnitude: float) -> float:
 	var m : float = maxf(absf(magnitude), 1.0)
 	return pow(2.0, floorf(log(m) / log(2.0)) - 23.0)
 
+## Budget of one value: the stream budget `delta` times `scale` (1 / |cos(pitch)|
+## for Euler components, 2 for yaw -+ roll at gimbal lock), capped at
+## BUDGET_CAP so a change of QUANTUM always fails (see BUDGET_CAP).
+static func value_budget(delta: float, scale: float) -> float:
+	return minf(delta * scale, BUDGET_CAP)
+
 static func noise_budget(values: PackedFloat64Array) -> float:
 	var absmax := 0.0
 	for v in values:
@@ -256,7 +276,7 @@ static func rotation_distance_deg(a: Array, b: Array) -> float:
 ## float32 rounding is amplified by 1/|cos(pitch)|), capped so that a 0.01
 ## degree change is always reported.
 static func gimbal_tolerance_deg(delta: float, pitch_cos: float) -> float:
-	return minf(2.0 * delta + rad_to_deg(GIMBAL_ULPS * pow(2.0, -23.0) / maxf(pitch_cos, 1e-9)), GIMBAL_MAX_TOL_DEG)
+	return minf(2.0 * value_budget(delta, 1.0) + rad_to_deg(GIMBAL_ULPS * pow(2.0, -23.0) / maxf(pitch_cos, 1e-9)), GIMBAL_MAX_TOL_DEG)
 
 ## Canonical values of an angle element at gimbal lock: pitch and
 ## phi = yaw - sign(pitch) * roll (Ry(y) Rx(-+90) Rz(z) = Ry(y -+ z) Rx(-+90)).
@@ -312,13 +332,13 @@ static func fingerprint(container, angle: bool) -> Dictionary:
 	var masks := []
 	var gimbal := []
 	for e in range(values.size() / comps):
-		var window := delta / QUANTUM
+		var window := value_budget(delta, 1.0) / QUANTUM
 		if angle:
 			var c := _pitch_cos(values, e)
 			if c < GIMBAL_EXACT_COS:
 				var pair := _gimbal_lock_pair(values, e)
 				tokens[e * 3] = _tokenize(pair[0], e * 3, window, true, masks)
-				tokens[e * 3 + 1] = _tokenize(pair[1], e * 3 + 1, 2.0 * window, true, masks)
+				tokens[e * 3 + 1] = _tokenize(pair[1], e * 3 + 1, value_budget(delta, 2.0) / QUANTUM, true, masks)
 				tokens[e * 3 + 2] = GIMBAL_LOCK_TOKEN
 				continue
 			if c < GIMBAL_COS:
@@ -326,7 +346,7 @@ static func fingerprint(container, angle: bool) -> Dictionary:
 				for k in range(3):
 					tokens[e * 3 + k] = GIMBAL_TOKEN
 				continue
-			window /= c
+			window = value_budget(delta, 1.0 / c) / QUANTUM
 		for k in range(comps):
 			tokens[e * comps + k] = _tokenize(values[e * comps + k], e * comps + k, window, angle, masks)
 	var ranges := _ranges(values, comps)
@@ -343,6 +363,56 @@ static func fingerprint(container, angle: bool) -> Dictionary:
 		fp["g"] = gimbal
 	return fp
 
+## The masked-value table { flat index: boundary } and the near-gimbal table
+## { element: [x, y, z] } of a fingerprint.
+static func fp_tables(fp: Dictionary) -> Dictionary:
+	var masked := {}
+	var m : Array = fp.get("m", [])
+	for j in range(0, m.size() - 1, 2):
+		masked[int(m[j])] = int(m[j + 1])
+	var gimbal := {}
+	var g : Array = fp.get("g", [])
+	for j in range(0, g.size() - 3, 4):
+		gimbal[int(g[j])] = [float(g[j + 1]), float(g[j + 2]), float(g[j + 3])]
+	return { "masked": masked, "gimbal": gimbal }
+
+## Tokens of element `e` as check() hashes them, or a failure description
+## (String) when the element left its recorded window. Shared with the tests
+## that verify, element by element, that a 0.01 change is always caught.
+static func element_tokens(values: PackedFloat64Array, comps: int, e: int, angle: bool, delta: float, masked: Dictionary, gimbal: Dictionary) -> Variant:
+	var tokens := PackedInt64Array()
+	tokens.resize(comps)
+	var window := 2.0 * value_budget(delta, 1.0) / QUANTUM
+	if angle:
+		if gimbal.has(e):
+			var was : Array = gimbal[e]
+			var now := [values[e * 3], values[e * 3 + 1], values[e * 3 + 2]]
+			var tol := gimbal_tolerance_deg(delta, absf(cos(deg_to_rad(was[0]))))
+			var dist := rotation_distance_deg(was, now)
+			if is_nan(dist) or dist > tol:
+				return "element %d rotation %s is %s degrees from %s at baseline time (towards gimbal lock; tolerance %s)" % [
+					e, str(now), str(dist), str(was), str(tol)]
+			for k in range(3):
+				tokens[k] = GIMBAL_TOKEN
+			return tokens
+		var c := _pitch_cos(values, e)
+		if c < GIMBAL_EXACT_COS:
+			var pair := _gimbal_lock_pair(values, e)
+			for k in range(2):
+				var t = _verify(pair[k], e * 3 + k, 2.0 * value_budget(delta, 1.0 + k) / QUANTUM, true, masked)
+				if t is String:
+					return "element %d (at gimbal lock) %s %s" % [e, "pitch" if k == 0 else "yaw -+ roll", t]
+				tokens[k] = t
+			tokens[2] = GIMBAL_LOCK_TOKEN
+			return tokens
+		window = 2.0 * value_budget(delta, 1.0 / maxf(c, GIMBAL_COS)) / QUANTUM
+	for k in range(comps):
+		var t = _verify(values[e * comps + k], e * comps + k, window, angle, masked)
+		if t is String:
+			return "element %d component %d %s" % [e, k, t]
+		tokens[k] = t
+	return tokens
+
 ## "" when `container` matches fingerprint `fp` within its noise budget,
 ## otherwise a description of the first problem found.
 static func check(container, angle: bool, fp: Dictionary) -> String:
@@ -357,52 +427,23 @@ static func check(container, angle: bool, fp: Dictionary) -> String:
 	if values.size() / comps != int(fp.get("n", -1)):
 		return "element count %d -> %d" % [int(fp.get("n", -1)), values.size() / comps]
 	var delta := float(fp.get("d", 0.0))
-	var masked := {}
-	var m : Array = fp.get("m", [])
-	for j in range(0, m.size() - 1, 2):
-		masked[int(m[j])] = int(m[j + 1])
-	var gimbal := {}
-	var g : Array = fp.get("g", [])
-	for j in range(0, g.size() - 3, 4):
-		gimbal[int(g[j])] = [float(g[j + 1]), float(g[j + 2]), float(g[j + 3])]
+	var tables := fp_tables(fp)
+	var masked : Dictionary = tables.masked
+	var gimbal : Dictionary = tables.gimbal
 	if not gimbal.is_empty() and not angle:
 		return "near-gimbal rotations recorded but the stream is not a 3-component angle stream"
 	var tokens := PackedInt64Array()
 	tokens.resize(values.size())
 	for e in range(values.size() / comps):
-		var window := 2.0 * delta / QUANTUM
-		if angle:
-			if gimbal.has(e):
-				var was : Array = gimbal[e]
-				var now := [values[e * 3], values[e * 3 + 1], values[e * 3 + 2]]
-				var tol := gimbal_tolerance_deg(delta, absf(cos(deg_to_rad(was[0]))))
-				var dist := rotation_distance_deg(was, now)
-				if is_nan(dist) or dist > tol:
-					return "element %d rotation %s is %s degrees from %s at baseline time (near gimbal lock; tolerance %s)" % [
-						e, str(now), str(dist), str(was), str(tol)]
-				for k in range(3):
-					tokens[e * 3 + k] = GIMBAL_TOKEN
-				continue
-			var c := _pitch_cos(values, e)
-			if c < GIMBAL_EXACT_COS:
-				var pair := _gimbal_lock_pair(values, e)
-				for k in range(2):
-					var t = _verify(pair[k], e * 3 + k, window * (1.0 + k), true, masked)
-					if t is String:
-						return "element %d (at gimbal lock) %s %s" % [e, "pitch" if k == 0 else "yaw -+ roll", t]
-					tokens[e * 3 + k] = t
-				tokens[e * 3 + 2] = GIMBAL_LOCK_TOKEN
-				continue
-			window /= maxf(c, GIMBAL_COS)
+		var verdict = element_tokens(values, comps, e, angle, delta, masked, gimbal)
+		if verdict is String:
+			return verdict
 		for k in range(comps):
-			var t = _verify(values[e * comps + k], e * comps + k, window, angle, masked)
-			if t is String:
-				return "element %d component %d %s" % [e, k, t]
-			tokens[e * comps + k] = t
+			tokens[e * comps + k] = verdict[k]
 	if _hash_tokens(tokens) != str(fp.get("r", "")):
 		var ranges := _ranges(values, comps)
 		return "values moved by %s or more somewhere in the stream (noise budget %s); per-component min %s -> %s, max %s -> %s" % [
-			str(QUANTUM), str(delta), str(fp.get("lo")), str(ranges[0]), str(fp.get("hi")), str(ranges[1])]
+			str(QUANTUM), str(value_budget(delta, 1.0)), str(fp.get("lo")), str(ranges[0]), str(fp.get("hi")), str(ranges[1])]
 	return ""
 
 
@@ -765,6 +806,8 @@ static func build_sidecar(parent: Node, entries: Dictionary, errors: Array) -> D
 		"quantum": QUANTUM,
 		"offset": OFFSET,
 		"noise_ulps": NOISE_ULPS,
+		"budget_cap": BUDGET_CAP,
+		"gimbal_cos": GIMBAL_COS,
 		"angle_streams": ANGLE_STREAMS,
 		"graphs": graphs,
 	}
@@ -773,7 +816,7 @@ static func build_sidecar(parent: Node, entries: Dictionary, errors: Array) -> D
 static func write_sidecar(path: String, data: Dictionary) -> bool:
 	var lines := PackedStringArray()
 	lines.append("{")
-	for field in ["angle_streams", "format", "noise_ulps", "offset", "platform", "quantum"]:
+	for field in ["angle_streams", "budget_cap", "format", "gimbal_cos", "noise_ulps", "offset", "platform", "quantum"]:
 		lines.append("\t%s: %s," % [JSON.stringify(field), JSON.stringify(data[field])])
 	lines.append("\t\"graphs\": {")
 	var keys : Array = data.graphs.keys()

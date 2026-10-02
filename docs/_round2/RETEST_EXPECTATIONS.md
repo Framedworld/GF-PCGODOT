@@ -17,6 +17,10 @@ Written for whoever re-runs the real-editor scenarios against the head that carr
 | compute_kernel "Attempted to free invalid ID" | RIDs are freed dependents first and each free is guarded. Tested with a fake rendering device only. | [WP14-S](WP14-S.md) |
 | Benchmark printed 8.5x | The printed "before" times are labelled reference-only; `FLOW_BENCH_BEFORE_A_MS` / `_B_MS` take your own base-commit numbers. | `tests/perf/executor_benchmark.gd` |
 
+## Second retest round: golden tolerance budget
+
+The first Windows retest found the noise budget (8 ulps) too small. The budget is now 64 float32 ulps of each stream's largest magnitude, capped at 0.0015 per value so that a change of 0.005 or more still always fails; rotations beyond about 45.6 degrees of pitch are compared as whole rotations. The sidecar was rebuilt on Linux against the unchanged `baseline.json`. A local simulation of the Windows pattern (rotation noise of about 38 ulps) failed with the old sidecar and passes with the new one. Expect `PLATFORM_NOISE pass on Windows.x86_64` lines and no golden or seed-zero failures. Details: [WP14-T](WP14-T.md), "Budget revision after the Windows retest". The seed-zero failure "no baseline for res://demos/subgraph_collapsed_N.tres" comes from running Collapse to Subgraph in the project, which writes that file into `demos/`; delete such files before running the suite.
+
 ## Deliberately left
 
 - Dock pooling for a spawner nested in a subgraph or loop (see checklist 6.2).
@@ -38,7 +42,7 @@ From `demo/` (use `-c`, otherwise gdUnit stops a suite at its first failure and 
 godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -c -a res://tests
 ```
 
-Expected on Linux: 2696 cases, 0 failures, 0 skipped, 0 orphans, exit 0. On Windows: the same, with `WARNING: ... PLATFORM_NOISE pass on Windows.x86_64` lines in the golden, seed-zero, executor-modes and editor-smoke suites. `FLOW_GOLDEN_TOLERANCE=strict` shows the raw exact differences. If something fails, the failing lines name the graph, node, stream and both hashes.
+Expected on Linux: 2699 cases, 0 failures, 0 skipped, 0 orphans, exit 0. On Windows: the same, with `WARNING: ... PLATFORM_NOISE pass on Windows.x86_64` lines in the golden, seed-zero, executor-modes and editor-smoke suites. `FLOW_GOLDEN_TOLERANCE=strict` shows the raw exact differences. If something fails, the failing lines name the graph, node, stream and both hashes.
 
 ## Real-editor scenarios worth repeating
 
