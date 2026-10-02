@@ -106,6 +106,53 @@ func _pack_stream( stream, point_count : int, packing : int ):
 	return floats
 
 # ---------------------------------------------------------------------------
+# GPU resources
+# ---------------------------------------------------------------------------
+
+# Creates the device a run uses. Returns null when there is no compute-capable
+# GPU (always the case headless). Tests override this to inject a double.
+func _create_rendering_device():
+	return RenderingServer.create_local_rendering_device()
+
+# Every RID one run creates, grouped by kind so they can be freed in
+# dependency order. Filled by _run_compute, emptied by _free_gpu_resources.
+static func _new_gpu_resources() -> Dictionary:
+	return { "shader": RID(), "buffers": [], "uniform_set": RID(), "pipeline": RID() }
+
+# Frees the RIDs in `res` dependents first. RenderingDevice tracks
+# dependencies: a uniform set depends on its buffers and on the shader, the
+# compute pipeline on the shader, and freeing a RID also frees everything that
+# depends on it. Freeing a buffer or the shader first therefore frees the
+# uniform set (and pipeline) behind our back, and the later free_rid() on them
+# logs "Attempted to free invalid ID". Order: uniform set, buffers, pipeline,
+# shader. The uniform set and pipeline are also checked with the device's own
+# validity queries; buffers and shaders have no such query and nothing frees
+# them implicitly, so a non-null RID is enough. Each slot is cleared once
+# freed, so calling this again is a no-op.
+static func _free_gpu_resources( rd, res : Dictionary ) -> void:
+	if rd == null:
+		return
+	var uniform_set : RID = res.get( "uniform_set", RID() )
+	if uniform_set.is_valid() and rd.uniform_set_is_valid( uniform_set ):
+		rd.free_rid( uniform_set )
+	res["uniform_set"] = RID()
+
+	for buf in res.get( "buffers", [] ):
+		if buf is RID and buf.is_valid():
+			rd.free_rid( buf )
+	res["buffers"] = []
+
+	var pipeline : RID = res.get( "pipeline", RID() )
+	if pipeline.is_valid() and rd.compute_pipeline_is_valid( pipeline ):
+		rd.free_rid( pipeline )
+	res["pipeline"] = RID()
+
+	var shader : RID = res.get( "shader", RID() )
+	if shader.is_valid():
+		rd.free_rid( shader )
+	res["shader"] = RID()
+
+# ---------------------------------------------------------------------------
 # Execute
 # ---------------------------------------------------------------------------
 
@@ -162,17 +209,16 @@ func execute( ctx : FlowData.EvaluationContext ):
 		return _fallback( out_data, "No valid output bindings declared; nothing to read back" )
 
 	# --- Acquire the rendering device --------------------------------------
-	var rd : RenderingDevice = RenderingServer.create_local_rendering_device()
+	# Untyped so tests can inject a RenderingDevice double.
+	var rd = _create_rendering_device()
 	if rd == null:
 		return _fallback( out_data, "create_local_rendering_device() returned null (no compute-capable GPU/driver). Input passed through unchanged." )
 
 	# Track every RID we create so we can free them on any exit path.
-	var rids : Array = []
-	var result = _run_compute( rd, in_data, out_data, point_count, local_size_x, packing, input_specs, output_specs, rids )
-	# Clean up GPU resources regardless of success/failure.
-	for rid in rids:
-		if rid != null and rid.is_valid():
-			rd.free_rid( rid )
+	var res := _new_gpu_resources()
+	var result = _run_compute( rd, in_data, out_data, point_count, local_size_x, packing, input_specs, output_specs, res )
+	# Clean up GPU resources regardless of success/failure, dependents first.
+	_free_gpu_resources( rd, res )
 	rd.free()
 
 	# _run_compute returns the populated out_data on success, or null after it
@@ -182,16 +228,18 @@ func execute( ctx : FlowData.EvaluationContext ):
 	set_output( 0, out_data )
 
 # Returns out_data on success, or null after calling _fallback() on failure.
-func _run_compute( rd : RenderingDevice, in_data : FlowData.Data, out_data : FlowData.Data,
+# Every RID created is recorded in `res` (see _new_gpu_resources) as soon as it
+# exists, so the caller can free it on any exit path.
+func _run_compute( rd, in_data : FlowData.Data, out_data : FlowData.Data,
 		point_count : int, local_size_x : int, packing : int,
-		input_specs : Array, output_specs : Array, rids : Array ):
+		input_specs : Array, output_specs : Array, res : Dictionary ):
 
 	# --- Compile shader ----------------------------------------------------
 	var shader_rid : RID = _create_shader( rd )
 	if shader_rid == null or not shader_rid.is_valid():
 		# _create_shader already reported via setError; do passthrough.
 		return _fallback( out_data, "" )
-	rids.append( shader_rid )
+	res["shader"] = shader_rid
 
 	# --- Create buffers + uniforms -----------------------------------------
 	var uniforms : Array = []
@@ -204,7 +252,7 @@ func _run_compute( rd : RenderingDevice, in_data : FlowData.Data, out_data : Flo
 		var buf : RID = rd.storage_buffer_create( bytes.size(), bytes )
 		if not buf.is_valid():
 			return _fallback( out_data, "Failed to create input storage buffer at binding %d" % spec.binding )
-		rids.append( buf )
+		res.buffers.append( buf )
 		var u := RDUniform.new()
 		u.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 		u.binding = spec.binding
@@ -220,7 +268,7 @@ func _run_compute( rd : RenderingDevice, in_data : FlowData.Data, out_data : Flo
 		if not buf.is_valid():
 			return _fallback( out_data, "Failed to create output storage buffer at binding %d" % spec.binding )
 		spec["rid"] = buf
-		rids.append( buf )
+		res.buffers.append( buf )
 		var u := RDUniform.new()
 		u.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 		u.binding = spec.binding
@@ -234,7 +282,7 @@ func _run_compute( rd : RenderingDevice, in_data : FlowData.Data, out_data : Flo
 		var buf : RID = rd.storage_buffer_create( pc_bytes.size(), pc_bytes )
 		if not buf.is_valid():
 			return _fallback( out_data, "Failed to create point_count params buffer at binding %d" % settings.point_count_binding )
-		rids.append( buf )
+		res.buffers.append( buf )
 		var u := RDUniform.new()
 		u.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 		u.binding = settings.point_count_binding
@@ -245,18 +293,18 @@ func _run_compute( rd : RenderingDevice, in_data : FlowData.Data, out_data : Flo
 	var uniform_set : RID = rd.uniform_set_create( uniforms, shader_rid, 0 )
 	if not uniform_set.is_valid():
 		return _fallback( out_data, "uniform_set_create failed (check binding indices match the shader's set=0 layout)" )
-	rids.append( uniform_set )
+	res["uniform_set"] = uniform_set
 
 	var pipeline : RID = rd.compute_pipeline_create( shader_rid )
 	if not pipeline.is_valid():
 		return _fallback( out_data, "compute_pipeline_create failed" )
-	rids.append( pipeline )
+	res["pipeline"] = pipeline
 
 	# --- Dispatch ----------------------------------------------------------
 	var groups_x : int = int( ceil( float( point_count ) / float( local_size_x ) ) )
 	groups_x = max( 1, groups_x )
 
-	var compute_list := rd.compute_list_begin()
+	var compute_list : int = rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline( compute_list, pipeline )
 	rd.compute_list_bind_uniform_set( compute_list, uniform_set, 0 )
 	rd.compute_list_dispatch( compute_list, groups_x, 1, 1 )
@@ -295,7 +343,7 @@ func _run_compute( rd : RenderingDevice, in_data : FlowData.Data, out_data : Flo
 
 # Compiles the shader from inline source or a .glsl RDShaderFile. Reports errors
 # via setError and returns an invalid RID on any failure.
-func _create_shader( rd : RenderingDevice ) -> RID:
+func _create_shader( rd ) -> RID:
 	var spirv : RDShaderSPIRV = null
 
 	if settings.shader_mode == ComputeKernelNodeSettings.eShaderMode.FILE:

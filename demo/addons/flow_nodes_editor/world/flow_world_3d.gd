@@ -151,11 +151,13 @@ var _cap_warned : Dictionary = {}	# level -> true once the radius cap warned
 
 # --- Inspector buttons ------------------------------------------------------------------
 
-func _get_property_list() -> Array:
-	return [
+# Typed return: Godot 4.7 logs an error for an untyped Array here.
+func _get_property_list() -> Array[Dictionary]:
+	var props : Array[Dictionary] = [
 		{ "name": "generate_all_cells", "type": TYPE_CALLABLE, "hint": PROPERTY_HINT_TOOL_BUTTON, "hint_string": "Generate All", "usage": PROPERTY_USAGE_EDITOR },
 		{ "name": "cleanup_all_cells", "type": TYPE_CALLABLE, "hint": PROPERTY_HINT_TOOL_BUTTON, "hint_string": "Cleanup All", "usage": PROPERTY_USAGE_EDITOR },
 	]
+	return props
 
 func _get(property : StringName):
 	match property:
