@@ -51,10 +51,7 @@ static func _build_rows() -> Dictionary:
 		"attribute_rename": { "settings": { "from_name": "f_attr", "to_name": "renamed_attr" } },
 		"bounds_from_mesh": {
 			"settings": { "mesh_attribute": "r_attr", "mesh": func(): return Fixtures.shared_mesh() },
-			"note": "reads the per-point Mesh attribute (ArrayMesh.get_aabb) on the worker thread",
-		},
-		"dungeon_connect_rooms": {
-			"known_bugs": { "attr_set": "dungeon_connect_rooms.gd:51 indexes the position stream of an input with 2+ rows and no position stream (SCRIPT ERROR)" },
+			"note": "reads the per-point Mesh attribute (Mesh.get_aabb); main thread since WP11 (PrimitiveMesh lazy update)",
 		},
 		"dungeon_expand_rooms": { "primary": [ "dungeon_rooms", "empty", "points", "single" ] },
 		"dungeon_walls_and_doors": { "primary": [ "dungeon_cells", "empty", "points", "single" ] },

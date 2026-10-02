@@ -86,6 +86,11 @@ signal cleaned_up
 ## Output is identical to the sequential run. Off by default. With
 ## async_generation the top-level graph stays time-sliced (node by node); nested
 ## subgraph and loop evaluations still honour this flag.
+## Warning: errors a node prints outside its own error report (helper or engine
+## errors) are raised on worker threads, and Godot calls script Loggers
+## (OS.add_logger) on the raising thread. A Logger that is not thread-safe can
+## crash the process; keep this off when you register one. Nodes known to log
+## that way run one at a time.
 @export var threaded : bool = false
 ## Reuse the outputs of pure nodes whose settings, seed and input content did
 ## not change since an earlier run (FlowOutputCache, shared process-wide,
@@ -114,6 +119,15 @@ var _generating_sync : bool = false
 var last_cell : FlowWorldCell = null
 # Cell run in flight (begin_cell), null otherwise.
 var _cell_run : FlowCellRun = null
+
+## Nodes visited by the last cleanup() (tests and benchmarks).
+var last_cleanup_visits : int = 0
+# Instance ids of content spawned for this component since the last cleanup()
+# (see note_spawned_content).
+var _spawned_content : Dictionary = {}
+var _spawned_content_compact_at : int = 1024
+# True when content was stamped without a record (see note_untracked_content).
+var _untracked_content : bool = false
 
 # You can also use get_property_list() for more control
 func _get_property_list():
@@ -318,12 +332,25 @@ func cleanup() -> void:
 	_cancel_cell_run()
 	var my_id := get_instance_id()
 	var doomed : Array[Node] = []
-	_collect_owned( self, my_id, true, doomed )
-	# Spawners may target a spawn_parent_path outside this node; claim content
-	# that names this component anywhere else in the same scene.
-	var scan_root : Node = owner if owner != null else get_parent()
-	if scan_root != null:
-		_collect_owned( scan_root, my_id, false, doomed )
+	var seen := {}
+	last_cleanup_visits = 0
+	# The own subtree: content that names this component, legacy String metas
+	# and stale component ids (docs/RUNTIME_API_P0.md §5).
+	_collect_owned( self, my_id, true, doomed, seen )
+	if _untracked_content:
+		# Content stamped through flowOwnerMeta() alone (a third-party
+		# spawner): its spawn parent is unknown, so scan the scene as before.
+		var scan_root : Node = owner if owner != null else get_parent()
+		if scan_root != null:
+			_collect_owned( scan_root, my_id, false, doomed, seen )
+	else:
+		# Spawners may target a spawn_parent_path or a target node outside this
+		# node: look only under the parents of the content this component
+		# recorded (tagFlowContent), not through the whole scene.
+		for parent in _external_spawn_parents():
+			_collect_owned_children( parent, my_id, doomed, seen )
+	_spawned_content.clear()
+	_untracked_content = false
 	for node in doomed:
 		if not is_instance_valid( node ):
 			continue
@@ -332,6 +359,55 @@ func cleanup() -> void:
 			parent.remove_child( node )
 		node.queue_free()
 	cleaned_up.emit()
+
+## Records spawned content of this component (called by
+## FlowNodeBase.tagFlowContent), so cleanup() can find content spawned outside
+## this node's subtree through its parent. Released by cleanup().
+func note_spawned_content( node : Node ) -> void:
+	if node == null:
+		return
+	_spawned_content[ node.get_instance_id() ] = true
+	if _spawned_content.size() >= _spawned_content_compact_at:
+		for id in _spawned_content.keys():
+			if not is_instance_id_valid( id ):
+				_spawned_content.erase( id )
+		_spawned_content_compact_at = maxi( 1024, _spawned_content.size() * 2 )
+
+## Content was stamped for this component without a record (flowOwnerMeta()
+## called directly): the next cleanup() scans the scene for it.
+func note_untracked_content() -> void:
+	_untracked_content = true
+
+## Number of content records cleanup() will look through (tests, diagnostics).
+func recorded_content_count() -> int:
+	return _spawned_content.size()
+
+# Distinct parents of the recorded content that lie outside this node's subtree.
+func _external_spawn_parents() -> Array:
+	var parents := {}
+	for id in _spawned_content:
+		if not is_instance_id_valid( id ):
+			continue
+		var node := instance_from_id( id ) as Node
+		if node == null:
+			continue
+		var parent := node.get_parent()
+		if parent == null or parent == self or is_ancestor_of( parent ) or parents.has( parent ):
+			continue
+		parents[ parent ] = true
+	return parents.keys()
+
+# Direct children of `parent` that belong to component `my_id` (content roots sit
+# directly under their spawn parent).
+func _collect_owned_children( parent : Node, my_id : int, doomed : Array[Node], seen : Dictionary ) -> void:
+	for child in parent.get_children():
+		last_cleanup_visits += 1
+		if child == self or seen.has( child ) or not child.has_meta( "flow_owner" ):
+			continue
+		var meta = child.get_meta( "flow_owner" )
+		if meta is Dictionary and int( meta.get( "component", 0 ) ) == my_id:
+			seen[ child ] = true
+			doomed.append( child )
 
 ## cleanup() followed by generate(); returns the new outputs.
 func regenerate( inputs : Dictionary = {}, extra_params : Dictionary = {} ) -> Dictionary:
@@ -346,8 +422,9 @@ func is_generating() -> bool:
 # Inside this component's own subtree (`own_subtree`), legacy String metas and
 # metas naming a component that no longer exists (content saved into the scene
 # by an earlier session) also belong to it.
-func _collect_owned( node : Node, my_id : int, own_subtree : bool, doomed : Array[Node] ) -> void:
+func _collect_owned( node : Node, my_id : int, own_subtree : bool, doomed : Array[Node], seen : Dictionary ) -> void:
 	for child in node.get_children():
+		last_cleanup_visits += 1
 		if not own_subtree and child == self:
 			continue
 		if child.has_meta( "flow_owner" ):
@@ -359,10 +436,11 @@ func _collect_owned( node : Node, my_id : int, own_subtree : bool, doomed : Arra
 			else:
 				mine = own_subtree
 			if mine:
-				if not doomed.has( child ):
+				if not seen.has( child ):
+					seen[ child ] = true
 					doomed.append( child )
 				continue
-		_collect_owned( child, my_id, own_subtree, doomed )
+		_collect_owned( child, my_id, own_subtree, doomed, seen )
 
 func _on_generation_finished( outputs : Dictionary, errors : Array = [] ) -> void:
 	last_outputs = outputs if outputs != null else {}

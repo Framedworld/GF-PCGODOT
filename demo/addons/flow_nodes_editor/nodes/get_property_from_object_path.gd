@@ -19,7 +19,7 @@ func _init():
 		"pure" : false,
 		"ins" : [],
 		"outs" : [{ "label" : "Out" }],
-		"tooltip" : "Reads properties from the objects listed in 'object_paths' into an attribute set, one row per object.\nNode paths are resolved from the owner node (then its scene root); res:// and uid:// paths load resources and need no owner.\nProperty paths use Scan Nodes' syntax (e.g. mesh:size) and name the attribute after their last segment.\nAn unresolved object is an error and its row is skipped; a property no object has is an error.",
+		"tooltip" : "Reads properties from the objects listed in 'object_paths' into an attribute set, one row per object.\nNode paths are resolved from the owner node (then its scene root); res://, uid:// and user:// paths load resources and need no owner.\nProperty paths use Scan Nodes' syntax (e.g. mesh:size) and name the attribute after their last segment.\nAn unresolved object is an error and its row is skipped; a property no object has is an error.",
 	}
 
 static func is_resource_path( path : String ) -> bool:

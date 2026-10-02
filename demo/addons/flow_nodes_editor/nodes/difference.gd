@@ -60,8 +60,9 @@ func _safe_sizes(data : FlowData.Data, expected_size : int, input_label : String
 
 	return { "ok": true, "error": "", "sizes": out_sizes }
 
-# Build broadphase (center, half_extent) from effective bounds so the RTree
-# uses the same AABB as the narrowphase. Falls back to _safe_sizes when no
+# Build broadphase (center, size) from effective bounds so the RTree uses the
+# same AABB as the narrowphase. GDRTree.add / overlaps take FULL sizes (the
+# native code builds center ± size * 0.5). Falls back to _safe_sizes when no
 # per-point bounds_min/bounds_max streams are present.
 func _broadphase_params(data : FlowData.Data, positions : PackedVector3Array) -> Dictionary:
 	var n := positions.size()
@@ -70,23 +71,23 @@ func _broadphase_params(data : FlowData.Data, positions : PackedVector3Array) ->
 		var sr := _safe_sizes(data, n, "")
 		if not sr.ok:
 			return { "ok": false, "error": sr.error }
-		return { "ok": true, "centers": positions, "half_extents": sr.sizes }
+		return { "ok": true, "centers": positions, "sizes": sr.sizes }
 
 	var world := BoundsOverlap.world_aabbs(data, positions)
 	var wmin : PackedVector3Array = world.min
 	var wmax : PackedVector3Array = world.max
 	var centers := PackedVector3Array()
-	var halves := PackedVector3Array()
+	var sizes := PackedVector3Array()
 	centers.resize(n)
-	halves.resize(n)
+	sizes.resize(n)
 	for i in range(n):
 		centers[i] = (wmin[i] + wmax[i]) * 0.5
-		var h : Vector3 = (wmax[i] - wmin[i]) * 0.5
-		h.x = maxf(h.x, 0.0001)
-		h.y = maxf(h.y, 0.0001)
-		h.z = maxf(h.z, 0.0001)
-		halves[i] = h
-	return { "ok": true, "centers": centers, "half_extents": halves }
+		var s : Vector3 = (wmax[i] - wmin[i]).abs()
+		s.x = maxf(s.x, 0.0001)
+		s.y = maxf(s.y, 0.0001)
+		s.z = maxf(s.z, 0.0001)
+		sizes[i] = s
+	return { "ok": true, "centers": centers, "sizes": sizes }
 
 func _sanitize_indices(indices, max_size : int) -> PackedInt32Array:
 	var out := PackedInt32Array()
@@ -231,7 +232,7 @@ func execute(ctx : FlowData.EvaluationContext):
 
 	# Use effective bounds (bounds_min/bounds_max when present, else size-derived)
 	# for both the broadphase RTree and the narrowphase so they stay consistent.
-	# Convert world AABB [min, max] → (center, half_extent) for GDRTree.add.
+	# Convert world AABB [min, max] → (center, full size) for GDRTree.add.
 	var bp_a := _broadphase_params(in_dataA, posA)
 	var bp_b := _broadphase_params(in_dataB, posB)
 	if not bp_a.ok:
@@ -243,13 +244,13 @@ func execute(ctx : FlowData.EvaluationContext):
 
 	var tA = GDRTree.new()
 	var tB = GDRTree.new()
-	tA.add(bp_a.centers, bp_a.half_extents)
-	tB.add(bp_b.centers, bp_b.half_extents)
+	tA.add(bp_a.centers, bp_a.sizes)
+	tB.add(bp_b.centers, bp_b.sizes)
 
-	var a_only = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.half_extents, false).idxs_overlapped, in_dataA.size())
-	var a_overlap = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.half_extents, true).idxs_overlapped, in_dataA.size())
-	var b_only = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.half_extents, false).idxs_overlapped, in_dataB.size())
-	var b_overlap = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.half_extents, true).idxs_overlapped, in_dataB.size())
+	var a_only = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.sizes, false).idxs_overlapped, in_dataA.size())
+	var a_overlap = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.sizes, true).idxs_overlapped, in_dataA.size())
+	var b_only = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.sizes, false).idxs_overlapped, in_dataB.size())
+	var b_overlap = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.sizes, true).idxs_overlapped, in_dataB.size())
 
 	# Density-function attenuation only applies to the subtractive operations and
 	# only when not Binary. Binary (the default) preserves the legacy hard-remove

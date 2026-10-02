@@ -64,10 +64,22 @@ func extract_splines( in_data : FlowData.Data ) -> Variant:
 ## classes): an object whose get_kind() is Kind.Spline (or that has no get_kind)
 ## and that exposes a Curve3D through get_curve() or a `curve` property, plus an
 ## optional Transform3D through get_transform() or a `transform` property.
-## Returns [] or [{ curve, transform, source }].
+## Composite shapes (an object with `op`, `a` and `b`, such as the union that
+## get_spline_data's Merged output carries) are walked depth first, `a` before
+## `b`, so a merged union yields its splines in merge (Path3D) order:
+##   Union, Intersection  the spline parts of both operands;
+##   Difference           the spline parts of `a` only (`b` is subtracted).
+## The set operation itself does not clip the spawned meshes: every spline part
+## is spawned whole. Non-spline parts are skipped.
+## Returns [] or [{ curve, transform, source }, ...].
 static func splines_from_shape( shape ) -> Array:
 	if shape == null or typeof( shape ) != TYPE_OBJECT or not is_instance_valid( shape ):
 		return []
+	if _is_composite( shape ):
+		var out : Array = splines_from_shape( shape.get( "a" ) )
+		if int( shape.get( "op" ) ) != FlowSpatial.Op.Difference:
+			out.append_array( splines_from_shape( shape.get( "b" ) ) )
+		return out
 	if shape.has_method( "get_kind" ) and int( shape.get_kind() ) != FlowData.Kind.Spline:
 		return []
 	var curve = null
@@ -83,6 +95,10 @@ static func splines_from_shape( shape ) -> Array:
 	elif "transform" in shape and shape.get( "transform" ) is Transform3D:
 		xf = shape.get( "transform" )
 	return [ { "curve": curve, "transform": xf, "source": shape } ]
+
+static func _is_composite( shape ) -> bool:
+	return "op" in shape and "a" in shape and "b" in shape \
+		and typeof( shape.get( "a" ) ) == TYPE_OBJECT and typeof( shape.get( "b" ) ) == TYPE_OBJECT
 
 ## Cuts one spline into segments: Array of { curve, from_offset, to_offset,
 ## transform }. ControlPoints: one segment per pair of consecutive control points
@@ -243,7 +259,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			FlowSpawnUtil.clear_collision( mi )
 			FlowSpawnUtil.claim_spawned( self, mi, scene_owner, ctx )
 		else:
-			mi.set_meta( "flow_owner", flowOwnerMeta( ctx ) )
+			tagFlowContent( mi, ctx )
 			parent.add_child( mi )
 			assignSpawnOwner( mi, scene_owner, ctx )
 			if pool != null:

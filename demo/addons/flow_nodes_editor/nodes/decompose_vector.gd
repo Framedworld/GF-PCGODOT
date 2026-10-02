@@ -10,7 +10,7 @@ func _init():
 		"settings" : DecomposeVectorNodeSettings,
 		"ins" : [{ "label": "In" }], 
 		"outs" : [{ "label" : "Out" }],
-		"tooltip" : "Decomposes a Vector3 attribute into three float attributes.",
+		"tooltip" : "Decomposes a vector attribute into float attributes, one per component:\nVector2 (x, y), Vector3 (x, y, z), Vector4 and Quaternion (x, y, z, w), Color (r, g, b, a into x, y, z, w).",
 	}
 
 func execute( ctx : FlowData.EvaluationContext ):

@@ -75,11 +75,11 @@ func execute( ctx : FlowData.EvaluationContext ):
 	if target == null:
 		target = Node3D.new()
 		target.name = node_name
-		target.set_meta( "flow_owner", flowOwnerMeta( ctx ) )
+		tagFlowContent( target, ctx )
 		target.set_meta( META_TARGET_NAME, node_name )
 		parent.add_child( target )
 	else:
-		target.set_meta( "flow_owner", flowOwnerMeta( ctx ) )
+		tagFlowContent( target, ctx )
 
 	if settings.owner_policy == CreateTargetNodeSettings.eOwnerPolicy.Transient:
 		target.owner = null

@@ -187,12 +187,10 @@ func test_graph_without_finals_executes_nothing_and_returns_empty() -> void:
 	assert_dict(outputs).is_empty()
 
 
-# Saving `disabled = true` in a graph currently raises a script error while the
-# evaluator builds the node: FlowNodeBase.refreshFromSettings() calls
-# draw_debug.cleanup_multimesh_direct() and draw_debug is null for evaluator
-# instances (node.gd:345). The pass-through semantics are therefore tested by
-# flipping `disabled` on the built instances (begin_evaluation) before they run;
-# the saved-flag path is documented by the skipped tests below.
+# Pass-through semantics with `disabled` flipped on the built instances
+# (begin_evaluation) before they run; the saved-flag path is covered by
+# test_disabled_saved_in_graph_passes_input_through and
+# test_disabled_output_is_not_an_execution_root below.
 func _eval_with_disabled(graph: FlowGraphResource, disabled_names: Array) -> Dictionary:
 	var ev = FlowNodeIO.begin_evaluation(graph, {}, TestGraph.make_ctx(), {}, 0)
 	for node_name in disabled_names:
@@ -240,7 +238,7 @@ func test_disabled_real_node_passes_input_data_object_through() -> void:
 	assert_array(Array(pos)).is_equal([Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(2, 0, 0)])
 
 
-func test_disabled_saved_in_graph_passes_input_through(do_skip := true, skip_reason := "BUG node.gd:345: refreshFromSettings() calls draw_debug.cleanup_multimesh_direct() on a null draw_debug for every evaluator-built node saved with disabled=true (script error during _build_evaluation_state)") -> void:
+func test_disabled_saved_in_graph_passes_input_through() -> void:
 	var graph = TestGraph.new() \
 		.node("a", "test_probe") \
 		.node("skipped", "test_probe", {"disabled": true}) \
@@ -252,7 +250,7 @@ func test_disabled_saved_in_graph_passes_input_through(do_skip := true, skip_rea
 	assert_array(Array(TestGraph.trail(outputs["result"]))).is_equal(["a"])
 
 
-func test_disabled_output_is_not_an_execution_root(do_skip := true, skip_reason := "BUG node.gd:345: a node saved with disabled=true raises a script error while the evaluator builds it (null draw_debug)") -> void:
+func test_disabled_output_is_not_an_execution_root() -> void:
 	var graph = TestGraph.new() \
 		.node("a", "test_probe") \
 		.node("out", "output", {"name": "result", "disabled": true}) \

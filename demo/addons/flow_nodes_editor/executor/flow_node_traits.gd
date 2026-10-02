@@ -26,6 +26,9 @@ extends RefCounted
 ##   3. meta flags: scans_scene, queries_physics or is_final -> main thread,
 ##      not cacheable.
 ##   4. Anything else (third-party templates): main thread, not cacheable.
+## When a meta_node flag gives a different result than the template's TABLE
+## row, resolve() still lets the meta win but prints a warning, once per
+## template, so the override is not silent (override_warnings() lists them).
 
 ## template -> [main_thread, cacheable]
 const TABLE := {
@@ -208,8 +211,29 @@ const TABLE := {
 	"weighted_point_sampler": [false, true],
 }
 
+## Threadable stock templates that print errors or warnings outside setError
+## on some inputs (a FlowData helper's push_error such as cloneStream,
+## findStream or translateStreamName, or a push_warning), as recorded by the
+## node conformance harness on its fixtures (docs/_round2/WP9.md). Godot calls
+## every script Logger on the thread that raises the message, so threaded mode
+## runs these elements one at a time on the calling thread instead of in a
+## concurrent pool batch (FlowExecutor.split_batch). A third-party node can ask
+## for the same with meta_node["logs"] = true.
+const LOGGING_TEMPLATES := {
+	"relax": true,                # cloneStream on input without position
+	"snap_to_grid": true,         # cloneStream on input without position
+	"point_filter_range": true,   # findStream on an attribute set
+	"mutate_seed": true,          # warning on input without seed
+	"boolean": true,              # translateStreamName (@last on Data without streams)
+	"filter": true,               # translateStreamName (@last on Data without streams)
+	"partition": true,            # translateStreamName (@last on Data without streams)
+}
+
 static var _cache : Dictionary = {}
 static var _mutex := Mutex.new()
+## template -> warning text, for templates whose meta_node contradicted their
+## TABLE row (each is warned about once).
+static var _override_warnings : Dictionary = {}
 
 ## Traits of `template` whose node script declares `meta` (its meta_node), as
 ## { "main_thread": bool, "cacheable": bool }. Dynamic input_<name> / output_<name>
@@ -230,7 +254,39 @@ static func resolve(template : String, meta : Dictionary = {}) -> Dictionary:
 		result.main_thread = not pure
 	if meta.has("main_thread"):
 		result.main_thread = bool(meta["main_thread"])
+	if row != null and (result.main_thread != bool(row[0]) or result.cacheable != bool(row[1])):
+		_warn_override(base, row, result, meta)
 	return result
+
+static func _warn_override(template : String, row : Array, result : Dictionary, meta : Dictionary) -> void:
+	_mutex.lock()
+	var first := not _override_warnings.has(template)
+	var text := ""
+	if first:
+		var flags := []
+		for key in ["main_thread", "pure"]:
+			if meta.has(key):
+				flags.append("%s=%s" % [key, meta[key]])
+		text = "FlowNodeTraits: meta_node of '%s' (%s) overrides its traits table row [main_thread=%s, cacheable=%s]; effective [main_thread=%s, cacheable=%s]" % [
+			template, ", ".join(PackedStringArray(flags)), row[0], row[1], result.main_thread, result.cacheable ]
+		_override_warnings[template] = text
+	_mutex.unlock()
+	if first:
+		push_warning(text)
+
+## Templates whose meta_node contradicted their TABLE row so far, as
+## template -> warning text.
+static func override_warnings() -> Dictionary:
+	_mutex.lock()
+	var copy := _override_warnings.duplicate()
+	_mutex.unlock()
+	return copy
+
+## Forgets which templates were warned about, so they warn again.
+static func clear_override_warnings() -> void:
+	_mutex.lock()
+	_override_warnings.clear()
+	_mutex.unlock()
 
 ## Traits of a node element (cached per template and script).
 static func for_element(element : FlowNodeBase) -> Dictionary:
@@ -252,6 +308,14 @@ static func main_thread(element : FlowNodeBase) -> bool:
 
 static func cacheable(element : FlowNodeBase) -> bool:
 	return for_element(element).cacheable
+
+## True when the element is known to print errors or warnings outside setError
+## (LOGGING_TEMPLATES, or meta_node["logs"]). Threaded mode never runs two of
+## them at once.
+static func logs_outside_set_error(element : FlowNodeBase) -> bool:
+	if element.meta_node.has("logs"):
+		return bool(element.meta_node["logs"])
+	return LOGGING_TEMPLATES.has(_base_template(element.node_template))
 
 ## Forgets cached per-template traits (after a node script reload).
 static func clear_cache() -> void:

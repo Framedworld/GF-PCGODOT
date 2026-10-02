@@ -45,7 +45,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	path.name = "Spline"
 	# Owner must be set AFTER the node is inside the tree or it never persists
 	assignSpawnOwner( path, owner_of_spawned_nodes, ctx )
-	path.set_meta( "flow_owner", flowOwnerMeta( ctx ) )
+	tagFlowContent( path, ctx )
 	path.curve = Curve3D.new()
 	var num_idxs : int = in_trs.size()
 	for idx in range( num_idxs ):

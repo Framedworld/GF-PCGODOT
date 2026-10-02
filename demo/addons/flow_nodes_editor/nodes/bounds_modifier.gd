@@ -7,7 +7,7 @@ func _init():
 		"settings" : BoundsModifierNodeSettings,
 		"ins" : [{ "label": "In" }],
 		"outs" : [{ "label" : "Out" }],
-		"tooltip" : "Modifies the size/bounds property on points in the provided point data.\nOnly the per-axis extent |max - min| is applied — the bounds center is ignored\n(point positions are unchanged, unlike UE which preserves min/max relative to the point).",
+		"tooltip" : "Modifies the bounds of the points in the provided point data (Set, Add or Multiply).\nPer Point Bounds (default): writes bounds_min/bounds_max relative to each point, so an off-centre box\nkeeps its centre, as in UE; size is untouched.\nSymmetric Size (legacy): writes only the per-axis extent |max - min| to size, so the bounds centre is lost.\nPoint positions are never changed.",
 		"aliases" : ["Bounds Modifier"],
 		"category" : "Spatial",
 	}

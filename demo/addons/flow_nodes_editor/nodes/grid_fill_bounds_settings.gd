@@ -45,6 +45,16 @@ extends NodeSettings
 	set(value):
 		max_points = maxi(1, value)
 		emit_changed()
+## If enabled, places the cells on world multiples of cell_size (every multiple
+## inside each box, edges included) instead of centring the grid on the box, so
+## adjacent or overlapping boxes share one world grid and a FlowWorld3D cell run
+## reproduces its part of a monolithic run (partition-invariant). A box that
+## contains no multiple on an axis gets no cell. Without fill_y_axis the single
+## layer stays at the box centre's height. Off by default.
+@export var world_anchored : bool = false:
+	set(value):
+		world_anchored = value
+		emit_changed()
 
 func _init():
 	super._init()

@@ -12,8 +12,10 @@ func _init():
 		"settings" : BoundsFromMeshNodeSettings,
 		"aliases" : ["Bounds From Mesh", "Set Bounds From Mesh", "Mesh Bounds"],
 		"category" : "Spatial",
-		"pure" : true,
-		"main_thread" : false,
+		# Main thread, not cached: Mesh.get_aabb() on a PrimitiveMesh with a
+		# pending change runs its lazy update (RenderingServer, own state).
+		"pure" : false,
+		"main_thread" : true,
 		"ins" : [{ "label": "In" }],
 		"outs" : [{ "label" : "Out" }],
 		"tooltip" : "Sets every point's bounds_min/bounds_max to the local AABB of a mesh: the 'mesh' setting,\nor per point the Mesh in 'mesh_attribute' (falling back to 'mesh').\nPoints without any mesh keep their current bounds. Transforms and size are untouched.",

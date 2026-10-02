@@ -188,13 +188,22 @@ func _ensure_graph_dock() -> void:
 	elif not _graph_dock_is_on_bottom_panel():
 		_schedule_place_graph_dock_after_shader()
 
-func _enable_plugin() -> void:
+## Registers the addon's project settings (property info is not persisted, so
+## this runs every editor session): flow_nodes/node_directories and
+## flow_nodes/quality_level. The quality nodes also register the latter the
+## first time one is instantiated, which is too late for Project Settings.
+static func register_project_settings() -> void:
 	FlowNodeRegistry.ensure_project_setting()
+	# Loaded lazily: a node script must not be the first addon script compiled.
+	load("res://addons/flow_nodes_editor/nodes/runtime_quality_branch.gd").ensure_project_setting()
+
+func _enable_plugin() -> void:
+	register_project_settings()
 
 func _enter_tree():
 	print("Data Flow plugin enabled")
-	# Property info is not persisted, so register the setting every editor session.
-	FlowNodeRegistry.ensure_project_setting()
+	# Property info is not persisted, so register the settings every editor session.
+	register_project_settings()
 	_dock_layout_watch_started_ms = Time.get_ticks_msec()
 	_ensure_graph_dock()
 	selection = EditorInterface.get_selection()

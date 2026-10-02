@@ -242,7 +242,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		else:
 			parent.add_child( node )
 			assignSpawnOwner( node, owner_of_spawned_nodes, ctx )
-			node.set_meta("flow_owner", flowOwnerMeta( ctx ) )
+			tagFlowContent( node, ctx )
 			if pool != null:
 				FlowSpawnPool.tag( node, pool_key )
 		var assign_target : Node = node

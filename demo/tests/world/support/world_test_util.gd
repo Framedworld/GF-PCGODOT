@@ -100,13 +100,14 @@ static func heightmap(size : int = 65) -> Image:
 ##   "volume_shape"   volume_sampler on (big box intersect bounds)
 ##   "to_point"       to_point on the bounds box
 ##   "grid_fill"      grid_fill_bounds on the bounds point
+##   "grid_fill_anchored" grid_fill_bounds with world_anchored on the bounds point
 ##   "sample_points"  sample_points (uniform grid) on the bounds point
 ##   "sample_points_random" sample_points (quasi random) on the bounds point
 ##   "grid"           a fixed Unbounded grid passed whole to the cells
 static func scatter_graph(kind : String, grid : int = 32) -> FlowGraphResource:
 	var b = TestGraph.new()
 	b.node("marker", "grid_size", {"cell_size": float(grid)})
-	var points_mode := kind in ["surface_points", "grid_fill", "sample_points", "sample_points_random"]
+	var points_mode := kind in ["surface_points", "grid_fill", "grid_fill_anchored", "sample_points", "sample_points_random"]
 	b.node("bounds", "get_execution_bounds", {"output_mode": 1 if points_mode else 0})
 	b.link("marker", 0, "bounds", 0)
 	b.node("cull", "cull_points_outside_bounds", {})
@@ -137,6 +138,9 @@ static func scatter_graph(kind : String, grid : int = 32) -> FlowGraphResource:
 			b.link("bounds", 0, "sampler", 0)
 		"grid_fill":
 			b.node("sampler", "grid_fill_bounds", {"cell_size": Vector3(3.0, 1.0, 3.0), "copy_input_attributes": false})
+			b.link("bounds", 0, "sampler", 0)
+		"grid_fill_anchored":
+			b.node("sampler", "grid_fill_bounds", {"cell_size": Vector3(3.0, 1.0, 3.0), "copy_input_attributes": false, "world_anchored": true})
 			b.link("bounds", 0, "sampler", 0)
 		"sample_points":
 			b.node("sampler", "sample_points", {"distribution": 0, "sampling_distance": 2.5, "random_seed": 9})

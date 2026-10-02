@@ -18,7 +18,7 @@ func removeInstancedComponents( root : Node3D, ctx : FlowData.EvaluationContext 
 
 func spawnNode( class_to_spawn, ctx : FlowData.EvaluationContext = null ):
 	var new_node = class_to_spawn.new()
-	new_node.set_meta("flow_owner", flowOwnerMeta( ctx ) )
+	tagFlowContent( new_node, ctx )
 	return new_node
 
 func _resolve_spawn_parent(root : Node3D) -> Node3D:

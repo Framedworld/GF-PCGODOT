@@ -26,6 +26,19 @@ thread in sequential order and never overlap pool tasks; errors are buffered per
 element and appended in sequential order, so `last_errors` matches a plain run. Both
 modes reproduce the plain run's output exactly.
 
+> **Warning: script Loggers and threaded mode.** Errors and warnings that do not go
+> through a node's `setError` (a `push_error` from a `FlowData` helper such as
+> `cloneStream` or `findStream`, a `push_warning`, or an engine error) are raised on the
+> `WorkerThreadPool` thread that runs the node. Godot calls every registered script
+> `Logger` (`OS.add_logger`) on the raising thread, so with `threaded` on, a Logger can be
+> called from several threads at once. A Logger that is not thread-safe (one that appends
+> to an Array or writes a file without a `Mutex`) can then corrupt memory and crash the
+> process. The addon cannot make third-party Loggers thread-safe. To reduce the exposure,
+> threaded mode runs the nodes known to log this way (`FlowNodeTraits.LOGGING_TEMPLATES`,
+> or `meta_node["logs"] = true`) one at a time on the calling thread instead of in a
+> concurrent batch, but any pure node can still print an unforeseen engine error from a
+> worker. Keep `threaded` off, or make your Loggers thread-safe, when you register one.
+
 A node script that should be threadable or cacheable must not write into an input
 `Data` (duplicate it first), must not touch the scene tree, physics, rendering,
 `ctx.owner`, `ctx.variables` or `ctx.runtime_params`, must guard any static cache with a

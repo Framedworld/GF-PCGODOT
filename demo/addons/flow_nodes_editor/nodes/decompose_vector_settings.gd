@@ -3,7 +3,8 @@ class_name DecomposeVectorNodeSettings
 extends NodeSettings
 
 @export_group("Decompose Vector")
-## The name of the Vector3 attribute stream to decompose.
+## The name of the vector attribute stream to decompose (Vector2, Vector3, Vector4,
+## Quaternion or Color).
 @export var in_attribute: String = "position"
 ## The name of the float attribute stream to store the X component in.
 @export var x_attribute: String = "x"

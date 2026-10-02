@@ -303,9 +303,40 @@ static func flowComponentId( ctx ) -> int:
 		return ctx.owner.get_instance_id()
 	return 0
 
-## `flow_owner` meta value for a subtree spawned by this node.
+## `flow_owner` meta value for a subtree spawned by this node. Prefer
+## tagFlowContent(node, ctx), which also records the content on the component.
+## A direct call cannot tell the component where the content goes, so that
+## component's next cleanup() falls back to scanning its scene (see
+## FlowGraphNode3D.note_untracked_content).
 func flowOwnerMeta( ctx ) -> Dictionary:
+	var comp = _flowComponentObject( ctx )
+	if comp != null:
+		comp.note_untracked_content()
+	return _flowOwnerMetaValue( ctx )
+
+## Stamps the `flow_owner` meta on spawned content `node` (a subtree root) and
+## records it on the evaluation's component, so FlowGraphNode3D.cleanup() finds
+## it through its spawn parent without scanning the scene. Every stock spawner
+## tags its content through this.
+func tagFlowContent( node : Node, ctx ) -> void:
+	node.set_meta( "flow_owner", _flowOwnerMetaValue( ctx ) )
+	var comp = _flowComponentObject( ctx )
+	if comp != null:
+		comp.note_spawned_content( node )
+
+func _flowOwnerMetaValue( ctx ) -> Dictionary:
 	return { "component" : flowComponentId( ctx ), "node" : String( name ) }
+
+## The live component (an object with note_spawned_content) the evaluation
+## spawns for, or null.
+static func _flowComponentObject( ctx ) -> Object:
+	var id := flowComponentId( ctx )
+	if id == 0 or not is_instance_id_valid( id ):
+		return null
+	var comp = instance_from_id( id )
+	if comp == null or not comp.has_method( "note_spawned_content" ):
+		return null
+	return comp
 
 ## A component id that no longer names a live object: content saved into a
 ## scene by an earlier session (instance ids do not survive reloads).

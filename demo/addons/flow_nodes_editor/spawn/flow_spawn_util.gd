@@ -46,7 +46,7 @@ static func is_transient( ctx ) -> bool:
 ## (Re)assign the scene owner of a spawned or reused node and its flow_owner meta.
 ## A reused node whose component turned transient loses its owner.
 static func claim_spawned( element, node : Node, scene_owner : Node, ctx ) -> void:
-	node.set_meta( "flow_owner", element.flowOwnerMeta( ctx ) )
+	element.tagFlowContent( node, ctx )
 	if is_transient( ctx ):
 		node.owner = null
 		return

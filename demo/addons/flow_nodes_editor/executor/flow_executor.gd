@@ -15,6 +15,15 @@ extends RefCounted
 ##                 spawns and scene reads see exactly the sequential state.
 ##                 Results, including the order of FlowNodeIO.last_errors, are
 ##                 identical to SYNCHRONOUS.
+##                 Logging hazard: errors that do not go through setError (a
+##                 FlowData helper's push_error, push_warning, engine errors)
+##                 reach every script Logger on the pool thread that raised
+##                 them, possibly from several threads at once. A Logger that
+##                 is not thread-safe can then corrupt memory. Elements known
+##                 to log that way (FlowNodeTraits.logs_outside_set_error) are
+##                 therefore run one at a time on the calling thread, never in a
+##                 concurrent batch (split_batch); others can still log
+##                 concurrently in unforeseen cases.
 ##
 ## The evaluation itself has three phases:
 ##   1. build_state(): fresh elements from the graph's FlowCompiledGraph,
@@ -76,6 +85,9 @@ var _finalized : bool = false
 ## Elements run on WorkerThreadPool threads since startup (threaded mode
 ## statistics for tests and benchmarks).
 static var pooled_element_count : int = 0
+## Ready pure elements that threaded mode ran one at a time on the calling
+## thread because they are known to log outside setError (see split_batch).
+static var serialized_element_count : int = 0
 static var _stats_mutex := Mutex.new()
 
 # --- Instance API --------------------------------------------------------------------
@@ -246,19 +258,32 @@ func _run_threaded() -> void:
 		for i in range(n):
 			if main_thread[i] == 0 and started[i] == 0 and _deps_done(i, dep_positions, done):
 				batch.append(i)
-		if batch.size() == 1:
-			var i : int = batch[0]
-			started[i] = 1
-			_run_element(ordered[i], buffers[i])
-		elif batch.size() > 1:
+		# Elements known to log outside setError run one at a time here, on
+		# the calling thread, before the concurrent batch (see split_batch).
+		var split := split_batch(ordered, batch)
+		var pooled : PackedInt32Array = split.pooled
+		if pooled.size() > 1:
+			for i in split.serial:
+				started[i] = 1
+				_run_element(ordered[i], buffers[i])
+			_stats_mutex.lock()
+			serialized_element_count += split.serial.size()
+			_stats_mutex.unlock()
+		else:
+			# No concurrency anyway: run the whole batch in order.
+			pooled = PackedInt32Array()
 			for i in batch:
+				started[i] = 1
+				_run_element(ordered[i], buffers[i])
+		if pooled.size() > 1:
+			for i in pooled:
 				started[i] = 1
 				_prewarm_shared_resources(ordered[i])
 				ordered[i]._defer_error_push = true
-			var task_id := WorkerThreadPool.add_group_task(_pool_task.bind(batch, buffers), batch.size(), -1, true, "FlowExecutor")
+			var task_id := WorkerThreadPool.add_group_task(_pool_task.bind(pooled, buffers), pooled.size(), -1, true, "FlowExecutor")
 			WorkerThreadPool.wait_for_group_task_completion(task_id)
 			# Print the pool elements' errors on the main thread, in order.
-			for i in batch:
+			for i in pooled:
 				var element : FlowNodeBase = ordered[i]
 				element._defer_error_push = false
 				for message in element._deferred_error_pushes:
@@ -291,6 +316,21 @@ func _pool_task(k : int, batch : PackedInt32Array, buffers : Array) -> void:
 	_stats_mutex.lock()
 	pooled_element_count += 1
 	_stats_mutex.unlock()
+
+## Splits a batch of ready threadable elements (positions in `ordered`) into
+## the ones that may run concurrently on the pool and the ones known to print
+## errors outside setError (FlowNodeTraits.logs_outside_set_error), which run
+## one at a time on the calling thread. Both keep the batch order.
+## Returns { "serial": PackedInt32Array, "pooled": PackedInt32Array }.
+static func split_batch(ordered : Array, batch : PackedInt32Array) -> Dictionary:
+	var serial := PackedInt32Array()
+	var pooled := PackedInt32Array()
+	for i in batch:
+		if FlowNodeTraits.logs_outside_set_error(ordered[i]):
+			serial.append(i)
+		else:
+			pooled.append(i)
+	return { "serial": serial, "pooled": pooled }
 
 static func _deps_done(i : int, dep_positions : Array, done : PackedByteArray) -> bool:
 	for j in dep_positions[i]:
