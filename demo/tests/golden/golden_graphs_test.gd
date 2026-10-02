@@ -9,6 +9,9 @@
 #   Regenerate:  FLOW_GOLDEN_UPDATE=1 <same command>
 #   Other dirs:  FLOW_GOLDEN_GRAPH_DIRS="res://my_graphs,res://levels/forest.tscn"
 #   Other file:  FLOW_GOLDEN_BASELINE="res://tests/golden/my_baseline.json"
+#   Tolerance sidecar only (baseline.json untouched, must match exactly):
+#                FLOW_GOLDEN_UPDATE_TOLERANCE=1 <same command>
+#   Policy:      FLOW_GOLDEN_TOLERANCE=strict | noise (see golden_tolerance.gd)
 class_name GoldenGraphsTest extends GdUnitTestSuite
 
 ## Directories scanned recursively (a game project vendoring this harness
@@ -76,6 +79,11 @@ class CaptureLogger extends Logger:
 
 static func is_update_mode() -> bool:
 	return OS.get_environment("FLOW_GOLDEN_UPDATE") == "1"
+
+## Regenerate only the tolerance sidecar (baseline_tolerance.json); refused
+## unless this run matches baseline.json exactly.
+static func is_tolerance_update_mode() -> bool:
+	return OS.get_environment("FLOW_GOLDEN_UPDATE_TOLERANCE") == "1"
 
 static func baseline_path() -> String:
 	var env := OS.get_environment("FLOW_GOLDEN_BASELINE").strip_edges()
@@ -185,30 +193,36 @@ func evaluate_all() -> Dictionary:
 	OS.add_logger(logger)
 	var entries := {}
 	for path in discover_files():
-		var ext : String = path.get_extension()
-		if ext == "tscn" or ext == "scn":
-			entries.merge(_evaluate_scene(path, logger), true)
-		else:
-			var res = ResourceLoader.load(path)
-			if res is FlowGraphResource:
-				entries[path] = _evaluate_resource(res, logger)
+		entries.merge(evaluate_source(self, path, logger), true)
 	OS.remove_logger(logger)
 	_clear_gdunit_script_errors()
 	return entries
 
-func _evaluate_resource(graph: FlowGraphResource, logger: CaptureLogger) -> Dictionary:
+## Evaluates one discovered source file (a graph resource, or every
+## FlowGraphNode3D of a scene, in tree order) under `parent` and returns
+## { key: entry }. Shared with the seed-zero suite's platform-noise fallback.
+static func evaluate_source(parent: Node, path: String, logger: CaptureLogger) -> Dictionary:
+	var ext : String = path.get_extension()
+	if ext == "tscn" or ext == "scn":
+		return _evaluate_scene(parent, path, logger)
+	var res = ResourceLoader.load(path)
+	if res is FlowGraphResource:
+		return { path: _evaluate_resource(parent, res, logger) }
+	return {}
+
+static func _evaluate_resource(parent: Node, graph: FlowGraphResource, logger: CaptureLogger) -> Dictionary:
 	var reason := skip_reason(graph)
 	if not reason.is_empty():
 		return { "status": "skipped", "reason": reason }
 	var owner := FlowGraphNode3D.new()
 	owner.name = "GoldenOwner"
-	add_child(owner)
+	parent.add_child(owner)
 	var entry := _evaluate(graph, owner, {}, owner, logger)
-	remove_child(owner)
+	parent.remove_child(owner)
 	owner.free()
 	return entry
 
-func _evaluate_scene(path: String, logger: CaptureLogger) -> Dictionary:
+static func _evaluate_scene(parent: Node, path: String, logger: CaptureLogger) -> Dictionary:
 	var entries := {}
 	var packed = ResourceLoader.load(path)
 	if not (packed is PackedScene):
@@ -228,7 +242,7 @@ func _evaluate_scene(path: String, logger: CaptureLogger) -> Dictionary:
 	for fn in flow_nodes:
 		graphs[fn] = fn.graph
 		fn.graph = null
-	add_child(root)
+	parent.add_child(root)
 	for fn in flow_nodes:
 		var key := "%s::%s" % [path, str(root.get_path_to(fn))]
 		var graph : FlowGraphResource = graphs[fn]
@@ -240,11 +254,11 @@ func _evaluate_scene(path: String, logger: CaptureLogger) -> Dictionary:
 			entries[key] = { "status": "skipped", "reason": reason }
 			continue
 		entries[key] = _evaluate(graph, fn, fn.args if fn.args != null else {}, root, logger)
-	remove_child(root)
+	parent.remove_child(root)
 	root.free()
 	return entries
 
-func _evaluate(graph: FlowGraphResource, owner: FlowGraphNode3D, inputs: Dictionary, count_root: Node, logger: CaptureLogger) -> Dictionary:
+static func _evaluate(graph: FlowGraphResource, owner: FlowGraphNode3D, inputs: Dictionary, count_root: Node, logger: CaptureLogger) -> Dictionary:
 	var ctx := FlowData.EvaluationContext.new()
 	ctx.owner = owner
 	ctx.eval_id = 0
@@ -277,7 +291,7 @@ static func _count_spawned(root: Node) -> int:
 ## Script errors raised inside the evaluated graphs are recorded in the
 ## baseline (e.g. the disabled-node draw_debug bug); drop them from GdUnit's
 ## monitor so they do not abort the golden test itself.
-func _clear_gdunit_script_errors() -> void:
+static func _clear_gdunit_script_errors() -> void:
 	var ctx = GdUnitThreadManager.get_current_context()
 	if ctx == null:
 		return
@@ -406,6 +420,7 @@ func test_golden_graphs_match_baseline(timeout := 1800000) -> void:
 	assert_int(entries.size()).override_failure_message("golden: no graphs discovered in %s" % [configured_sources()]).is_greater(0)
 	if is_update_mode():
 		_write_baseline(_build_baseline(entries))
+		_write_tolerance_sidecar(entries)
 		return
 	var baseline = _read_baseline()
 	assert_object(baseline).override_failure_message(
@@ -413,8 +428,10 @@ func test_golden_graphs_match_baseline(timeout := 1800000) -> void:
 	if baseline == null:
 		return
 	var expected : Dictionary = baseline.get("graphs", {})
+	var sidecar = GoldenTolerance.load_sidecar(GoldenTolerance.sidecar_path_for(baseline_path()))
 	var failures := []
 	var notes := []
+	var noise := []
 	var keys := {}
 	for k in expected:
 		keys[k] = true
@@ -437,17 +454,55 @@ func test_golden_graphs_match_baseline(timeout := 1800000) -> void:
 		if act_entry.get("status") == "ok" and exp_entry.get("status") == "skipped":
 			notes.append("UNVERIFIED %s: baseline was generated without it (%s); regenerate with the native library loaded" % [key, exp_entry.get("reason", "")])
 			continue
-		var diffs := diff_entries(key, exp_entry, act_entry)
+		var result := GoldenTolerance.compare_entry(key, exp_entry, act_entry, sidecar, _raw_provider)
+		var diffs : Array = result.failures
 		if diffs.size() > MAX_DIFFS_PER_GRAPH:
 			var more := diffs.size() - MAX_DIFFS_PER_GRAPH
 			diffs = diffs.slice(0, MAX_DIFFS_PER_GRAPH)
 			diffs.append("%s: ... and %d more differences" % [key, more])
 		failures.append_array(diffs)
+		noise.append_array(result.noise)
 	for note in notes:
 		print("golden: ", note)
+	_clear_gdunit_script_errors()
+	GoldenTolerance.print_noise("golden", noise)
+	if is_tolerance_update_mode():
+		assert_array(failures).override_failure_message(
+			"golden: refusing to write the tolerance sidecar: this run does not match %s exactly:\n  %s"
+			% [baseline_path(), "\n  ".join(PackedStringArray(failures))]).is_empty()
+		assert_array(noise).override_failure_message("golden: refusing to write the tolerance sidecar from a PLATFORM_NOISE run").is_empty()
+		if failures.is_empty() and noise.is_empty():
+			# Bind every fingerprint to the hashes baseline.json already holds.
+			_write_tolerance_sidecar(expected)
+		return
 	assert_array(failures).override_failure_message(
 		"golden: %d difference(s) against %s (if intended, regenerate with FLOW_GOLDEN_UPDATE=1 and review the diff):\n  %s"
 		% [failures.size(), baseline_path(), "\n  ".join(PackedStringArray(failures))]).is_empty()
+
+
+## Re-evaluates one golden key and returns its raw float containers, for the
+## tolerance comparison (GoldenTolerance.compare_entry).
+func _raw_provider(key: String, addresses: Array) -> Dictionary:
+	var captured := GoldenTolerance.capture(self, GoldenTolerance.source_of(key), { key: addresses })
+	_clear_gdunit_script_errors()
+	return captured.get(key, {})
+
+
+func _write_tolerance_sidecar(entries: Dictionary) -> void:
+	var errors := []
+	var data := GoldenTolerance.build_sidecar(self, entries, errors)
+	_clear_gdunit_script_errors()
+	assert_array(errors).override_failure_message(
+		"golden: tolerance sidecar not written; re-evaluation does not reproduce the recorded hashes:\n  %s"
+		% "\n  ".join(PackedStringArray(errors.slice(0, 40)))).is_empty()
+	if not errors.is_empty():
+		return
+	var path := GoldenTolerance.sidecar_path_for(baseline_path())
+	assert_bool(GoldenTolerance.write_sidecar(path, data)).override_failure_message("golden: cannot write %s" % path).is_true()
+	var count := 0
+	for key in data.graphs:
+		count += data.graphs[key].size()
+	print("golden: wrote %s (%d float streams fingerprinted on %s)" % [path, count, data.platform])
 
 
 func test_golden_graphs_are_deterministic(timeout := 1800000) -> void:
@@ -465,6 +520,45 @@ func test_golden_graphs_are_deterministic(timeout := 1800000) -> void:
 			failures.append_array(diffs.slice(0, MAX_DIFFS_PER_GRAPH))
 	assert_array(failures).override_failure_message(
 		"golden: non-deterministic graphs:\n  %s" % "\n  ".join(PackedStringArray(failures))).is_empty()
+
+
+## The tolerance sidecar must describe this baseline: every fingerprint is
+## bound to the exact hash baseline.json holds for that stream, and every float
+## stream of every compared graph has one.
+func test_tolerance_sidecar_matches_baseline() -> void:
+	if is_update_mode() or is_tolerance_update_mode():
+		return
+	var baseline = _read_baseline()
+	if baseline == null:
+		return
+	var sidecar = GoldenTolerance.load_sidecar(GoldenTolerance.sidecar_path_for(baseline_path()))
+	assert_object(sidecar).override_failure_message(
+		"golden: %s missing; run with FLOW_GOLDEN_UPDATE_TOLERANCE=1 to create it" % GoldenTolerance.sidecar_path_for(baseline_path())).is_not_null()
+	if sidecar == null:
+		return
+	assert_int(int(sidecar.get("format", 0))).is_equal(GoldenTolerance.FORMAT)
+	assert_float(float(sidecar.get("quantum", 0.0))).is_equal(GoldenTolerance.QUANTUM)
+	assert_str(str(sidecar.get("platform", ""))).is_not_empty()
+	var stale := []
+	var fingerprinted := 0
+	for key in sidecar.get("graphs", {}):
+		var entry = baseline.get("graphs", {}).get(key, null)
+		if not (entry is Dictionary) or entry.get("status") != "ok":
+			stale.append("%s: not an evaluated graph in the baseline" % key)
+			continue
+		var fps : Dictionary = sidecar.graphs[key]
+		for address in fps:
+			fingerprinted += 1
+			var expected_hash := GoldenTolerance.summary_hash(entry, address)
+			if expected_hash != str(fps[address].get("e", "")):
+				stale.append("%s: fingerprint for hash %s, baseline has %s" % [GoldenTolerance.describe_address(key, address), fps[address].get("e", ""), expected_hash])
+	for key in baseline.get("graphs", {}):
+		if baseline.graphs[key].get("status") == "ok" and not sidecar.get("graphs", {}).has(key):
+			stale.append("%s: no fingerprints" % key)
+	assert_int(fingerprinted).is_greater(100)
+	assert_array(stale).override_failure_message(
+		"golden: tolerance sidecar is stale (regenerate with FLOW_GOLDEN_UPDATE_TOLERANCE=1):\n  %s"
+		% "\n  ".join(PackedStringArray(stale.slice(0, 40)))).is_empty()
 
 
 func test_baseline_records_native_library_state() -> void:

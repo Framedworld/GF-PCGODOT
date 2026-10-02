@@ -18,6 +18,14 @@
 #   - every demo scene under res://demos, instantiated in the tree (so scan,
 #     ray-cast and physics nodes see real scene content) with previously saved
 #     generated content stripped first.
+#
+# The hashes are byte-exact, so they only reproduce on the platform that
+# generated them (Linux x86_64). Elsewhere a mismatch passes as PLATFORM_NOISE,
+# with a printed warning, only if every entry point still agrees bit for bit
+# with the legacy path in the same process and the golden harness's tolerance
+# comparison accepts the same graphs (see _judge() and
+# tests/golden/golden_tolerance.gd). FLOW_GOLDEN_TOLERANCE=strict|noise
+# overrides the platform rule.
 class_name SeedZeroBackcompatTest extends GdUnitTestSuite
 
 const Hasher = preload("res://tests/runtime/graph_output_hasher.gd")
@@ -139,6 +147,104 @@ func _matches(mode : String, got : Dictionary, expected : Dictionary) -> bool:
 	return mode != MODE_LEGACY or got.nodes == expected.nodes
 
 
+## Per-key verdict over every mode's hashes. Returns failure lines (empty =
+## pass). The byte-exact hashes are the check on the platform that generated
+## the baseline. Elsewhere (libm and compiler differences change the last bits
+## of sin/cos/atan2 results) a mismatch is accepted as PLATFORM_NOISE, with a
+## printed warning, only when
+##   (a) every entry point agrees bit for bit with the legacy path in this
+##       process (the back-compat property the suite exists for), and
+##   (b) the golden harness's tolerance comparison accepts every golden graph
+##       of the same source (per-node streams within the float noise budget,
+##       see tests/golden/golden_tolerance.gd).
+func _judge(key : String, got_by_mode : Dictionary, expected : Dictionary) -> Array:
+	var lines := []
+	for mode in got_by_mode:
+		if not _matches(mode, got_by_mode[mode], expected):
+			lines.append("%s [%s]: %s" % [key, mode, _describe_mismatch(mode, got_by_mode[mode], expected)])
+	if lines.is_empty():
+		return lines
+	var sidecar = GoldenTolerance.load_sidecar()
+	if not GoldenTolerance.noise_allowed(sidecar):
+		lines.append("%s: byte-exact hashes are required on %s (the baseline's platform; %s=noise to allow the tolerance fallback)" % [key, GoldenTolerance.platform_id(), GoldenTolerance.ENV_POLICY])
+		return lines
+	var legacy : Dictionary = got_by_mode.get(MODE_LEGACY, {})
+	for mode in got_by_mode:
+		if got_by_mode[mode].result != legacy.get("result"):
+			lines.append("%s: %s differs from the legacy path in this process: a real regression, not platform noise" % [key, mode])
+			return lines
+	var golden := _golden_tolerance_verdict(key, sidecar)
+	if not golden.failures.is_empty():
+		lines.append("%s: the golden tolerance comparison rejects it too:" % key)
+		for f in golden.failures.slice(0, 12):
+			lines.append("    " + str(f))
+		return lines
+	GoldenTolerance.print_noise("seed-zero", golden.noise,
+		"%s: byte hashes differ (%s) but every entry point agrees with the legacy path and the golden comparison accepts it (%d stream(s) within the noise budget, the rest exact at 1/1000)"
+		% [key, ", ".join(PackedStringArray(got_by_mode.keys())), golden.noise.size()])
+	return []
+
+
+## Which part of the hashes differs, with both values.
+func _describe_mismatch(mode : String, got : Dictionary, expected : Dictionary) -> String:
+	var parts := []
+	if got.result != expected.result:
+		var g : String = got.result
+		var e : String = expected.result
+		var gi := g.rfind(":")
+		var ei := e.rfind(":")
+		if g.substr(0, gi) != e.substr(0, ei):
+			parts.append("outputs hash %s -> %s" % [e.substr(0, ei), g.substr(0, gi)])
+		if g.substr(gi + 1) != e.substr(ei + 1):
+			parts.append("generated-content hash %s -> %s" % [e.substr(ei + 1), g.substr(gi + 1)])
+	if mode == MODE_LEGACY and got.nodes != expected.nodes:
+		parts.append("per-node bulks hash %s -> %s" % [expected.nodes, got.nodes])
+	return "; ".join(PackedStringArray(parts))
+
+
+## Golden comparison (with the tolerance fallback) of every golden graph that
+## comes from seed-zero key `key` (a graph resource, or a scene's components).
+func _golden_tolerance_verdict(key : String, sidecar) -> Dictionary:
+	var golden = JSON.parse_string(FileAccess.get_file_as_string(GoldenGraphsTest.BASELINE_PATH))
+	var expected : Dictionary = golden.get("graphs", {}) if golden is Dictionary else {}
+	var golden_keys := []
+	for gkey in expected:
+		if (gkey == key or gkey.begins_with(key + "::")) and expected[gkey].get("status") == "ok":
+			golden_keys.append(gkey)
+	if golden_keys.is_empty():
+		return { "failures": ["%s is not covered by the golden baseline, so platform noise cannot be told from a regression" % key], "noise": [] }
+	var logger := GoldenGraphsTest.CaptureLogger.new()
+	OS.add_logger(logger)
+	var entries = GoldenGraphsTest._normalize(GoldenGraphsTest.evaluate_source(self, key, logger))
+	OS.remove_logger(logger)
+	_clear_gdunit_script_errors()
+	var failures := []
+	var noise := []
+	for gkey in golden_keys:
+		if not entries.has(gkey):
+			failures.append("%s: not evaluated" % gkey)
+			continue
+		var result := GoldenTolerance.compare_entry(gkey, expected[gkey], entries[gkey], sidecar, _raw_provider)
+		failures.append_array(result.failures)
+		noise.append_array(result.noise)
+	return { "failures": failures, "noise": noise }
+
+
+func _raw_provider(key : String, addresses : Array) -> Dictionary:
+	var captured := GoldenTolerance.capture(self, GoldenTolerance.source_of(key), { key: addresses })
+	_clear_gdunit_script_errors()
+	return captured.get(key, {})
+
+
+func _clear_gdunit_script_errors() -> void:
+	var tctx = GdUnitThreadManager.get_current_context()
+	if tctx == null:
+		return
+	var exec_ctx = tctx.get_execution_context()
+	if exec_ctx != null and exec_ctx.error_monitor != null:
+		exec_ctx.error_monitor.clear_logs()
+
+
 func test_graph_resources_match_seed_zero_baseline() -> void:
 	if OS.get_environment("FLOW_WRITE_SEED0_BASELINE") == "1":
 		await _write_baseline()
@@ -146,15 +252,19 @@ func test_graph_resources_match_seed_zero_baseline() -> void:
 	var baseline := _load_baseline()
 	var graphs := Hasher.collect_graph_resources()
 	assert_int(graphs.size()).is_greater(10)
-	var mismatches := PackedStringArray()
+	var got := {}
 	for mode in _available_modes():
 		for key in graphs:
 			assert_bool(baseline.has(key)).override_failure_message("no baseline for %s" % key).is_true()
 			if not (baseline.get(key) is Dictionary):
 				continue
-			if not _matches(mode, _hash_graph_resource(mode, graphs[key]), baseline[key]):
-				mismatches.append("%s: %s" % [mode, key])
-	assert_array(Array(mismatches)).is_empty()
+			if not got.has(key):
+				got[key] = {}
+			got[key][mode] = _hash_graph_resource(mode, graphs[key])
+	var failures := []
+	for key in got:
+		failures.append_array(_judge(key, got[key], baseline[key]))
+	assert_array(failures).override_failure_message("seed-zero: %d mismatch line(s):\n  %s" % [failures.size(), "\n  ".join(PackedStringArray(failures))]).is_empty()
 
 
 func test_demo_scenes_match_seed_zero_baseline() -> void:
@@ -163,13 +273,16 @@ func test_demo_scenes_match_seed_zero_baseline() -> void:
 	var baseline := _load_baseline()
 	var scenes := Hasher.collect_demo_scenes()
 	assert_int(scenes.size()).is_greater(20)
-	var mismatches := PackedStringArray()
+	var got := {}
 	for mode in _available_modes():
 		for scene_path in scenes:
 			assert_bool(baseline.has(scene_path)).override_failure_message("no baseline for %s" % scene_path).is_true()
 			if not (baseline.get(scene_path) is Dictionary):
 				continue
-			var got : Dictionary = await _hash_scene(mode, scene_path)
-			if not _matches(mode, got, baseline[scene_path]):
-				mismatches.append("%s: %s" % [mode, scene_path])
-	assert_array(Array(mismatches)).is_empty()
+			if not got.has(scene_path):
+				got[scene_path] = {}
+			got[scene_path][mode] = await _hash_scene(mode, scene_path)
+	var failures := []
+	for scene_path in got:
+		failures.append_array(_judge(scene_path, got[scene_path], baseline[scene_path]))
+	assert_array(failures).override_failure_message("seed-zero: %d mismatch line(s):\n  %s" % [failures.size(), "\n  ".join(PackedStringArray(failures))]).is_empty()

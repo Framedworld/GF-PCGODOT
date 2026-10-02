@@ -77,9 +77,13 @@ func test_input_with_no_trs_and_no_node_stream_sets_error() -> void:
 func test_node_stream_with_no_valid_mesh_instances_sets_error() -> void:
 	# A "node" stream whose entries are not MeshInstance3D with a mesh → error.
 	var d = FlowDataScript.Data.new()
-	d.registerStream("node", [Node3D.new()], FlowDataScript.DataType.String)
+	var not_a_mesh := Node3D.new()
+	d.registerStream("node", [not_a_mesh], FlowDataScript.DataType.String)
 	var s = SurfaceSamplerSettings.new()
 	var node = _run([d], s)
+	# The test owns the out-of-tree Node3D; free it so no orphan outlives the
+	# suite (a leaked orphan breaks later suites' orphan checks).
+	not_a_mesh.free()
 	assert_str(node.err).is_not_empty()
 
 # ---------------------------------------------------------------------------

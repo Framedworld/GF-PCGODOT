@@ -125,9 +125,17 @@ func _clear_gdunit_script_errors() -> void:
 	if exec_ctx != null and exec_ctx.error_monitor != null:
 		exec_ctx.error_monitor.clear_logs()
 
-func _diff_against_baseline(entries: Dictionary) -> Array:
+## Differences against the golden baseline. A float stream whose exact hash
+## differs is accepted as PLATFORM_NOISE (printed) only off the baseline's
+## platform and only when a sequential re-evaluation reproduces the very same
+## hash and its values match the tolerance fingerprint (see
+## tests/golden/golden_tolerance.gd); so the mode under test still had to
+## produce exactly what the sequential, uncached run produces.
+func _diff_against_baseline(entries: Dictionary, context: String = "executor modes") -> Array:
 	var expected := _baseline()
+	var sidecar = GoldenTolerance.load_sidecar()
 	var failures := []
+	var noise := []
 	var compared := 0
 	for key in expected:
 		var exp_entry : Dictionary = expected[key]
@@ -139,29 +147,37 @@ func _diff_against_baseline(entries: Dictionary) -> Array:
 		if entries[key].get("status") != "ok":
 			continue
 		compared += 1
-		failures.append_array(GoldenGraphsTest.diff_entries(key, exp_entry, entries[key]).slice(0, 8))
+		var result := GoldenTolerance.compare_entry(key, exp_entry, entries[key], sidecar, _raw_provider)
+		failures.append_array(result.failures.slice(0, 8))
+		noise.append_array(result.noise)
 	if compared < 40:
 		failures.append("only %d graphs compared" % compared)
+	GoldenTolerance.print_noise(context, noise)
 	return failures
+
+func _raw_provider(key: String, addresses: Array) -> Dictionary:
+	var captured := GoldenTolerance.capture(self, GoldenTolerance.source_of(key), { key: addresses })
+	_clear_gdunit_script_errors()
+	return captured.get(key, {})
 
 
 # --- tests -------------------------------------------------------------------------
 
 func test_threaded_mode_matches_golden_baseline(timeout := 1800000) -> void:
 	var entries := _evaluate_all({ FlowExecutor.THREADED_META: true })
-	var failures := _diff_against_baseline(entries)
+	var failures := _diff_against_baseline(entries, "threaded")
 	assert_array(failures).override_failure_message("threaded vs golden:\n  " + "\n  ".join(PackedStringArray(failures))).is_empty()
 
 
 func test_output_cache_matches_golden_baseline_cold_and_warm(timeout := 1800000) -> void:
 	FlowOutputCache.clear()
 	var cold := _evaluate_all({ FlowExecutor.OUTPUT_CACHE_META: true })
-	var cold_failures := _diff_against_baseline(cold)
+	var cold_failures := _diff_against_baseline(cold, "cache (cold)")
 	assert_array(cold_failures).override_failure_message("cache (cold) vs golden:\n  " + "\n  ".join(PackedStringArray(cold_failures))).is_empty()
 	var misses_after_cold := FlowOutputCache.misses
 	assert_int(misses_after_cold).is_greater(0)
 	var warm := _evaluate_all({ FlowExecutor.OUTPUT_CACHE_META: true })
-	var warm_failures := _diff_against_baseline(warm)
+	var warm_failures := _diff_against_baseline(warm, "cache (warm)")
 	assert_array(warm_failures).override_failure_message("cache (warm) vs golden:\n  " + "\n  ".join(PackedStringArray(warm_failures))).is_empty()
 	# The second pass over unchanged graphs hits the cache.
 	assert_int(FlowOutputCache.hits).is_greater(0)
@@ -173,7 +189,7 @@ func test_threaded_with_output_cache_matches_golden_baseline(timeout := 1800000)
 	var options := { FlowExecutor.THREADED_META: true, FlowExecutor.OUTPUT_CACHE_META: true }
 	var first := _evaluate_all(options)
 	var second := _evaluate_all(options)
-	var failures := _diff_against_baseline(first)
-	failures.append_array(_diff_against_baseline(second))
+	var failures := _diff_against_baseline(first, "threaded + cache (first)")
+	failures.append_array(_diff_against_baseline(second, "threaded + cache (second)"))
 	assert_array(failures).override_failure_message("threaded + cache vs golden:\n  " + "\n  ".join(PackedStringArray(failures))).is_empty()
 	FlowOutputCache.clear()

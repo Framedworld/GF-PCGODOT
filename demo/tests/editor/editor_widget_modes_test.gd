@@ -51,7 +51,12 @@ const MODE_INPUTS := {
 var _editor : Control = null
 
 
-func before() -> void:
+# A fresh dock per test, freed in after_test(): GdUnit's orphan monitor walks
+# every node reachable from the suite after each test whenever an orphan from
+# an EARLIER suite still exists, and it cannot walk the dock (untyped members
+# holding ints/arrays make its `as Node` cast fail with "Invalid cast"). With
+# the dock gone before that walk, suite order no longer matters.
+func before_test() -> void:
 	_editor = load(EDITOR_SCENE).instantiate()
 	add_child(_editor)
 	_editor.set_process(false)
@@ -70,6 +75,9 @@ func after() -> void:
 func after_test() -> void:
 	if is_instance_valid(_editor):
 		_editor.clear_graph()
+		remove_child(_editor)
+		_editor.free()
+	_editor = null
 	await get_tree().process_frame
 
 

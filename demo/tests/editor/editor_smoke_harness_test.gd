@@ -29,8 +29,12 @@ const KNOWN_EDITOR_DIFFERENCES := {}
 var _editor : Control = null
 
 
-# One dock for the whole suite.
-func before() -> void:
+# A fresh dock per test, freed in after_test(): GdUnit's orphan monitor walks
+# every node reachable from the suite after each test whenever an orphan from
+# an EARLIER suite still exists, and it cannot walk the dock (untyped members
+# holding ints/arrays make its `as Node` cast fail with "Invalid cast"). With
+# the dock gone before that walk, suite order no longer matters.
+func before_test() -> void:
 	_editor = load(EDITOR_SCENE).instantiate()
 	add_child(_editor)
 	# The harness drives evaluation itself; never let _process() start an async
@@ -51,6 +55,9 @@ func after() -> void:
 func after_test() -> void:
 	if is_instance_valid(_editor):
 		_editor.clear_graph()
+		remove_child(_editor)
+		_editor.free()
+	_editor = null
 	# clear_graph() resets the data inspector, whose table queue_frees its
 	# column labels; let them go before GdUnit counts orphan nodes.
 	await get_tree().process_frame
@@ -180,6 +187,12 @@ func _release_case(inst: Dictionary) -> void:
 		root.get_parent().remove_child(root)
 	root.free()
 
+## Re-evaluates one golden key for the tolerance comparison.
+func _raw_provider(key: String, addresses: Array) -> Dictionary:
+	var captured := GoldenTolerance.capture(self, GoldenTolerance.source_of(key), { key: addresses })
+	_clear_gdunit_script_errors()
+	return captured.get(key, {})
+
 ## Graph scripts raise recorded node errors (see the golden baseline); keep
 ## GdUnit's error monitor from failing the harness on them.
 func _clear_gdunit_script_errors() -> void:
@@ -204,7 +217,9 @@ func test_editor_evaluation_matches_runtime_and_golden_for_every_graph(timeout :
 	var baseline = JSON.parse_string(FileAccess.get_file_as_string(BASELINE_PATH))
 	assert_object(baseline).is_not_null()
 	var expected_graphs : Dictionary = baseline.get("graphs", {})
+	var sidecar = GoldenTolerance.load_sidecar()
 	var failures := []
+	var noise := []
 	var compared := 0
 	for case in _cases():
 		var key : String = case.key
@@ -219,9 +234,13 @@ func test_editor_evaluation_matches_runtime_and_golden_for_every_graph(timeout :
 		var runtime_nodes = _normalize(_runtime_snapshot(graph, rt.owner, rt.inputs))
 		_clear_gdunit_script_errors()
 		_release_case(rt)
-		var golden_diffs := _diff_snapshots(entry.get("nodes", {}), runtime_nodes)
-		for d in golden_diffs.slice(0, 6):
+		# Runtime vs golden: exact, or PLATFORM_NOISE off the baseline's
+		# platform (tests/golden/golden_tolerance.gd).
+		var golden := GoldenTolerance.compare_entry(key, { "status": "ok", "nodes": entry.get("nodes", {}) },
+			{ "status": "ok", "nodes": runtime_nodes }, sidecar, _raw_provider)
+		for d in golden.failures.slice(0, 6):
 			failures.append("%s runtime vs golden: %s" % [key, d])
+		noise.append_array(golden.noise)
 		# Editor path, on a fresh host.
 		var ed := _instantiate_case(case)
 		_open_in_editor(ed.graph, ed.owner)
@@ -236,6 +255,7 @@ func test_editor_evaluation_matches_runtime_and_golden_for_every_graph(timeout :
 		var editor_diffs := _diff_snapshots(runtime_nodes, editor_nodes)
 		for d in editor_diffs.slice(0, 6):
 			failures.append("%s editor vs runtime: %s" % [key, d])
+	GoldenTolerance.print_noise("editor smoke (runtime vs golden)", noise)
 	assert_int(compared).is_greater(40)
 	assert_array(failures).override_failure_message("\n".join(failures)).is_empty()
 

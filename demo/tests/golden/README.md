@@ -38,19 +38,26 @@ A Data summary is `size`, `kind`, sorted `tags`, `data_attrs` (type + hash)
 and, per stream sorted by name, `name`, `data_type`, element `count` and a
 16-hex-digit SHA-256 content hash. Integer, bool and string containers hash
 their exact contents; float-based containers (Float, Vector, Color,
-Quaternion) are rounded to 1/1000 first (`FlowNodeIO.SNAPSHOT_FLOAT_QUANTUM`)
-so last-bit float noise across CPUs, compilers and Godot minor versions does
-not register; Resource/Node containers hash only `resource_path` (or class) per
-element, never object identity.
+Quaternion) are rounded to 1/1000 first (`FlowNodeIO.SNAPSHOT_FLOAT_QUANTUM`);
+Resource/Node containers hash only `resource_path` (or class) per element,
+never object identity. Rounding does **not** make the hash portable: a value
+within one float32 ulp of a rounding boundary flips it, see "Cross-platform
+noise" below.
 
-The suite has three tests:
+The suite has four tests:
 
 - `test_golden_graphs_match_baseline`: compares against `baseline.json` and
-  lists up to 12 differences per graph (also new / removed graphs);
+  lists up to 12 differences per graph (also new / removed graphs), one line
+  per stream: `graph=<key> node=<node> bulk=<b> port=<p> stream=<name>: exact
+  hash <expected> -> <actual>; tolerance: <verdict>`;
 - `test_golden_graphs_are_deterministic`: evaluates everything a second time
   in the same process (fresh owners and scene instances) and requires an
   identical result;
+- `test_tolerance_sidecar_matches_baseline`: every fingerprint in
+  `baseline_tolerance.json` belongs to the hash `baseline.json` holds;
 - `test_baseline_records_native_library_state`: sanity check on the file.
+
+`golden_tolerance_test.gd` tests the tolerance layer itself.
 
 ## Running it
 
@@ -74,9 +81,58 @@ git diff --stat tests/golden/baseline.json
 ```
 
 In update mode the comparison is skipped and `baseline.json` is rewritten
-(keys sorted, tab-indented, so diffs are per node). Generate it **with the
-native library loaded** (see below) so every graph is covered; the file
-records `generated_with_native_library`.
+(keys sorted, tab-indented, so diffs are per node), together with its
+tolerance sidecar `baseline_tolerance.json`. Generate both **on Linux x86_64
+with the native library loaded** (see below) so every graph is covered and the
+exact hashes stay strict where CI runs; the files record
+`generated_with_native_library` and `platform`.
+
+To rebuild only the sidecar (for example after changing
+`golden_tolerance.gd`), leaving `baseline.json` untouched:
+
+```bash
+FLOW_GOLDEN_UPDATE_TOLERANCE=1 godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -a res://tests/golden/golden_graphs_test.gd
+```
+
+It refuses to write unless the run matches `baseline.json` exactly, and binds
+every fingerprint to the hash `baseline.json` already holds for that stream.
+
+### Cross-platform noise (PLATFORM_NOISE)
+
+Different platforms' libm (`sin`, `cos`, `atan2`) and compilers can round the
+last bit of a result differently. Rounding to 1/1000 does not hide that: an
+Euler angle of 100..180 degrees has a float32 ulp of about 1.5% of the
+quantum, so a stream of a few hundred rotations almost always holds a value
+close enough to a rounding boundary to flip the hash. The baseline is
+generated on Linux; a Windows run was reported to differ in 19 stream hashes of `demo_flashy_colonnade` and
+`demo_sample_points` (sampled spline rotations and the positions derived from
+them), for that reason alone.
+
+The exact hash stays the check. When it differs, `golden_tolerance.gd`
+decides whether the difference is platform noise, using the fingerprints in
+`baseline_tolerance.json` (per float stream: element count, a hash of 0.005
+buckets, the few values that sat within the noise budget of a bucket boundary,
+near-gimbal rotations kept whole, per-component min/max for messages):
+
+- only float streams whose name, type and element count are unchanged can be
+  noise; any other difference (point count, stream set, types, tags, kind,
+  spawn count, errors, integer or string streams such as `seed`) fails;
+- the graph is re-evaluated, the re-run must reproduce the very same exact
+  hash, and every value must match the fingerprint within the stream's noise
+  budget (8 float32 ulps of its largest magnitude);
+- rotation streams are compared as rotations: modulo 360 (so +179.9999 and
+  -179.9999 match), at gimbal lock through pitch and yaw -+ roll, near gimbal
+  lock by rotation distance;
+- a change of 0.005 or more in any component of any element always fails.
+
+A pass that needed this prints `WARNING: <suite>: PLATFORM_NOISE pass on
+<platform>` and one `PLATFORM_NOISE graph=... node=... stream=...` line per
+stream. It is accepted only on a platform other than the one that generated
+the baseline (`platform` in the sidecar, e.g. `Linux.x86_64`); there the
+exact hashes are still required. Override with `FLOW_GOLDEN_TOLERANCE=strict`
+(never accept noise) or `FLOW_GOLDEN_TOLERANCE=noise` (accept it on the
+baseline's platform too). The executor-modes, editor-smoke and seed-zero
+suites use the same comparison.
 
 ### Native library
 
