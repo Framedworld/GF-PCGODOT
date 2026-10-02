@@ -8,8 +8,10 @@ This guide covers:
 2. [Hotkeys](#hotkeys) — UE keys vs. here
 3. [Concept dictionary](#concept-dictionary) — `$Density`, `$Seed`, selectors, attribute sets, tags
 4. [The node dictionary](#the-node-dictionary) — every UE PCG node and its equivalent here
-5. [Translated tutorials](#translated-tutorials) — three classic UE recipes, node by node
-6. [Runtime: the PCG Component API](#runtime-the-pcg-component-api) — Generate/Cleanup/Seed from script
+5. [Architecture: how Unreal's PCG model maps here](#architecture-how-unreals-pcg-model-maps-here) — elements and the executor, caching and threading, spatial data, spawners, attribute types
+6. [Overrides and bindings](#overrides-and-bindings) — override pins, graph parameter overrides, bound settings
+7. [Translated tutorials](#translated-tutorials) — three classic UE recipes, node by node
+8. [Runtime: the PCG Component API](#runtime-the-pcg-component-api) — Generate/Cleanup/Seed from script
 
 For things that genuinely do not translate yet, see [PARITY_ROADMAP.md](PARITY_ROADMAP.md) — we would rather tell you up front than have you discover it at step 7 of a tutorial.
 
@@ -20,7 +22,7 @@ For things that genuinely do not translate yet, see [PARITY_ROADMAP.md](PARITY_R
 | In Unreal PCG | Here |
 |---|---|
 | **PCG Component** (on an actor) | **`FlowGraphNode3D`** — a Node3D you add to your scene. It holds a reference to a graph and evaluates it, with the component API (`generate()`, `cleanup()`, `regenerate()`, `seed`, `generated` signal) — see [Runtime: the PCG Component API](#runtime-the-pcg-component-api). |
-| **PCG Volume** | The `FlowGraphNode3D`'s place in the scene. There is no special volume actor — source nodes (`scan_meshes`, `scan_splines`, `scan_nodes`) read the surrounding scene directly, and generator nodes (`grid`, `grid_fill_bounds`, `make_bounds`) define their own regions. |
+| **PCG Volume** | The `FlowGraphNode3D`'s place in the scene. There is no special volume actor — source nodes (`get_surface_data`, `get_spline_data`, `get_volume_data`, `scan_meshes`, `scan_splines`, `scan_nodes`) read the surrounding scene directly, and generator nodes (`grid`, `grid_fill_bounds`, `make_bounds`) define their own regions. Any `CollisionShape3D`, `Area3D` or CSG node can serve as a volume through `get_volume_data`. |
 | **PCG Graph asset** (`.uasset`) | **`FlowGraphResource`** saved as a `.tres` file (or embedded directly in the scene). Subgraphs are also `.tres` graphs. |
 | **Graph editor tab** | The **Data Flow** bottom panel. Select a `FlowGraphNode3D` and the panel appears at the bottom of the Godot editor, with the graph canvas, a sidebar inspector on the right, and the data table below. |
 | **Details panel** | The **sidebar inspector** on the right of the Data Flow panel. Select a node and its settings appear there (not in Godot's main Inspector dock). |
@@ -28,7 +30,7 @@ For things that genuinely do not translate yet, see [PARITY_ROADMAP.md](PARITY_R
 | **Attributes table (Inspect)** | The **Data Inspector** — press **A** on a node. One row per point, one column per attribute, with filtering, and clicking a row highlights that point in the 3D viewport. |
 | **Debug cube rendering** | Press **D** on a node — points draw as instanced cubes in the viewport, tinted by density (or another attribute) on a grayscale ramp. |
 | **Level actors** | Scene nodes. `MeshInstance3D` ≈ Static Mesh Component, `Path3D` ≈ Spline Component, `PackedScene` ≈ Blueprint/actor template. |
-| **ISM/HISM instances** | `MultiMeshInstance3D` (what `spawn_meshes` emits — one per unique mesh). |
+| **ISM/HISM instances** | `MultiMeshInstance3D` (what `spawn_meshes` emits — one per unique mesh, or with `mesh_entries` one per mesh and render settings group). |
 
 **First session:** open the `demo/` project in Godot 4.4+, open any `demos/demo_*.tscn` scene, click the `FlowGraphNode3D`, and the Data Flow panel opens with the graph. Right-click the canvas and type a UE node name — the search popup knows the UE vocabulary ("Static Mesh Spawner", "Surface Sampler", "Transform Points", ...) via aliases.
 
@@ -67,19 +69,23 @@ The data model is a **column store**: each pin carries `Data` objects, and a `Da
 |---|---|---|
 | `$Density` | `density` stream | Float, **0..1**, soft existence probability — same semantics as UE. Samplers initialize it to 1.0 on their outputs; density-consuming nodes treat a *missing* density stream as constant 1.0; nodes that write it clamp to 0..1. |
 | `$Seed` | `seed` stream | Int, per-point, derived from the point's position when a sampler creates it. Stochastic nodes (`transform_points`, `match_and_set`, `attribute_noise`, `select_points`, ...) prefer the point seed (combined with the node's seed) when the stream is present, so regenerating with the same seeds is fully deterministic and points keep their randomness when neighbors change. `mutate_seed` re-rolls it, exactly like UE. |
-| `$Position` | `position` | Vector3 stream. |
-| `$Position.X` | `position.x` | Component selectors work on any Vector/Color stream: `.x/.y/.z/.w` and `.r/.g/.b/.a`, case-insensitive. No swizzles (`$Position.ZYX` has no equivalent). |
-| `$Rotation` | `rotation` | Vector3 **Euler degrees** — not a quaternion (see [roadmap](PARITY_ROADMAP.md#quaternion-rotation-model)). Yaw is the **Y** component (Godot is Y-up). Convenience aliases: `Yaw` → `rotation.y`, `Pitch` → `rotation.x`, `Roll` → `rotation.z`. |
-| `$Scale` | `size` | Vector3. **Caution:** `size` doubles as the point's bounds — `difference`, `self_pruning`, `bounds_modifier`, and the debug cubes all read it. UE's separate Scale-vs-Bounds distinction is a [roadmap item](PARITY_ROADMAP.md#per-point-boundsminboundsmax--steepness). |
-| `$BoundsMin` / `$BoundsMax` | — | No per-point bounds pair; `size` is the extent. `bounds_modifier` collapses min/max settings into an extent written to `size`. Roadmap. |
-| `$Steepness` | — | Does not exist. Roadmap. |
-| `$Color` | a `Color`-typed stream | Conventionally named `color`; `spawn_meshes` reads it for per-instance vertex colors. |
+| `$Position` | `position` (alias `$Position`) | Vector3 stream. `$Position` works as a selector anywhere a stream name is asked (see [selector aliases](#selector-aliases)). |
+| `$Position.X` | `position.x` / `$Position.X` | Component selectors work on any Vector, Vector2, Vector4, Quaternion or Color stream: `.x/.y/.z/.w` and `.r/.g/.b/.a`, case-insensitive. No swizzles (`$Position.ZYX` has no equivalent). |
+| `$Rotation` | `rotation` (alias `$Rotation`) | Vector3 **Euler degrees** by default. Yaw is the **Y** component (Godot is Y-up). Convenience aliases: `Yaw` → `rotation.y`, `Pitch` → `rotation.x`, `Roll` → `rotation.z`. An optional Quaternion stream `rotation_quat` wins over `rotation` when present (`rotator_op` writes either). |
+| `$Scale` | `size` (alias `$Scale`) | Vector3. When a point has no `bounds_min`/`bounds_max` streams, `size` is both its scale and its extent (bounds ±size/2), which is how older graphs work. With the bounds streams present, `size` is a pure scale, as in UE. |
+| `$BoundsMin` / `$BoundsMax` | `bounds_min` / `bounds_max` (aliases `$BoundsMin` / `$BoundsMax`) | Optional per-point Vector3 streams in the point's local space. Consumers (`difference`, `self_pruning`, `sample_points` / `volume_sampler`, `get_bounds`, the round-2 point nodes) fall back to ±`size`/2 when they are absent; the debug cubes still draw `size`. `bounds_modifier` writes them (PerPointBounds mode, the default); `apply_scale_to_bounds`, `reset_point_center`, `split_points` and `bounds_from_mesh` work on them. |
+| `$Steepness` | `steepness` (alias `$Steepness`) | Optional Float stream, 1.0 (hard edge) when absent. Shapes the density falloff of point volumes in `difference` / `self_pruning` and of spatial shapes. |
+| `$Color` | `color` (alias `$Color`) | A Color stream conventionally named `color`; `spawn_meshes` reads it for per-instance vertex colors. |
 | `@Last` | `@last` | "The last stream written by the upstream node" — same idea, same place you'd use it (filter inputs default to it). |
-| `@Source`, `@LastCreated` | — | Not supported; name your output attribute explicitly. |
+| `@Source`, `@LastCreated` | `@Source` on the outputs of the attribute-op nodes; `@LastCreated` not supported | `@Source` (the default output of `attribute_cast`, `copy_attribute`, `attribute_select`, ...) writes back to the node's input attribute. Older nodes still need an explicit output name. |
+| **Attribute types** (bool, int32, int64, float, double, vector2/3/4, quat, rotator, transform, string, soft object path) | Bool, Int, Int64, Float, Double, Vector2, Vector, Vector4, Quaternion, Transform, String, Color, Resource, NodeMesh/NodePath | Rotators are Euler-degree Vector streams. `attribute_cast` converts between types with explicit loss rules. See [Attribute types](#attribute-types). |
+| **Point bounds** (Scale vs BoundsMin/BoundsMax, Steepness) | `size` + optional `bounds_min` / `bounds_max` / `steepness` | `Data.getEffectiveBounds()` and `getEffectiveSteepness()` resolve them with the fallbacks above. A point tested against a spatial shape uses its center, not its bounds box (see [Spatial data](#spatial-data)). |
 | `@Data` / `@Points` / `@Elements` domains (5.6+) | `@data.<name>` (per-data); per-point is default | Per-data attributes now exist: write one with `add_attribute` in PerData mode (or the `@data.<name>` selector), read it back broadcast via `@data.<name>`. `partition` stamps its key as a per-data attribute. `@Points` is the default per-point domain; `@Elements` has no equivalent yet. |
 | **Attribute Set** | a `Data` with no point streams | A single-row `Data` is the equivalent of UE's single-entry attribute set. Convert with `point_to_attribute_set` / `attribute_set_to_point`. The `assets` node is the idiomatic way to author a weighted table for `match_and_set`. |
 | **Tags** | `Data.tags` | Per-data string tags, exactly like UE: `add_tags` / `delete_tags` / `replace_tags` to mutate, `filter_data_by_tag` to route. |
-| **Spatial data types** (Surface, Volume, Spline, Primitive, composite algebra) | Point streams + dedicated nodes | There is no typed spatial lattice. Splines travel as a `node` stream of `Path3D`s (from `scan_splines`), meshes as a `node`/`mesh` stream (from `scan_meshes`), and you sample them explicitly (`sample_spline`, `sample_mesh`, `surface_sampler`). "To Point" / "Make Concrete" are unnecessary — everything already is points. See [roadmap](PARITY_ROADMAP.md#spatial-data-type-lattice). |
+| **Spatial data types** (Surface, Volume, Spline, Primitive, composite algebra) | `Data.shape` (a `FlowSpatial`) | Get Spline / Surface / Volume Data produce shapes (no points). Difference, Intersection and Union combine them into composites without sampling. Surface Sampler, Volume Sampler, Spline Sampler and To Point make them concrete, and Projection projects onto them. Pins carry points and shapes alike; `filter_data_by_type` tells them apart. Point data still works everywhere, and the older `node`-stream sources (`scan_splines`, `scan_meshes`) keep working. See [Spatial data](#spatial-data). |
+| **Execution model** (`UPCGSettings` / `IPCGElement` / graph compiler / graph executor) | `NodeSettings` / `FlowNodeBase` element / `FlowCompiledGraph` / `FlowExecutor` | Node scripts are stateless-per-run `RefCounted` elements; the editor shows them through `FlowNodeWidget`. The graph is parsed once and cached. See [Execution model](#execution-model). |
+| **Caching** (`FPCGGraphCache`) and **multithreaded execution** | `FlowGraphNode3D.output_cache`, `FlowGraphNode3D.threaded` | Both opt-in and off by default; output is identical to a plain run. Nodes that touch the scene, physics, rendering or graph variables always run on the main thread and are never cached. See [Caching and threading](#caching-and-threading). |
 | **Multi-data on a pin** | "bulks" | A pin can carry several `Data` objects; the Data Inspector has a selector to page through them, and `loop` iterates them. |
 | — (bonus) | `index`, `front` / `up` / `right` | Virtual streams: per-point index, and direction vectors derived from `rotation`. |
 
@@ -100,14 +106,14 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Input | `input` | 1:1 | Exposes graph parameters as output ports. |
 | Output | `output` | 1:1 | Graph/subgraph output terminal. |
 | Get Actor Data | `scan_nodes` (alias `points_from_scene`) | 1:1 | One point per matching scene node; filter by group (≈ tag) or class; can import node properties/metadata as attributes. |
-| Get Landscape Data | `scan_meshes` (+ `sample_terrain_layers`) | partial | Godot has no landscape actor. Scan your terrain `MeshInstance3D`(s), then sample (see [forest tutorial](#tutorial-1--forest-quick-start)). No height-field semantics. Paint-layer weights now have a generic equivalent: `sample_terrain_layers` reads N user-assigned mask textures (world-XZ or UV) and writes a `layer_<name>` Float stream per layer, then filter with `density_filter`/`attribute_filter_range`. Terrain-plugin splat auto-detection is still roadmap. |
-| Get Spline Data | `scan_splines` | 1:1 | Collects `Path3D` nodes (by group or scene scan) as a `node` stream. |
-| Get Volume Data | `make_bounds` / `scan_nodes` (size_to_bounds) | partial | No volume actor type; a bounds point + `volume_sampler` covers the sampling use. |
-| Get Primitive Data | `scan_meshes` | 1:1 | Meshes with their `mesh` resources as streams. |
+| Get Landscape Data | `get_surface_data` (legacy: `scan_meshes`; paint layers: `sample_terrain_layers`) | partial | Godot has no landscape actor. `get_surface_data` turns terrain `MeshInstance3D` nodes, `HeightMapShape3D` collision shapes or a heightmap `Image` into surface data with height-field semantics (vertical projection, normals, footprint density); `surface_sampler` then samples it UE-style (see [forest tutorial](#tutorial-1--forest-quick-start)). Paint-layer weights are a separate node: `sample_terrain_layers` reads N user-assigned mask textures (world-XZ or UV) and writes a `layer_<name>` Float stream per layer, then filter with `density_filter`/`attribute_filter_range`. No Terrain3D / HTerrain adapters yet. `scan_meshes` still emits the old `node`/`mesh` streams. |
+| Get Spline Data | `get_spline_data` (legacy: `scan_splines`) | 1:1 | Collects `Path3D` nodes (by group, or the whole scene) as spline data: a copied curve and world transform per Data, the way Unreal returns one spline data per spline component. `output_mode = Merged` returns one Data holding the union. Feeds Spline Sampler, To Point, Create Surface From Spline, Spawn Spline Mesh (per-spline output) and the set operations, where the spline acts as a tube of `tube_half_width` with a `tube_steepness` falloff. `scan_splines` still emits the old `node` stream of `Path3D`s. |
+| Get Volume Data | `get_volume_data` | partial | Volume data from `CollisionShape3D` nodes (also the shapes inside an `Area3D` or physics body), CSG roots, and mesh bounds or closed meshes. Box and sphere shapes are exact and honour `steepness`; capsules and cylinders are meshed; a convex shape becomes the box of its points. |
+| Get Primitive Data | `get_volume_data` (mesh references: `scan_meshes`) | partial | Primitive components' collision as volume data, as above. `scan_meshes` still gives meshes with their `mesh` resources as streams. |
 | Get Texture Data | `texture_sampler` | partial | Samples a texture *at existing points* (UV or world XZ) instead of producing surface data — reorder your chain: points first, then texture sample, then `density_filter`. |
 | Get PCG Component Data | `FlowGraphNode3D.last_outputs` (script side) | partial | No in-graph node; read another component's outputs from script and feed them as graph inputs, or use a `subgraph` to share generation logic. |
-| Get Actor Property | `scan_nodes` (import_properties) | partial | Property paths (incl. sub-resources like `mesh:size`) import as attributes. |
-| Get Property From Object Path | — | roadmap | |
+| Get Actor Property | `scan_nodes` (import_properties), or `get_property_from_object_path` | partial | Property paths (incl. sub-resources like `mesh:size`) import as attributes. |
+| Get Property From Object Path | `get_property_from_object_path` | partial | Object paths come from the settings (node paths relative to the owner or its scene root, `%Unique`, `/root/...`, or `res://` / `uid://` / `user://` resources), not from an input attribute. Properties use the `scan_nodes` `import_properties` syntax (`mesh:size`) and typing; one attribute-set row per object, with an `object_path` column. No struct or object-reference extraction. |
 | Load Data Table | `load_data_table` | 1:1 | CSV/TSV rows → typed attribute streams. |
 | Data Table Row To Attribute Set | `data_table_row_to_attribute_set` | 1:1 | By index or key match. |
 | Load PCG Data Asset | `load_pcg_data_asset` | 1:1 | JSON / Resource-backed point data. |
@@ -118,10 +124,10 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 
 | UE node | Here | Status | Notes |
 |---|---|---|---|
-| Surface Sampler | `surface_sampler` | partial | Scatters points across the input's bounds. Uses a point count (`num_points`) rather than UE's points-per-square-meter; no Looseness. Initializes `density` = 1.0 and per-point `seed`. For uneven terrain, follow with `projection` to drape points onto the geometry. |
-| Spline Sampler | `sample_spline` | 1:1 | Distance mode (`uniform_interval`), random samples, segment centers (with look-at rotation — the fence trick), and **interior fill** of closed splines (grid / random / Poisson) with a distance-to-border attribute. |
+| Surface Sampler | `surface_sampler` | partial | On surface data (`get_surface_data`, composites) it follows Unreal's model: points per square meter (default 0.1), point extents, looseness, apply density, point steepness, a world-anchored grid with per-cell seeds, and an optional Bounding Shape pin (`use_bounding_shape`). Points land on the surface and get its `normal`. Caveat: surfaces are sampled along the world vertical, so vertical walls get no points. On point inputs or a scanned `node` mesh stream it keeps the old behaviour: `num_points` per input region (a count, not a density), `density` = 1.0 and per-point `seed`, then `projection` to drape onto uneven ground. |
+| Spline Sampler | `sample_spline` | 1:1 | Distance mode (`uniform_interval`), random samples, segment centers (with look-at rotation — the fence trick), and **interior fill** of closed splines (grid / random / Poisson) with a distance-to-border attribute. Accepts spline data (`get_spline_data`) as well as the `node` stream of `Path3D`s, with identical output. |
 | Mesh Sampler | `sample_mesh` (alias `mesh_sampler`) | 1:1 | Area-weighted random, one-per-vertex, or face centers; rotations from triangle normals; optional hard-edge rejection. |
-| Volume Sampler | `volume_sampler` | 1:1 | Regular 3D grid inside each input point's oriented volume. |
+| Volume Sampler | `volume_sampler` | 1:1 | On volume data (`get_volume_data`, composites, splines) it samples a voxel grid of `voxel_size` and keeps the voxels where the density is above 0. On point inputs, a regular 3D grid inside each input point's oriented volume, as before. |
 | Texture Sampler | `texture_sampler` | 1:1 | Writes a Color attribute and/or scalar channel per point. |
 | Copy Points | `copy_points` (alias `copy`) | 1:1 | Source-to-targets transform composition; also a LinearCopies mode ≈ Duplicate Point. |
 | Select Points | `select_points` | 1:1 | Seeded random keep-ratio, optional weight attribute. |
@@ -132,32 +138,33 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 
 | UE node | Here | Status | Notes |
 |---|---|---|---|
-| Difference | `difference` | partial | RTree-accelerated AABB set ops (overlap = position+size boxes). One node covers Difference both ways, Intersection, Union, and Symmetric Difference via its `operation` setting. **Caveat:** hard point removal, no density-attenuation mode, and overlap uses `size` (no per-point bounds/steepness — roadmap). |
-| Union | `union` | partial | Point-merge union; no Max/Add density function. |
-| Intersection / Inner Intersection | `intersection` | partial | Outer intersection of A against B; no N-way inner variant. |
-| Projection | `projection` | 1:1 | Projects points onto physics geometry along a direction; can inherit rotation from the surface normal and writes the `normal` stream. |
-| To Point / Make Concrete | — | n/a | Unnecessary — every pin already carries concrete points. |
+| Difference | `difference` | partial | One node covers Difference both ways, Intersection, Union and Symmetric Difference via its `operation` setting. Shape with shape gives a composite that is sampled later (for example "landscape minus the road spline" before scattering). Points with a shape are filtered (`density_function` Binary, the default) or density-attenuated (Minimum / Multiply / Subtract) by the shape's density. Points with points use the RTree path with per-point bounds and steepness. **Caveat:** a point tested against a shape uses the shape's density at the point's position, not the overlap of its bounds box as in Unreal. |
+| Union | `union` (or `difference`, operation = Union) | partial | Shape with shape gives a union composite. The density functions map to Unreal's: Binary is 1 where either side has density, Minimum is max(a, b), Multiply is a+b-ab, Subtract is the clamped sum. Points with a shape fold the density; points with points merge as before. Same point-center caveat as Difference. |
+| Intersection / Inner Intersection | `intersection` (or `difference`, operation = Intersection) | partial | Shape with shape gives a composite: surface ∩ volume or surface ∩ surface samples only the overlap, before any points exist. Points with a shape keep the points inside (Binary) or fold the density. No N-way inner variant: chain the nodes. Same point-center caveat as Difference. |
+| Projection | `projection` | partial | Physics mode (the default) projects points onto colliders along a direction. `projection_mode = Surface` projects onto surface data wired to the Projection Target pin, with no physics and no owner. Both write `normal`, can align the rotation to it (`align_to_normal`), and Surface mode multiplies the density (`project_density`). No per-property projection toggles (scale, colour) or attribute merging. |
+| To Point / Make Concrete | `to_point` | 1:1 | Samples a spline along its curve, a surface on the surface-sampler grid, and a volume on a voxel grid. A composite is sampled as a surface or a volume according to its kind. Point data passes through. |
 | Merge Points | `merge` (alias `merge_points`) | 1:1 | Multi-input concatenation with stream-union semantics. |
-| Create Points | `grid` (or `add_attribute` + `attribute_set_to_point`) | partial | No hand-authored point-list editor; a 1×1×1 `grid` makes a single point. |
+| Create Points | `create_points` | 1:1 | Hand-authored list of `FlowPointEntry` points: transform, bounds, density, steepness, seed (0 = derived from position) and extra attributes; World or Local (owner-relative) space. A 1×1×1 `grid` still works for a single generated point. |
 | Create Points Grid | `grid`, `grid_fill_bounds` | 1:1 | `grid_fill_bounds` fills the bounds of upstream points. |
 | Create Spline | `create_spline` | 1:1 | Builds a `Path3D` through input points. |
-| Create Surface From Spline | `create_surface_from_spline` | partial | Emits a bounds point + area/perimeter attributes, not true surface data; pair with `sample_spline`'s interior-fill mode for "scatter inside a closed spline". |
+| Create Surface From Spline | `create_surface_from_spline` | 1:1 | `output_mode = Shape` outputs real surface data: a polygon surface per closed spline (on the XZ, XY or YZ plane), with area and perimeter. Intersect it with a landscape, sample it, or use it as a cutter. Accepts `Path3D` streams or spline data. Points mode (the default) keeps the old bounds-point output; `sample_spline`'s interior fill is another way to scatter inside a closed spline. |
 | Spatial Noise | `noise` | 1:1 | FastNoiseLite: Value/Perlin/Simplex/Cellular + fractal options; writes any attribute (default `density`), Override or Add. |
 | Distance | `distance` | 1:1 | KD-tree nearest distance to a second input, optional normalization by `max_distance`. |
 | Normal To Density | `normal_to_density` | 1:1 | Slope masking: density from dot(normal, reference direction) with offset/strength and Set/Min/Max/Add/Multiply combine. Reads the `normal` stream, falling back to the rotation's up vector. |
 | Mutate Seed | `mutate_seed` | 1:1 | Position-stable per-point seed re-derivation. |
 | Point Neighborhood | `point_neighborhood` | 1:1 | Radius-averaged values. |
 | Point From Mesh | `point_from_mesh` | 1:1 | One point carrying a mesh's bounds. |
-| Get Bounds | `make_bounds` / `combine_points` | partial | `combine_points` collapses a set to one bounds point. |
+| Get Bounds | `get_bounds` | 1:1 | Bounds of a shape or of the points' effective bounds, as one bounds point (with `@data.bounds_min/max`) or a box volume (`output_mode = Shape`). `combine_points` still collapses a set to one bounds point. |
 | Get Points Count | `get_points_count` | 1:1 | |
 | Cull Points Outside Actor Bounds | `clip_points_by_polygon` / `intersection` | partial | The HiGen-dedupe use case doesn't apply (no HiGen yet). |
-| Find Convex Hull 2D | — | roadmap | |
+| Find Convex Hull 2D | `find_convex_hull_2d` | 1:1 | Hull of each input on the X/Z plane (Godot is Y-up). Hull points keep every attribute, in counter-clockwise X/Z order from the smallest x; `hull_index` order attribute for closed splines, optional collinear points and explicit loop closing. |
 | Attribute Set To Point | `attribute_set_to_point` | 1:1 | |
 | World Ray Hit Query | `ray_cast` (also `physics_shape_sweep`) | 1:1 | Per-point physics raycast with hit position/normal/rotation/collider outputs. |
 | World Volumetric Query | `physics_overlap_query` | 1:1 | |
-| Spatial Data Bounds To Point | `combine_points` | 1:1 | |
+| Spatial Data Bounds To Point | `get_bounds` (or `combine_points` for points) | 1:1 | |
+| Bounds From Mesh | `bounds_from_mesh` | 1:1 | Sets `bounds_min`/`bounds_max` from a mesh's local AABB: a settings mesh or a per-point Mesh attribute (falling back to the settings mesh). |
 | — (bonus) | `split_splines` | Godot-only | Converts each spline segment between baked samples into a **segment-center point** oriented along the segment (Z-forward). Outputs `start`/`end` world positions, `segment_index`, `spline_index`, and optionally the source `Path3D` reference. Where `sample_spline` gives you uniformly spaced points *along* a spline, `split_splines` gives you one point *per segment* — handy for placing walls between corridor waypoints. |
-| — (bonus) | `create_surface_from_polygon` | Godot-only | Creates an AABB bounds point from ordered polygon point streams. Related to `create_surface_from_spline` but takes explicit point data instead of a `Path3D`. Outputs `area` (shoelace formula), `perimeter`, and `point_count` attributes. Supports a `group_attribute` to produce one surface per group. |
+| — (bonus) | `create_surface_from_polygon` | Godot-only | Creates an AABB bounds point from ordered polygon point streams, or with `output_mode = Shape` a polygon surface. Related to `create_surface_from_spline` but takes explicit point data instead of a `Path3D`. Outputs `area` (shoelace formula), `perimeter`, and `point_count` attributes. Supports a `group_attribute` to produce one surface per group. |
 | — (bonus) | `grid_boundary` | Godot-only | Given a set of **filled grid cells** (position stream snapped to a cell grid), emits the exposed **edge** and **corner** points — the faces that have no filled neighbor. Each edge point is sized and rotated to span one cell face; corner points sit at exposed vertices. Three output pins: Edges, Corners, All. Perfect for building walls around a dungeon room layout. |
 | — (bonus) | `grid_connect_points` | Godot-only | Connects ordered points with **orthogonal grid-cell paths** on the XZ plane (Manhattan / L-shaped corridors). Walk axis order is configurable (X-then-Z or Z-then-X). Outputs one cell point per step; optionally tags each path segment with a `path_index` attribute. Pairs with `grid_boundary` for dungeon corridor + wall generation. |
 
@@ -166,11 +173,12 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | UE node | Here | Status | Notes |
 |---|---|---|---|
 | Transform Points | `transform_points` (alias `transform`) | 1:1 | Random offset/rotation/scale ranges, local-space rotation toggle, uniform-scale toggle. Per-point seeded when the `seed` stream exists. |
-| Bounds Modifier | `bounds_modifier` | partial | Set/Add/Multiply an extent into `size`. Asymmetric min/max collapses to a symmetric extent (no per-point bounds offset — roadmap). |
+| Bounds Modifier | `bounds_modifier` | partial | Set / Add / Multiply a min/max box into the per-point `bounds_min`/`bounds_max` streams (`output_mode = PerPointBounds`, the default; asymmetric boxes are kept) or, in SymmetricSize mode, an extent into `size`. The mode set is not UE's. |
 | Extents Modifier | `bounds_modifier` | partial | Same node, same caveat. |
-| Apply Scale to Bounds | — | roadmap | Requires the scale/bounds split. |
+| Apply Scale to Bounds | `apply_scale_to_bounds` | 1:1 | Multiplies `bounds_min`/`bounds_max` by the scale (`size`) per axis, keeping asymmetric bounds (a negative scale swaps min and max), then resets `size` to 1 (`reset_scale`). Points without bounds streams get ±size/2, so their world box is unchanged. |
 | Duplicate Point | `duplicate_point` (also `point_offsets`, `copy` LinearCopies) | 1:1 | N copies along a world or local offset. |
-| Split Points | — | roadmap | |
+| Split Points | `split_points` | 1:1 | Before Split / After Split pins; axis X/Y/Z (Unreal's Z is Godot's Y, the default) and 0..1 position, or a per-point position attribute. KeepTransform (Unreal) changes bounds only; Recenter also moves each half to its box center. Optional side and fraction attributes and an attribute-inheritance toggle. |
+| Reset Point Center | `reset_point_center` | 1:1 | Moves the pivot to a normalized location inside the bounds (0.5 = center) and offsets `bounds_min`/`bounds_max` so the box stays in place. |
 | Combine Points | `combine_points` | 1:1 | |
 | Build Rotation From Up Vector | `build_rotation_from_up` | 1:1 | Aligns a chosen axis to a normal/up attribute. |
 
@@ -183,12 +191,13 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Point Filter Range | `point_filter_range` | 1:1 | |
 | Attribute Filter / Attribute Filter Range | `attribute_filter_range` | 1:1 | Inside/Outside split by numeric range or string set. |
 | Filter Data By Tag | `filter_data_by_tag` | partial | Any-match (OR) only; no match-all toggle. |
-| Filter Data By Type | `filter_data_by_type` | partial | Heuristic classification (point / spline / attribute-set) — there is no real type lattice. |
+| Filter Data By Type | `filter_data_by_type` | 1:1 | Classifies spatial data by its shape (Spline / Surface / Volume, plus a SpatialData "any shape" target). Point data and attribute sets keep the previous classification (`Data.kind`, then stream heuristics). |
 | Filter Data By Attribute | `filter_data_by_attribute` | 1:1 | Routes by attribute presence. |
-| Filter Data by Index | `sequence_sample` | partial | |
+| Filter Data by Index | `filter_data_by_index` | 1:1 | Routes whole data entries by their index on the pin (In Filter / Outside Filter), or points in Points mode. Syntax `0, 2:5, -1, -2:` (end-exclusive ranges, negative from the end), invert. `sequence_sample` remains for start/count/step strides. |
 | Filter Attributes by Name | `remove_attribute` | 1:1 | Keep/remove listed streams. |
-| Self Pruning | `self_pruning` | 1:1 | Native RTree bounds-overlap pruning (large-to-small) + a grid-cell dedupe mode. Overlap uses `size` as bounds. |
-| Discard Points on Irregular Surface | — | roadmap | Compose `ray_cast` probes + `point_neighborhood` + `density_filter` meanwhile. |
+| Self Pruning | `self_pruning` | 1:1 | Native RTree bounds-overlap pruning (large-to-small) + a grid-cell dedupe mode. Overlap uses the effective bounds (`bounds_min`/`bounds_max`, else ±`size`/2); `density_function` attenuates instead of removing. |
+| Discard Points on Irregular Surface | `discard_points_on_irregular_surface` | partial | The "surface" is the input point cloud: neighbours are the input points inside each point's X/Z bounds footprint (scalable with `footprint_scale`), not physics traces. Height std-dev / plane-fit residual / max deviation and max normal angle thresholds; Kept and Discarded pins; optional metric attributes. Native GDRTree neighbour queries with a GDScript fallback (identical results). |
+| — (bonus) | `weighted_point_sampler` | Godot-only | Picks N points with probability proportional to a weight attribute, with or without replacement, per-point seeded (stable under reordering, follows the graph seed). Repeated picks get mutated seeds; Not Selected pin with the rest. Unlike `select_points` (keep ratio), it takes an exact count and can sample with replacement. |
 | Difference (simple) | `substract` | partial | Older RTree subtraction node: removes points from A that overlap points from B (or keeps only the overlap in Intersection mode). Superseded by `difference` which has more modes and the same native acceleration — prefer `difference` in new graphs. |
 
 ### Density
@@ -206,28 +215,33 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | UE node | Here | Status | Notes |
 |---|---|---|---|
 | Add Attribute / Create Attribute | `add_attribute` | 1:1 | Constant-filled stream; creates a one-row attribute set if unwired. |
-| Copy Attribute / Transfer Attribute | — | roadmap | Workarounds: `expression` (one-liner copy), or `match_and_set` from a second input. |
+| Copy Attribute / Transfer Attribute | `copy_attribute` | 1:1 | Target and Source pins. ByIndex (equal counts, or one source entry broadcast), ByMatchAttribute (first source entry with an equal key; Int and Int64 keys compare as integers), NearestPoint (by position, optional max distance; native KD-tree). Copies one attribute (`@Source` keeps its name) or all attributes (point transform streams only on request). Types are preserved; unmatched points keep their existing value or the type default; optional matched flag. |
+| Attribute Cast | `attribute_cast` | 1:1 | Any numeric, vector, Color, Quaternion, Transform or String attribute to another type, with explicit loss rules (see [Attribute types](#attribute-types)). The default `@Source` output retypes the attribute in place; canonical attributes keep their types. |
+| Attribute Remove Duplicates | `attribute_remove_duplicates` | 1:1 | Keeps the first entry of every distinct value combination of the listed attributes (any type, exact comparison). |
 | Attribute Rename | `attribute_rename` | 1:1 | |
 | Delete Attributes | `remove_attribute` | 1:1 | |
 | Attribute Noise | `attribute_noise` | 1:1 | Per-point seeded randomization of any attribute (also see `attribute_random` for the simple uniform case and `noise` for spatially-coherent noise). |
 | — | `attribute_random` | bonus | Fills any attribute with **uniform random values** (float or int, min/max range). Simpler than `attribute_noise` — no noise type, no spatial coherence, just a flat random draw. Uses the point `seed` stream when present for per-point stability. Also supports a `use_index_as_value` mode to write sequential indices (0, 1, 2, …) into any attribute. |
 | Attribute Partition | `partition` | 1:1 | One output data per unique value. |
-| Attribute Select | `reduce` | partial | Average/Min/Max reductions; no median, no per-axis select. |
-| Attribute String Op | `expression` | partial | Any GDScript string expression per point. |
+| Attribute Select | `attribute_select` | 1:1 | Min, Max or Median of an attribute; vectors by X/Y/Z/W, length or a custom axis; strings lexicographically. Out: a one-entry attribute set (value + index); Point: the selected entry. Ties keep the first entry. `reduce` still gives Average/Min/Max reductions. |
+| Attribute String Op | `attribute_string_op` | 1:1 | Append, Prepend, Replace, ToUpper, ToLower, Contains, StartsWith, EndsWith (Bool), Format (`{0}` `{1}` `{2}` `{index}` `{attribute}`), Length (Int), Trim, Substring. Non-String operands convert to text. `expression` remains for anything else. |
 | Match And Set Attributes | `match_and_set` (+ `assets` for the table) | 1:1 | The weighted-pick-from-table workhorse: random-weighted or key-matched row copy. `assets` is the idiomatic table source (≈ spawner mesh entries as data). |
 | Point Match and Set | `match_and_set` | 1:1 | |
-| Merge Attributes | `merge` | partial | |
+| Merge Attributes | `merge_attributes` | partial | Merges every data on the pin into one attribute set. Append: union of attributes, entries concatenated, numeric clashes promoted (Int and Float give Float, Int and Int64 give Int64, Int64 and Float give Double), other clashes fail. ByIndex: columns side by side. Tags and `@data` attributes merge. The behaviour was reconstructed from Unreal's documentation, not checked against the engine. |
 | Sort Attributes / Sort Points | `sort` | 1:1 | |
-| Break Vector Attribute | `decompose_vector` | 1:1 | Also free via selectors: `position.x` works anywhere a stream name is asked. |
-| Make Vector Attribute | `compose_vector` / `make_vector` | 1:1 | |
-| Break/Make Transform Attribute | — | roadmap | No Transform-typed attributes (Euler rotation model). |
-| Get Attribute from Point Index | `sequence_sample` + `point_to_attribute_set` | partial | |
+| Break Vector Attribute | `decompose_vector` | 1:1 | Vector, Vector2, Vector4, Quaternion and Color inputs (the fourth component goes to `w_attribute`). Also free via selectors: `position.x`, `uv.y`, `v4.w` work anywhere a stream name is asked. |
+| Make Vector Attribute | `compose_vector` / `make_vector` | 1:1 | `compose_vector` has `output_type` (Vector, Vector2, Vector4) and a W component; Int64/Double components accepted. |
+| Break/Make Transform Attribute | `break_transform_attribute` / `make_transform_attribute` | 1:1 | Transform attribute type (`Array[Transform3D]`). Make: translation + rotation (Euler degrees, or a Quaternion / Vector4) + scale, composed as UE does (scale, rotate, translate). Break: translation, Euler rotation, optional quaternion, scale. The defaults turn the point transform into an attribute and back. |
+| Get Attribute from Point Index | `get_attribute_from_point_index` | 1:1 | Index (negative from the end) and any selector as input attribute. Outputs a one-row attribute set, the single point, and the input with the value as `@data.<name>`. |
 | Point To Attribute Set | `point_to_attribute_set` | 1:1 | |
 | Maths Op | `math_op` | 1:1 | Attribute-or-constant operands, result to named stream. |
 | Boolean Op | `boolean` | 1:1 | And/Or/Not/Xor plus extras. |
-| Bitwise Op | `expression` | partial | GDScript `&`, `|`, `^`, `~` in an expression. |
-| Compare Op | `filter` / `expression` | partial | `filter` routes instead of writing a bool attribute; use `expression` to materialize the bool. |
-| Trig / Vector / Rotator / Transform Op | `expression` (+ `compose_vector`/`decompose_vector`, `build_rotation_from_up`) | partial | `expression` evaluates arbitrary GDScript per point with all streams bound by name — it is the escape hatch for the whole op-family zoo. Rotator/Transform composition is limited by the Euler model. |
+| Bitwise Op | `bitwise_op` | 1:1 | And, Or, Xor, Not, ShiftLeft, ShiftRight on Bool/Int/Int64, computed in 64 bits; Int64 if either operand is Int64, else Int (low 32 bits); `output_type` forces one. |
+| Compare Op | `compare_op` | 1:1 | == != > >= < <= into a Bool attribute. Integers compare exactly (Int64 too), reals within a tolerance for ==/!=, strings lexicographically (optional case folding), vectors per component (all / any) or by length, transforms and objects for equality only. `filter` still routes points by the same comparisons. |
+| Trig Op | `trig_op` | 1:1 | Sin, Cos, Tan, Asin, Acos, Atan, Atan2, DegToRad, RadToDeg (radians). Int64/Double give Double; vectors work per component. |
+| Vector Op | `vector_op` | 1:1 | Dot, Cross, Normalize, Length, LengthSquared, Distance, DistanceSquared, Reflect, Project, Lerp, RotateAroundAxis (degrees), Angle (degrees), ComponentMin/Max on Vector2, Vector, Vector4. Add/sub/mul/div stay on `math_op`. |
+| Rotator Op | `rotator_op` | 1:1 | Combine / Invert / Lerp / RotateAroundAxis on the Euler `rotation` or the `rotation_quat` stream. |
+| Transform Op | `transform_op` | 1:1 | Compose (apply A then B, UE order), Invert, Lerp (slerped rotation), TransformPosition, InverseTransformPosition, TransformDirection, plus ApplyToPoints (moves every point by a transform attribute). `expression` remains the escape hatch for any other per-point formula. |
 | Reduce Op | `reduce` | 1:1 | Average/Min/Max across entries. |
 | — (bonus) | `size` (node) | Godot-only | Returns the **point count** of the input as a single-entry Int attribute. Useful when you need the count as data to drive downstream expressions or graph inputs rather than as a debug display. (For the display use, `get_points_count` is the right choice.) |
 
@@ -235,11 +249,15 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 
 | UE node | Here | Status | Notes |
 |---|---|---|---|
-| Static Mesh Spawner | `spawn_meshes` | 1:1 | One `MultiMeshInstance3D` per unique mesh; weighted mesh variants (≈ mesh entries), by-attribute mesh selection (`mesh_selector_attribute` ≈ MeshSelectorByAttribute), per-point mesh resources, per-instance colors. |
-| Spawn Actor | `spawn_scenes` (scenes) / `spawn_nodes` (raw nodes) | 1:1 | Instantiates a `PackedScene` per point with property assignment from attributes (≈ property overrides). |
-| Create Target Actor | `spawn_parent_path` setting on spawners | partial | |
+| Static Mesh Spawner | `spawn_meshes` | partial | `mesh_entries` (`FlowMeshSpawnEntry`, ≈ mesh entries and instance descriptors): mesh, weight, material override, cast shadow, visibility range (≈ cull distances) with fade, render layers, GI mode, per-instance custom data from attributes (≈ instance packer), collision (none, box from bounds, convex, trimesh; layer and mask; one shared body per MultiMesh or one body per instance). Selectors: weighted (per-point `$Seed`), by attribute index, by attribute name or mesh resource (≈ MeshSelectorByAttribute), cycling. One `MultiMeshInstance3D` per render group and spawn parent. The legacy `mesh` / `mesh_variants` / `mesh_attribute` / `mesh_selector_attribute` path and per-instance colors keep working. Optional instance pooling (`reuse_instances`). Not there: per-slot material overrides, per-instance LOD and world-position-offset settings, writing the mesh bounds back to the points (use `bounds_from_mesh`). |
+| Static Mesh Spawner: mesh entry descriptor fields | `FlowMeshSpawnEntry` | partial | `mesh`, `entry_name`, `weight`, `material_override` (one override, not per-slot), `cast_shadow`, `visibility_range_*` (≈ cull distance), `render_layers`, `gi_mode`, `custom_data_attributes` (up to 4 floats), `collision_mode` / `collision_bodies` / `collision_layer` / `collision_mask`. No per-instance LOD or WPO settings (Godot has no direct equivalent). |
+| Spawn Spline Mesh | `spawn_spline_mesh` | partial | One `MeshInstance3D` per spline segment with a bent `ArrayMesh` (Godot has no spline mesh component), cached per mesh and segment. Forward axis, curve or linear tangents, curve or world up, start/end cross-section scale, per-control-point or tiled segmentation, per-segment entry selection, entry materials and collision. No per-point roll/scale interpolation from spline attributes; blend shapes are not carried. Input: a `Path3D` `node` stream or per-spline spline data (`get_spline_data` with `output_mode = PerSpline`; a merged union is not accepted). |
+| Spawn Actor | `spawn_scenes` (scenes) / `spawn_nodes` (raw nodes) | 1:1 | Instantiates a `PackedScene` (or a class/script) per point. `property_overrides` ≈ Spawn Actor property overrides: attribute → property path, nested (`position:x`), child (`Child/Light:light_energy`), `%Unique` names, type coercion, applied after instancing. `assign_attributes` kept. Optional `spawn_parent_attribute` and instance pooling (`reuse_instances`). |
+| Spawn Actor: property overrides | `property_overrides` on `spawn_scenes`, `spawn_nodes`, `apply_on_actor` | 1:1 | See above. Values come per point, from a broadcast stream or a per-data attribute. Writes to a shared sub-resource are shared (make it `resource_local_to_scene`). |
+| Create Target Actor | `create_target_node` (+ `spawn_parent_attribute` on spawners) | partial | A named `Node3D` container (not an actor template class) with groups and an owner policy (follow the component's `transient_output`, or always transient). Reused across regenerations and freed by `cleanup()`. Outputs `@data.target`; spawners parent under it with `spawn_parent_attribute`, which also accepts per-point parents. |
+| — (component reuse) | `reuse_instances` on spawners (`FlowSpawnPool`) | Godot-only | Reuses MultiMeshInstance3Ds, scene roots, nodes and spline segments of the same component and node across `generate()` runs when mesh, material, scene or class match. Off by default. `regenerate()` and `cleanup()` free everything. |
 | Point from Player Pawn | `point_from_player_pawn` | 1:1 | |
-| Apply On Actor | `apply_on_actor` | 1:1 | Writes attributes/transforms onto existing scene nodes. |
+| Apply On Actor | `apply_on_actor` | 1:1 | Writes attributes/transforms onto existing scene nodes; `property_overrides` resolve from the target node itself. |
 
 ### Control Flow, Subgraph & Loop
 
@@ -249,9 +267,9 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Switch | `switch` | 1:1 | |
 | Select | `select` | 1:1 | |
 | Select (Multi) | `select_multi` | 1:1 | |
-| Runtime Quality Branch / Select | — | roadmap | No quality scalability system. |
+| Runtime Quality Branch / Select | `runtime_quality_branch` / `runtime_quality_select` | 1:1 | Levels Low 0, Medium 1, High 2, Epic 3, Cinematic 4, with Default plus per-level pins enabled by `use_*_pin`. The level comes from the runtime parameter `quality` (int, level name or numeric string), else the project setting `flow_nodes/quality_level` (default 0), with a per-node `quality_override` for previews. Select runs once per bulk of its Default pin, like `select`. |
 | Proxy | — | roadmap | |
-| Gather | `merge` | partial | Merge is the sync/collect point. |
+| Gather | `gather` | partial | Collects every data wired into In onto one pin, in wire order, without concatenating (that is `merge`). The Dependency Only pin only orders execution. Reconstructed from Unreal's documentation, not checked against the engine. |
 | Subgraph | `subgraph` | 1:1 | Nested `.tres` graphs, dynamic pins from graph params, per-instance override pins (≈ graph parameter overrides), collapse-selection-to-subgraph. |
 | Loop | `loop` | 1:1 | Runs a subgraph per data/entry, with a sequential feedback parameter. |
 | Get Loop Index | `get_loop_index` | 1:1 | |
@@ -279,9 +297,127 @@ Search for any name in the **UE node** column inside the add-node popup — the 
 | Named Reroute Declaration | — | roadmap | |
 | Execute Blueprint | `expression` / write a node script | partial | `expression` = per-point GDScript with streams bound by name. Full custom nodes are a single `.gd` file extending `FlowNodeBase` — substantially less ceremony than a `UPCGBlueprintElement`. |
 
-Nodes here with **no UE counterpart** (you get them for free): `relax` (Lloyd relaxation), `snap_to_grid`, `clip_points_by_polygon` / `clip_paths` / `polygon_operation` (spline-polygon clipping), `random_color`, `sequence_sample`, `points_from_gridmap` / `points_from_tilemap` / `points_from_imported_scene` (Godot-native data sources), `navigation_region_sampler` (navmesh → points), `sample_points` (subdivision with blue-noise / quasi-random), `split_splines` (spline-segment-center points), `create_surface_from_polygon` (polygon → AABB point), `grid_boundary` / `grid_connect_points` (grid-cell topology helpers), `set_variable` / `get_variable` (named wire-free data channels), `attribute_random` (simple uniform random attribute), `remap` (curve remap any float attribute), `tags_mutate` (combined add/remove/replace tags), `size` (point count as data), the `dungeon_*` generator family, and `expression`.
+Nodes here with **no UE counterpart** (you get them for free): `weighted_point_sampler` (exact-count weighted pick), `relax` (Lloyd relaxation), `snap_to_grid`, `clip_points_by_polygon` / `clip_paths` / `polygon_operation` (spline-polygon clipping), `random_color`, `sequence_sample`, `points_from_gridmap` / `points_from_tilemap` / `points_from_imported_scene` (Godot-native data sources), `navigation_region_sampler` (navmesh → points), `sample_points` (subdivision with blue-noise / quasi-random), `split_splines` (spline-segment-center points), `create_surface_from_polygon` (polygon → AABB point), `grid_boundary` / `grid_connect_points` (grid-cell topology helpers), `set_variable` / `get_variable` (named wire-free data channels), `attribute_random` (simple uniform random attribute), `remap` (curve remap any float attribute), `tags_mutate` (combined add/remove/replace tags), `size` (point count as data), the `dungeon_*` generator family, and `expression`.
 
-**New roadmap-parity nodes** (see [PARITY_ROADMAP.md](PARITY_ROADMAP.md#implementation-status-2026-06)): `rotator_op` (Combine/Invert/Lerp/RotateAroundAxis on Euler or quaternion rotations), `subdivide_segment` (slice splines/segments into sized, oriented sub-segments), `grammar_expand` (UE-style shape-grammar expansion into placeable modules), `sample_terrain_layers` (mask-texture paint layers), `compute_kernel` (GLSL compute-shader escape hatch), and `grid_size` (HiGen cell-size declaration). Density-aware set ops live on `difference`/`self_pruning` via their `density_function` setting, and per-point `bounds_min`/`bounds_max`/`steepness` streams are honored when present.
+**New roadmap-parity nodes** (see [PARITY_ROADMAP.md](PARITY_ROADMAP.md#implementation-status-2026-10)): `rotator_op` (Combine/Invert/Lerp/RotateAroundAxis on Euler or quaternion rotations), `subdivide_segment` (slice splines/segments into sized, oriented sub-segments), `grammar_expand` (UE-style shape-grammar expansion into placeable modules), `sample_terrain_layers` (mask-texture paint layers), `compute_kernel` (GLSL compute-shader escape hatch), and `grid_size` (HiGen cell-size declaration). Density-aware set ops live on `difference`/`self_pruning` via their `density_function` setting, and per-point `bounds_min`/`bounds_max`/`steepness` streams are honored when present.
+
+**Parity round 2** (see [PARITY_ROADMAP.md](PARITY_ROADMAP.md#implementation-status-2026-10)) added the spatial-data nodes (`get_spline_data`, `get_surface_data`, `get_volume_data`, `to_point`, `get_bounds`), the attribute-type family (`attribute_cast`, `compare_op`, `copy_attribute`, `merge_attributes`, `gather`, the op nodes, ...), the spawner family (`spawn_spline_mesh`, `create_target_node`, mesh entries, property overrides) and the point nodes (`apply_scale_to_bounds`, `split_points`, `create_points`, `filter_data_by_index`, ...). The next section explains the architecture behind them.
+
+---
+
+## Architecture: how Unreal's PCG model maps here
+
+Unreal splits PCG into settings, stateless elements, a compiled task graph with a cache, typed spatial data and a spawner family. Since parity round 2 the addon has the same shape. You do not need any of this to follow a tutorial, but it explains what the nodes above do with your data.
+
+### Execution model
+
+| Unreal | Here | Notes |
+|---|---|---|
+| `UPCGSettings` | `NodeSettings` resource (`<template>_settings.gd`) | What the sidebar inspector edits and the graph `.tres` saves. Overrides and bindings are applied to a fresh copy per run, never to the saved one. |
+| `UPCGNode` / node widget | `FlowNodeWidget` (a `GraphNode`) | Shows one node in the editor: ports, colours, error text, the execution-time badge. Node scripts that need custom UI implement optional `widget_*` hooks (listed at the top of `node.gd`). |
+| `IPCGElement` | `FlowNodeBase`, a `RefCounted` element | Node scripts `extends FlowNodeBase` and implement `execute(ctx)`. The executor creates fresh elements for every run and drops them afterwards; there is nothing to `free()`. |
+| `FPCGGraphCompiler` | `FlowCompiledGraph.for_graph(graph)` | Parses the graph once (node descriptors, links, execution order, migrated data) and keeps the result on the graph until `graph.data` or the node registry changes. |
+| `FPCGGraphExecutor` | `FlowExecutor` | One executor, three modes: synchronous (`generate()`, `FlowNodeIO.evaluate`), time-sliced (`generate_async()` / `async_generation`, `FlowNodeIO.begin_evaluation`) and threaded (`threaded`). The editor dock runs each node through the same `FlowExecutor.execute_element`. |
+| `IPCGElement::CanExecuteOnlyOnMainThread` / `IsCacheable` | `FlowNodeTraits` (`main_thread`, `cacheable`) | A central table for every stock template, overridable with `meta_node["main_thread"]` / `meta_node["pure"]`. Unknown third-party templates default to main thread and not cacheable, which is always safe. |
+
+Writing a node: one `.gd` file that `extends FlowNodeBase`, a settings resource, and a `meta_node` dictionary (title, category, aliases, ins/outs). Read inputs with `get_input` / `require_input`, write outputs with `set_output`, and never modify an input `Data` in place (duplicate it first): a cached or threaded run hands the same input to several consumers. If your node is a pure function of its settings, seed and inputs, add `"pure": true` to `meta_node` so threaded mode and the cache can use it.
+
+### Caching and threading
+
+Both are **opt-in** on `FlowGraphNode3D` and off by default. With either on, the outputs, errors and spawned nodes are identical to a plain run (checked over the whole golden set).
+
+- **`output_cache = true`** (≈ `FPCGGraphCache`). A cacheable node's outputs are stored in `FlowOutputCache`, keyed by the template, every settings value after overrides and bindings, the effective seed and the content hash of every input. A hit returns copies. The cache is process-wide and bounded (`FlowOutputCache.max_entries`, 1024 by default, least recently used first); `FlowOutputCache.hits` / `misses` count it. Resources referenced from settings are keyed by identity, so after editing a Curve or Mesh in place call `FlowOutputCache.clear()`.
+- **`threaded = true`**. Independent nodes that the traits mark thread-safe run on `WorkerThreadPool` threads. Nodes that touch the scene tree, physics or rendering, spawn, read graph variables or runtime parameters, or run a nested graph stay on the main thread, in their sequential order, and never run while pool tasks do. It pays off on compute-heavy independent branches (about 2.9 times faster on 4 cores in the round-2 benchmark); graphs made of many small nodes do not get faster.
+- **`async_generation = true`** (time-sliced, `frame_budget_ms`) spreads one evaluation over frames, node by node. With it the top-level graph is never threaded; nested subgraph and loop evaluations still follow `threaded`.
+
+Owner-less runs (`FlowNodeIO.evaluate`) take these options from the context: `ctx.set_meta(FlowExecutor.THREADED_META, true)` or `ctx.set_meta(FlowExecutor.OUTPUT_CACHE_META, true)` on a context from `FlowNodeIO.make_context`, then `FlowNodeIO.evaluate_collecting_errors(graph, inputs, ctx)` (returns `{outputs, errors}`).
+
+### Spatial data
+
+A wire carries `FlowData.Data` objects. A `Data` holds point streams, a spatial shape (`Data.shape`, a `FlowSpatial`), or both; a shape-bearing Data may have no points at all. Shapes are deferred descriptions: nothing is sampled until a sampler or To Point asks for points, so the Unreal algebra works (intersect a landscape with a volume, subtract a road spline, then scatter).
+
+| Unreal | Here |
+|---|---|
+| Spline data | `FlowSplineShape` (a copied `Curve3D` and world transform; as a density, a tube of `tube_half_width`) |
+| Landscape / surface data | `FlowHeightfieldSurface` (`HeightMapShape3D` or heightmap `Image`), `FlowMeshSurface` (triangles with an XZ acceleration grid), `FlowPolygonSurface` (a closed polygon, from Create Surface From Spline / Polygon) |
+| Volume / primitive data | `FlowBoxVolume`, `FlowSphereVolume`, `FlowMeshVolume` (closed mesh, parity inside test), `FlowPointsVolume` (points seen as boxes, used when points are a composite operand) |
+| Composite (union / intersection / difference) data | `FlowCompositeShape`, built by `difference` / `intersection` / `union` from two shapes |
+
+Every shape answers `get_bounds()`, `sample_density(world_pos)` (0..1, with a steepness falloff on boxes, spheres, spline tubes and point volumes), `project(world_pos)` (surfaces), `to_points()` and `content_hash()`. `Data.kind` follows the shape, so `filter_data_by_type` and the pins classify it. Shapes copy their source geometry when they are created, so they are immutable: a scene edit after generation cannot change a cached result, and queries are safe on worker threads.
+
+Set operations combine densities with the `density_function` setting. `a` is the density of A (or of the point), `b` the density of B (or of the shape); results are clamped to 0..1:
+
+| Operation | Binary (default) | Minimum | Multiply | Subtract |
+|---|---|---|---|---|
+| Difference | b > 0 ? 0 : a | min(a, 1-b) | a(1-b) | a-b |
+| Intersection | b > 0 ? a : 0 | min(a, b) | ab | a-(1-b) |
+| Union | a > 0 or b > 0 ? 1 : 0 | max(a, b) | a+b-ab | min(a+b, 1) |
+
+Points against a shape: Binary filters the points (Difference drops the points where the shape has density, Intersection keeps them); the other functions keep every point and fold the density, so add a `density_filter` before a spawner. Unlike Unreal, the shape is evaluated at the point's position, not over its bounds box.
+
+Surface sampling follows Unreal's Surface Sampler: candidates on a world-anchored XZ grid with cell size 1/sqrt(points per m²), per-cell seeded jitter (`looseness`), a vertical projection onto the surface weighted by its density, and bounds of ±`point_extents`. Because the grid is anchored to the world, points stay put when the sampled region grows or shrinks. Surfaces are sampled along the vertical only.
+
+### Spawners and generated content
+
+| Unreal | Here |
+|---|---|
+| Static Mesh Spawner + mesh entries | `spawn_meshes` with `mesh_entries`, an array of `FlowMeshSpawnEntry` resources saved inside the graph: mesh, weight, material override, cast shadow, visibility range (≈ cull distance) with fade, render layers, GI mode, custom data attributes, collision |
+| Mesh selectors | `entry_selection`: Weighted (seeded per point from `$Seed`, else the position, so a point keeps its pick when others are added), AttributeIndex, AttributeName (a String attribute, or a Resource attribute holding the mesh), Cycle |
+| Instance packer / custom data | `custom_data_attributes`: Float, Int and Bool fill one channel, Vector three, Color and Quaternion four, up to four channels (`INSTANCE_CUSTOM` in the shader) |
+| ISM component per mesh | one `MultiMeshInstance3D` per group of points whose entries share every render, custom-data and collision setting, per spawn parent |
+| Collision on instances | `collision_mode` None / BoxFromBounds / Convex / Trimesh with layer and mask. `collision_bodies = PerMultiMesh` (default) builds one `StaticBody3D` (`FlowInstancedCollision3D`) per MultiMesh with one shape owner per instance; `PerInstance` builds a body per instance |
+| Spline Mesh component | `spawn_spline_mesh`: one `MeshInstance3D` per spline segment with a bent `ArrayMesh`, cached by mesh and segment |
+| Spawn Actor property overrides | `property_overrides` on `spawn_scenes`, `spawn_nodes`, `apply_on_actor`: attribute name → property path (`light_energy`, `position:x`, `Child/Light:light_energy`, `%Unique:prop`), coerced to the property's type |
+| Create Target Actor | `create_target_node` + `spawn_parent_attribute` on every spawner (per point, broadcast, or `@data.<name>`) |
+| Component and instance reuse | `reuse_instances` on spawners (`FlowSpawnPool`), off by default |
+
+Everything a spawner creates carries `flow_owner` meta naming the component and the node, so `cleanup()` frees exactly this component's output, `transient_output` keeps it out of the saved scene, and two components sharing a parent never delete each other's nodes. Without an owner (owner-less `FlowNodeIO.evaluate`), spawners report "needs an owner node" and pass their input through. Spawners always run on the main thread.
+
+### Attribute types
+
+| DataType | Container | Notes |
+|---|---|---|
+| Bool, Int, Float, Vector, String | `PackedByteArray`, `PackedInt32Array`, `PackedFloat32Array`, `PackedVector3Array`, `PackedStringArray` | Vector is always 3 components. |
+| Color, Quaternion | `PackedColorArray`, `PackedVector4Array` | `PackedVector4Array` infers as Quaternion. |
+| Resource, NodeMesh, NodePath | `Array` | Object references (meshes, scene nodes). |
+| Vector2, Vector4 | `PackedVector2Array`, `PackedVector4Array` | Register a Vector4 stream with an explicit type; inference picks Quaternion. |
+| Transform | typed `Array[Transform3D]` | Built with `make_transform_attribute`, split with `break_transform_attribute`, combined with `transform_op`. |
+| Int64, Double | `PackedInt64Array`, `PackedFloat64Array` | For ids and large or precise values. Canonical attributes keep their types (`density` stays Float). |
+
+`registerStream` refuses a container that does not match the declared type when either side is one of the extended types (Vector2, Vector4, Transform, Int64, Double). The older nodes `math_op`, `sort`, `reduce`, `attribute_filter_range`, `attribute_noise` and a few others reject the extended types with an "unsupported type" error: cast first with `attribute_cast`, or use `vector_op` / `trig_op`.
+
+#### Selector aliases
+
+Every place that asks for a stream name accepts these UE-style aliases, case-insensitive, with components (`$Position.X`, `$Scale.y`). They only add names: a stream literally named `$Something` still wins, and every older selector resolves as before. The `expression` node maps them too.
+
+| Alias | Stream | Notes |
+|---|---|---|
+| `$Position` | `position` | |
+| `$Rotation` | `rotation` | Euler degrees |
+| `$Scale` | `size` | UE's Scale is this addon's `size` |
+| `$Density` | `density` | |
+| `$Seed` | `seed` | |
+| `$BoundsMin` / `$BoundsMax` | `bounds_min` / `bounds_max` | |
+| `$Steepness` | `steepness` | |
+| `$Color` | `color` | the conventional colour stream name |
+| `$Index` | `index` | virtual per-point index |
+| `@Source` | the node's input attribute | the default output of the round-2 attribute nodes: writes back to (and for a cast, retypes) the input attribute |
+
+#### Attribute Cast loss rules
+
+| From → to | Rule |
+|---|---|
+| Float / Double → Int / Int64 | `float_to_int`: Truncate toward zero (default, as UE), Round (halves away from zero), Floor, Ceil. NaN becomes 0; values beyond the 64-bit range clamp. |
+| Int64 (or a converted real) → Int | `int_overflow`: Wrap keeps the low 32 bits (default) or Clamp. |
+| Double → Float, Int / Int64 → Float | Rounded to 32-bit precision. |
+| any number → Bool | `value != 0`; Bool → a number is 0/1. |
+| number → Vector2 / Vector / Vector4 / Color | Broadcast to every component (Color alpha 1). Number → Quaternion or Transform is refused. |
+| vector → wider vector | Pads with 0 (a Color's alpha with 1). Narrower: drops trailing components. |
+| vector → number | Refused by default (as UE); `vector_to_scalar` = First Component or Length allows it. |
+| Vector ↔ Quaternion | Euler degrees conversion (the point rotation model). Vector4 or Color ↔ Quaternion reinterprets the components. |
+| Vector / Quaternion → Transform; Transform → Vector / Quaternion | Translation-only or rotation-only transform; translation or rotation. |
+| anything → String; String → number, vector or Transform | `str()`; parsed (`"x,y,z"` or a Godot literal such as `Vector3(1, 2, 3)`), and an unparsable string fails the node. |
+| Resource / NodeMesh / NodePath | Only to String, or between the three object types. |
 
 ---
 
@@ -363,6 +499,8 @@ Three canonical UE recipes, translated node-for-node. All three assume the demo 
 
 The graph re-evaluates as you tweak; there is no Generate button to press.
 
+**UE-exact variant (surface data).** `get_surface_data → surface_sampler → transform_points → spawn_meshes`. Type "Get Landscape Data" (the popup lists Scan Meshes and Get Surface Data for it) and pick `get_surface_data`; set its `group_name` = `terrain` (a `CollisionShape3D` holding a `HeightMapShape3D` in that group works too). On surface data, `surface_sampler` reads `points_per_square_meter` (UE's default 0.1) instead of `num_points`, places the points on the surface itself (no `projection` step) and writes `normal`. To keep trees off a road, add `get_spline_data` (group of your road `Path3D`) and wire it as input B of a `difference` node between the sampler and the spawner: with the default Binary `density_function`, points inside the road tube (`tube_half_width`) are removed. For a soft edge, lower `tube_steepness`, set `density_function = Subtract` and add a `density_filter` before the spawner (spawners place every point, whatever its density). You can also subtract the spline from the surface *before* sampling: wire `get_surface_data` as A and `get_spline_data` as B of the `difference`, then sample its output.
+
 ### Tutorial 2 — Density-noise clumping (slope-aware)
 
 > **UE original** (the standard "natural clusters" chain): `Surface Sampler → Normal To Density → Attribute Noise (a.k.a. Density Noise) → Density Filter → Transform Points → Static Mesh Spawner`.
@@ -402,7 +540,9 @@ For the **two-layer biome** variant: run the rock chain through `bounds_modifier
 4. **`transform_points`** — small `offset_min`/`offset_max` jitter or yaw variation if you want a worn look; set `rotation_local_space` = on so jitter composes with the spline orientation. Or skip it for a clean fence.
 5. **`spawn_meshes`** — fence mesh in `mesh`; segment meshes stretch best when your mesh is authored to exactly `uniform_interval` length.
 
-**Spline exclusion (the road-through-forest follow-up):** sample the road spline, inflate the samples with `bounds_modifier`, and wire them as input B of a `difference` node spliced before the forest spawner — identical topology to the UE recipe. **Interior scatter** ("garden inside a closed spline"): `sample_spline` with `fill_curve` = on fills the closed polygon (grid, random, or Poisson) — no separate Interior mode node needed.
+`get_spline_data` (the search finds it under "Get Spline Data" too) collects the same `Path3D`s as spline data instead of a `node` stream; `sample_spline` gives identical output for either.
+
+**Spline exclusion (the road-through-forest follow-up):** sample the road spline, inflate the samples with `bounds_modifier`, and wire them as input B of a `difference` node spliced before the forest spawner — identical topology to the UE recipe. Or wire the road's `get_spline_data` straight into input B: the spline acts as a tube of `tube_half_width`, no sampling needed. **Interior scatter** ("garden inside a closed spline"): `sample_spline` with `fill_curve` = on fills the closed polygon (grid, random, or Poisson) — no separate Interior mode node needed.
 
 ---
 
@@ -418,6 +558,10 @@ For the **two-layer biome** variant: run the rock chain through `bounds_modifier
 | Graph parameter overrides | `args` (graph input values), `params` (runtime parameters), `overrides` (`"node_name/property" -> value`). |
 | Generation Trigger | `generate_on_ready` (on load) or call `generate()` yourself. |
 | Generated components are transient | `transient_output = true` — spawned nodes get no owner, so they are never saved into the `.tscn`. |
+| Time-sliced generation | `async_generation = true` with `frame_budget_ms` (or call `generate_async()`), node by node across frames. |
+| Graph cache (`FPCGGraphCache`) | `output_cache = true` (off by default); `FlowOutputCache.clear()`, `hits`, `misses`. See [Caching and threading](#caching-and-threading). |
+| Multithreaded execution | `threaded = true` (off by default); main-thread nodes keep their order, output is identical. |
+| Errors of the last run | `last_errors` (`[{node, template, message}, ...]`), also `FlowNodeIO.last_errors` after `FlowNodeIO.evaluate`. |
 
 Without a component (UE's "execute a graph from code"), evaluate a graph resource directly:
 
@@ -433,4 +577,4 @@ var tiles = outputs["rooms"].container("tile")     # the packed array, or null
 
 ## When something doesn't translate
 
-Check [PARITY_ROADMAP.md](PARITY_ROADMAP.md). The honest list of things UE has that this addon does not yet: hierarchical generation (Grid Size), async/proximity runtime generation, GPU nodes, per-point BoundsMin/Max + Steepness, quaternion rotations, the typed spatial-data lattice, shape grammar, landscape paint layers, Subdivide Segment, and attribute domains. Each entry there explains the gap and the planned design.
+Check [PARITY_ROADMAP.md](PARITY_ROADMAP.md#remaining-gaps). The main things UE has that this addon does not yet: hierarchical generation (Grid Size only declares a cell size), proximity-based runtime generation, GPU execution beyond the `compute_kernel` escape hatch, terrain-plugin adapters (Terrain3D, HTerrain), point-bounds-against-shape overlap (shapes are tested at the point center), the extended attribute types in the editor's ports, graph parameters and Data Inspector, Proxy and Named Reroute nodes, and loop partition modes. Each entry there explains the gap and, where there is one, the planned design.

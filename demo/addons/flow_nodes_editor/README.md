@@ -1,5 +1,55 @@
 # Flow Nodes Editor — developer notes
 
+The addon ships 164 node templates (`nodes/*.gd` without the `*_settings.gd`
+resources); [doc/nodes_reference.md](doc/nodes_reference.md) lists them all and
+`node_templates.csv` at the repository root is the template/title index.
+
+## Architecture
+
+| Directory / file | Role |
+|---|---|
+| `node.gd` (`FlowNodeBase`) | Runtime element, a `RefCounted`. Every node script extends it. Fresh elements are created for every run; never `free()` one. The optional UI hooks (`widget_init`, `widget_ready`, `widget_gui_input`, `widget_exit_tree`, `widget_refresh`, `widget_draw`, `widget_script`) are documented at the top of the file. |
+| `executor/flow_node_widget.gd` (`FlowNodeWidget`) | The editor's `GraphNode` for one element: ports, theming, tooltips, error text, debug draw, exec-time badge. It forwards the members the editor uses (`settings`, `deps`, `dirty`, `generated_bulks`, ...) to its element. |
+| `executor/flow_compiled_graph.gd` (`FlowCompiledGraph`) | `for_graph(graph)` parses a `FlowGraphResource` once and keeps the result on the graph (`_flow_compiled`) until `graph.data` or the node registry changes. |
+| `executor/flow_executor.gd` (`FlowExecutor`) | The only executor: `SYNCHRONOUS`, `TIME_SLICED` (`step(budget_ms)`) and `THREADED` modes, plus the `node_filter` and `preseeded` hooks. `FlowNodeIO.evaluate_graph`, `begin_evaluation` and `evaluate_graph_snapshot` wrap it; the editor dock runs single nodes through `FlowExecutor.execute_element`. |
+| `executor/flow_node_traits.gd` (`FlowNodeTraits`) | `[main_thread, cacheable]` per stock template. `meta_node["pure"]` and `meta_node["main_thread"]` override the table; unknown templates are main-thread and not cacheable. `tests/executor/flow_node_traits_test.gd` fails when a stock template has no row. |
+| `executor/flow_output_cache.gd` (`FlowOutputCache`) | Process-wide LRU cache of pure-node outputs (`max_entries`, `clear()`, `hits`, `misses`). |
+| `spatial/` | `FlowSpatial` and the shapes carried on `FlowData.Data.shape` (splines, surfaces, volumes, composites), plus `FlowSpatialSources` for the Get * Data nodes. |
+| `spawn/` | `FlowMeshSpawnEntry`, `FlowSpawnUtil`, `FlowSpawnPool`, `FlowSplineBend`, `FlowInstancedCollision3D`. |
+| `attributes/` | `FlowAttributeOps`, shared by the attribute-type nodes (kept outside `nodes/` so the editor does not list it as a template). |
+
+**Threading and caching** are options on `FlowGraphNode3D` (`threaded`, `output_cache`),
+both off by default. `FlowNodeIO.make_context` turns them into the context metas
+`FlowExecutor.THREADED_META` and `FlowExecutor.OUTPUT_CACHE_META`, which nested subgraph
+and loop evaluations inherit. In threaded mode, main-thread elements run on the calling
+thread in sequential order and never overlap pool tasks; errors are buffered per
+element and appended in sequential order, so `last_errors` matches a plain run. Both
+modes reproduce the plain run's output exactly.
+
+A node script that should be threadable or cacheable must not write into an input
+`Data` (duplicate it first), must not touch the scene tree, physics, rendering,
+`ctx.owner`, `ctx.variables` or `ctx.runtime_params`, must guard any static cache with a
+`Mutex`, and declares `"pure": true` in its `meta_node`. A new stock node also needs a
+row in `FlowNodeTraits.TABLE`, and an entry in `SCENE_DEPENDENT_TEMPLATES` (`node.gd`)
+if it reads the scene.
+
+## Testing
+
+From `demo/`, with the GDExtension binary for your platform in `bin/`:
+
+```bash
+godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -a res://tests
+godot --headless --path . --import 2>&1 | grep -E "SCRIPT ERROR|Parse Error"   # must print nothing
+godot --headless --path . -s res://tests/perf/executor_benchmark.gd             # benchmark script, not a test
+```
+
+The golden suite (`tests/golden`) and the seed-zero suite
+(`tests/runtime/seed_zero_backcompat_test.gd`) must pass without regenerating their
+baselines unless an output change is intended and listed in `docs/DEPRECATIONS.md`.
+`tests/executor/executor_modes_golden_test.gd` checks that threaded and cached runs
+reproduce the golden baseline, and `tests/editor/editor_smoke_harness_test.gd` runs every
+golden graph through the editor dock headless and compares it with the runtime.
+
 ## Project node directories
 
 Stock nodes live in `nodes/`. Project nodes should live outside the addon so the
@@ -26,9 +76,9 @@ upgrades older data and is called in exactly these places:
 
 | Where | What happens to the resource |
 |---|---|
-| `FlowNodeIO.loadFromResource` / `loadFromResourceWithProgress` (editor load) | `resource.data` is replaced by the upgraded copy and the graph is marked dirty, so the next save writes the current version |
-| `FlowNodeIO._build_evaluation_state` (runtime) | nothing — the upgraded copy is used for this evaluation only |
-| `FlowNodeIO.create_nodes_from_dict` (clipboard paste) | pasted JSON is upgraded before nodes are created |
+| `FlowNodeIO.loadFromResource` / `loadFromResourceWithProgress` (editor load, through `migrate_resource_for_editor`) | `resource.data` is replaced by the upgraded copy and the graph is marked dirty, so the next save writes the current version |
+| `FlowCompiledGraph.compile` (every `FlowNodeIO` evaluation, including nested subgraphs and loops in the editor; once per change of `graph.data`) | nothing — the upgraded copy is kept on the compiled graph only |
+| `FlowNodeIO.create_nodes_from_dict` / `create_nodes_from_dict_with_progress` (clipboard paste and editor load) | pasted JSON is upgraded before nodes are created |
 
 `migrate()` returns the same dictionary when there is nothing to do, so current
 graphs pay no copy. It also replaces templates listed in
