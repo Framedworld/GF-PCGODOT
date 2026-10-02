@@ -13,6 +13,17 @@ extends NodeSettings
 ## Optional parameters to override on the subgraph.
 @export var param_overrides : Dictionary = {}
 
+## Dynamic subgraph: when set, the node gains a "Graph" input pin and runs, for
+## each input entry, the graph named by this attribute of the Graph pin's data
+## (element 0 of a String path or FlowGraphResource stream, or a per-data
+## attribute). `graph` stays the default (an empty path value runs it) and
+## defines the node's pins; the resolved graph's inputs and outputs are
+## matched by name.
+@export var graph_attribute : String = "":
+	set(value):
+		graph_attribute = value
+		emit_changed()
+
 func _init():
 	super._init()
 	resource_name = "Subgraph"

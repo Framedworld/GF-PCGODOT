@@ -71,6 +71,8 @@ const TABLE := {
 	"input": [true, false],                    # reads owner args / debug inputs
 	"loop": [true, false],
 	"subgraph": [true, false],
+	"get_loop_index": [true, false],          # LoopIteration source reads ctx.runtime_params
+	"get_loop_key": [true, false],            # reads ctx.runtime_params
 	"print_string": [true, false],
 	# Thread-safe but not a pure function of settings and inputs.
 	"load_data_table": [false, false],         # file content can change
@@ -117,7 +119,6 @@ const TABLE := {
 	"filter_data_by_type": [false, true],
 	"get_data_count": [false, true],
 	"get_entries_count": [false, true],
-	"get_loop_index": [false, true],
 	"get_points_count": [false, true],
 	"grammar_expand": [false, true],
 	"grid": [false, true],

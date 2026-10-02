@@ -1294,6 +1294,45 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 	return FlowExecutor.evaluate(graph, input_data_map, parent_ctx, runtime_params, depth)
 
 
+## Dynamic subgraph (loop / subgraph `graph_attribute`): resolves one attribute
+## value to a graph. A FlowGraphResource is used as is; a String (or
+## StringName) is a resource path loaded through ResourceLoader (which returns
+## the already-loaded object, so FlowCompiledGraph.for_graph reuses its
+## compiled form); an empty String means `default_graph`. Returns
+## { "graph": FlowGraphResource or null, "error": String } with a readable
+## error when the value names no usable graph. `memo` (optional) maps each
+## resolved String path to its result, so one node run loads and validates a
+## path once and keeps the loaded graph alive across its iterations.
+static func resolve_graph_reference(value, default_graph: FlowGraphResource = null, memo = null) -> Dictionary:
+	if value is FlowGraphResource:
+		return { "graph": value, "error": "" }
+	if value is String or value is StringName:
+		var path := String(value).strip_edges()
+		if path == "":
+			if default_graph != null:
+				return { "graph": default_graph, "error": "" }
+			return { "graph": null, "error": "graph path is empty and no default graph is assigned" }
+		if memo is Dictionary and memo.has(path):
+			return memo[path]
+		var result := { "graph": null, "error": "" }
+		if not ResourceLoader.exists(path):
+			result.error = "graph not found: %s" % path
+		else:
+			var loaded = ResourceLoader.load(path)
+			if loaded is FlowGraphResource:
+				result.graph = loaded
+			else:
+				result.error = "%s is not a FlowGraphResource" % path
+		if memo is Dictionary:
+			memo[path] = result
+		return result
+	if value == null:
+		return { "graph": null, "error": "no graph value" }
+	if value is Object:
+		return { "graph": null, "error": "value is a %s, not a FlowGraphResource or a path" % value.get_class() }
+	return { "graph": null, "error": "value %s is not a FlowGraphResource or a path" % type_string(typeof(value)) }
+
+
 ## OPT-IN resumable evaluation (PARITY_ROADMAP async stage 2).
 ## Returns a GraphEvaluation the caller drives across frames via step(budget_ms).
 ## The work, ordering and side effects are identical to evaluate_graph(); only
