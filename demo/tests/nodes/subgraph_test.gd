@@ -15,7 +15,7 @@ func _echo_graph(default_value := 1.0) -> FlowGraphResource:
 		.link("in_x", 0, "out", 0) \
 		.build()
 
-func _make(graph: FlowGraphResource, overrides := {}) -> Node:
+func _make(graph: FlowGraphResource, overrides := {}) -> FlowNodeBase:
 	var node = SubgraphNode.new()
 	node.name = "test_subgraph"
 	var s = SubgraphSettings.new()

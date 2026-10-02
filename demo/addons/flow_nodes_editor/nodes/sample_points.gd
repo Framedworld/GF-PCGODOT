@@ -9,6 +9,10 @@ class BNSample:
 	var v : float
 
 static var blue_noise_samples : Array[BNSample] = []
+# Serializes the one-time table build: FlowExecutor's threaded mode may run
+# several sample_points nodes at once (docs/PARITY_ROUND2.md WP1). The table is
+# built into a local array and published whole, so readers see it empty or full.
+static var _blue_noise_mutex := Mutex.new()
 
 ## Streams the sampler generates itself; never inherited from the input points.
 const GENERATED_STREAMS := [
@@ -221,6 +225,13 @@ func quasiRandomSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tr
 		_record_parent( i, idx )
 
 func precomputeBlueNoiseSamples():
+	_blue_noise_mutex.lock()
+	if blue_noise_samples.is_empty():
+		_build_blue_noise_samples()
+	_blue_noise_mutex.unlock()
+
+func _build_blue_noise_samples():
+	var samples : Array[BNSample] = []
 	# Normalize to RGBA8 so the 4-bytes-per-pixel layout below always holds
 	var img : Image = blue_noise_image
 	if img.get_format() != Image.FORMAT_RGBA8:
@@ -231,7 +242,7 @@ func precomputeBlueNoiseSamples():
 	var data : PackedByteArray = img.get_data()
 	var grid_scale_x : float = 1.0 / float(w)
 	var grid_scale_z : float = 1.0 / float(h)
-	blue_noise_samples.resize( w * h )
+	samples.resize( w * h )
 	var idx : int = 0
 	for z : int in range(h):
 		for x : int in range(w):
@@ -244,10 +255,11 @@ func precomputeBlueNoiseSamples():
 			bns.u = x * grid_scale_x
 			bns.v = z * grid_scale_z
 			bns.key = (tex_value << 16) + hash
-			blue_noise_samples[idx] = bns
+			samples[idx] = bns
 			idx += 1
-	blue_noise_samples.sort_custom( func( a: BNSample, b : BNSample) -> bool:
+	samples.sort_custom( func( a: BNSample, b : BNSample) -> bool:
 		return a.key < b.key )
+	blue_noise_samples = samples
 
 func blueNoiseSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.TransformsStream, output : FlowData.Data ):
 

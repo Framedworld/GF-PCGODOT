@@ -81,21 +81,18 @@ func test_no_scene_sets_error() -> void:
 	var s = PointFromPlayerPawnSettings.new()
 	var node = _run_headless(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_fallback_camera_enabled_still_errors_headless() -> void:
 	var s = PointFromPlayerPawnSettings.new()
 	s.fallback_to_current_camera = true
 	var node = _run_headless(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_include_node_ref_false_still_errors_headless() -> void:
 	var s = PointFromPlayerPawnSettings.new()
 	s.include_node_ref = false
 	var node = _run_headless(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Success-path tests (owner is in the scene tree)
@@ -109,7 +106,6 @@ func test_finds_node3d_no_error() -> void:
 	# Headlessly, current_scene may be null so the player is not found — graceful failure.
 	if node.err == "No player/source Node3D found":
 		owner_node.free()
-		node.free()
 		return
 	assert_str(node.err).is_empty()
 	owner_node.free()
@@ -122,7 +118,6 @@ func test_output_has_one_point() -> void:
 	var node = _run_in_tree(owner_node, s)
 	if node.err == "No player/source Node3D found":
 		owner_node.free()
-		node.free()
 		return
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -141,7 +136,6 @@ func test_output_position_matches_player() -> void:
 	var node = _run_in_tree(owner_node, s)
 	if node.err == "No player/source Node3D found":
 		owner_node.free()
-		node.free()
 		return
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -158,7 +152,6 @@ func test_output_has_common_streams() -> void:
 	var node = _run_in_tree(owner_node, s)
 	if node.err == "No player/source Node3D found":
 		owner_node.free()
-		node.free()
 		return
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -175,7 +168,6 @@ func test_output_size_default_scale() -> void:
 	var node = _run_in_tree(owner_node, s)
 	if node.err == "No player/source Node3D found":
 		owner_node.free()
-		node.free()
 		return
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -195,7 +187,6 @@ func test_include_node_ref_registers_stream() -> void:
 	var node = _run_in_tree(owner_node, s)
 	if node.err == "No player/source Node3D found":
 		owner_node.free()
-		node.free()
 		return
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -217,7 +208,6 @@ func test_include_node_ref_stores_correct_node() -> void:
 	var node = _run_in_tree(owner_node, s)
 	if node.err == "No player/source Node3D found":
 		owner_node.free()
-		node.free()
 		return
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -236,7 +226,6 @@ func test_include_node_ref_empty_attribute_no_extra_stream() -> void:
 	var node = _run_in_tree(owner_node, s)
 	if node.err == "No player/source Node3D found":
 		owner_node.free()
-		node.free()
 		return
 	assert_str(node.err).is_empty()
 	var out = _output(node)

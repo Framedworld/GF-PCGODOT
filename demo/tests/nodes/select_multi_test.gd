@@ -41,7 +41,6 @@ func test_static_index_selects_input_0() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(d0)
-	node.free()
 
 func test_static_index_selects_input_1() -> void:
 	var s = SelectMultiSettings.new()
@@ -53,7 +52,6 @@ func test_static_index_selects_input_1() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(d1)
-	node.free()
 
 func test_static_index_selects_input_2_and_3() -> void:
 	var s = SelectMultiSettings.new()
@@ -67,13 +65,11 @@ func test_static_index_selects_input_2_and_3() -> void:
 	var node2 = _run([d0, d1, d2, d3], s)
 	assert_str(node2.err).is_empty()
 	assert_object(_output(node2)).is_equal(d2)
-	node2.free()
 
 	s.index = 3
 	var node3 = _run([d0, d1, d2, d3], s)
 	assert_str(node3.err).is_empty()
 	assert_object(_output(node3)).is_equal(d3)
-	node3.free()
 
 func test_index_clamped_below_zero() -> void:
 	var s = SelectMultiSettings.new()
@@ -83,7 +79,6 @@ func test_index_clamped_below_zero() -> void:
 	var node = _run([d0, null, null, null], s)
 	assert_str(node.err).is_empty()
 	assert_object(_output(node)).is_equal(d0)
-	node.free()
 
 func test_index_clamped_above_3() -> void:
 	var s = SelectMultiSettings.new()
@@ -93,7 +88,6 @@ func test_index_clamped_above_3() -> void:
 	var node = _run([null, null, null, d3], s)
 	assert_str(node.err).is_empty()
 	assert_object(_output(node)).is_equal(d3)
-	node.free()
 
 func test_selected_input_not_connected_returns_empty_data() -> void:
 	var s = SelectMultiSettings.new()
@@ -105,7 +99,6 @@ func test_selected_input_not_connected_returns_empty_data() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_attribute_mode_reads_index_from_first_connected_input() -> void:
 	var s = SelectMultiSettings.new()
@@ -117,7 +110,6 @@ func test_attribute_mode_reads_index_from_first_connected_input() -> void:
 	var node = _run([d0, d1, d2, null], s)
 	assert_str(node.err).is_empty()
 	assert_object(_output(node)).is_equal(d2)
-	node.free()
 
 func test_attribute_mode_fallback_to_static_index_when_attribute_missing() -> void:
 	var s = SelectMultiSettings.new()
@@ -129,7 +121,6 @@ func test_attribute_mode_fallback_to_static_index_when_attribute_missing() -> vo
 	var node = _run([d0, d1, null, null], s)
 	assert_str(node.err).is_empty()
 	assert_object(_output(node)).is_equal(d1)
-	node.free()
 
 func test_attribute_mode_empty_attribute_name_uses_static_index() -> void:
 	var s = SelectMultiSettings.new()
@@ -141,7 +132,6 @@ func test_attribute_mode_empty_attribute_name_uses_static_index() -> void:
 	var node = _run([d0, d1, null, null], s)
 	assert_str(node.err).is_empty()
 	assert_object(_output(node)).is_equal(d0)
-	node.free()
 
 func test_attribute_mode_float_index_attribute_truncated_to_int() -> void:
 	var s = SelectMultiSettings.new()
@@ -152,7 +142,6 @@ func test_attribute_mode_float_index_attribute_truncated_to_int() -> void:
 	var node = _run([d0, d1, null, null], s)
 	assert_str(node.err).is_empty()
 	assert_object(_output(node)).is_equal(d1)
-	node.free()
 
 func test_attribute_mode_skips_inputs_without_attribute_stream() -> void:
 	var s = SelectMultiSettings.new()
@@ -164,7 +153,6 @@ func test_attribute_mode_skips_inputs_without_attribute_stream() -> void:
 	var node = _run([d0, d1, null, d3], s)
 	assert_str(node.err).is_empty()
 	assert_object(_output(node)).is_equal(d3)
-	node.free()
 
 func test_all_inputs_null_returns_empty_data() -> void:
 	var s = SelectMultiSettings.new()
@@ -175,7 +163,6 @@ func test_all_inputs_null_returns_empty_data() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_vector_data_passthrough() -> void:
 	var s = SelectMultiSettings.new()
@@ -186,7 +173,6 @@ func test_vector_data_passthrough() -> void:
 	var node = _run([d0, d1, null, null], s)
 	assert_str(node.err).is_empty()
 	assert_object(_output(node)).is_equal(d1)
-	node.free()
 
 func test_color_data_passthrough() -> void:
 	var s = SelectMultiSettings.new()
@@ -200,4 +186,3 @@ func test_color_data_passthrough() -> void:
 	var stream = out.findStream("col")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(2)
-	node.free()

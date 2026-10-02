@@ -13,9 +13,17 @@ func _init():
 		"tooltip" : "Loops over each element in Stream and runs a graph for each",
 	}
 
-func _exit_tree():
-	super._exit_tree()
+# --- Widget hooks (see node.gd) -----------------------------------------------
+# The nested graph's in_params_changed signal is only watched while the node is
+# shown in the editor; runtime elements never connect to shared resources.
+
+func widget_exit_tree(_widget):
 	_disconnect_graph()
+
+func widget_refresh(_widget):
+	if settings:
+		_connect_graph(settings.graph)
+	initFromScript()
 
 func _disconnect_graph():
 	if is_instance_valid(_connected_graph):
@@ -78,16 +86,11 @@ func getTitle() -> String:
 		return "Loop (New Graph)"
 	return "Loop"
 
-func refreshFromSettings():
-	super.refreshFromSettings()
-	if settings:
-		_connect_graph(settings.graph)
-	initFromScript()
 
 func onPropChanged( prop_name : String ):
 	super.onPropChanged( prop_name )
 	if prop_name == "graph" or prop_name == "item_input_name" or prop_name == "output_attribute_name" or prop_name == "feedback_param_name":
-		if settings:
+		if settings and get_widget() != null:
 			_connect_graph(settings.graph)
 		initFromScript()
 
@@ -231,9 +234,11 @@ func execute( ctx : FlowData.EvaluationContext ):
 		set_output(1, feedback_data)
 
 
-func _gui_input(event: InputEvent):
+func widget_gui_input(widget, event: InputEvent) -> bool:
 	if event is InputEventMouseButton and event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
 		var editor = getEditor()
 		if editor and settings and settings.graph:
 			editor.setResourceToEdit(settings.graph, null)
-			accept_event()
+			widget.accept_event()
+			return true
+	return false

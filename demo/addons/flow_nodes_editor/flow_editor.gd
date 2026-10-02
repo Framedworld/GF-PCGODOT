@@ -37,7 +37,8 @@ var make_inspector_visible : Callable
 var search_add_node_popup: SearchAddNodePopup
 
 # This is the default graph-node instantiated, the script contains the logic
-var packed_node = preload("res://addons/flow_nodes_editor/node.tscn")
+## Widget used for every node unless the node's element provides widget_script().
+const NODE_WIDGET_SCRIPT := preload("res://addons/flow_nodes_editor/executor/flow_node_widget.gd")
 const directory_path := FlowNodeRegistry.DEFAULT_NODE_DIRECTORY
 const FAST_GRAPH_LOAD_NODE_THRESHOLD := 24
 const EDITOR_SETTING_AUTO_REGEN := "addons/flow_nodes_editor/auto_generate"
@@ -111,7 +112,7 @@ var unsaved_close_dialog: ConfirmationDialog
 var unsaved_close_discard_button: Button
 var pending_unsaved_close_tab_index: int = -1
 var save_dialog_closes_tab_index: int = -1
-var current_analyzed_node: FlowNodeBase
+var current_analyzed_node: FlowNodeWidget
 var last_graph_open_dir := "res://graphs"
 var graph_loading_overlay: PanelContainer
 var graph_loading_label: Label
@@ -477,7 +478,7 @@ func _refresh_active_graph_context() -> void:
 		return
 	ctx.graph = current_resource
 	ctx.owner = resource_owner
-	ctx.gedit_nodes_by_name = gedit_nodes_by_name
+	ctx.gedit_nodes_by_name = get_element_map()
 	markAllNodesAsDirty()
 	queueForcedRegen()
 
@@ -560,7 +561,7 @@ func _switch_to_tab(index: int, new_owner = null):
 
 	ctx.graph = current_resource
 	ctx.owner = resource_owner
-	ctx.gedit_nodes_by_name = gedit_nodes_by_name
+	ctx.gedit_nodes_by_name = get_element_map()
 	markAllNodesAsDirty()
 	queueRegen()
 	populatePopupInputsMenu()
@@ -865,7 +866,7 @@ func _switch_to_tab_with_loading(index: int, new_owner = null) -> void:
 	repair_graph_integrity()
 	ctx.graph = current_resource
 	ctx.owner = resource_owner
-	ctx.gedit_nodes_by_name = gedit_nodes_by_name
+	ctx.gedit_nodes_by_name = get_element_map()
 	markAllNodesAsDirty()
 	queueRegen()
 	populatePopupInputsMenu()
@@ -1089,9 +1090,8 @@ func _on_filesystem_changed():
 						new_meta.full_res_path = meta.full_res_path
 						new_meta.last_modified_time = current_mtime
 						node_types[type_name] = new_meta
-						flow_node.free()
 						scripts_changed = true
-					else:
+					elif instance is Object and not (instance is RefCounted):
 						instance.free()
 
 	if resource_stale:
@@ -1101,19 +1101,21 @@ func _on_filesystem_changed():
 		FlowNodeIO.loadFromResource(self)
 		ctx.graph = current_resource
 		ctx.owner = resource_owner
-		ctx.gedit_nodes_by_name = gedit_nodes_by_name
+		ctx.gedit_nodes_by_name = get_element_map()
 		markAllNodesAsDirty()
 		queueRegen()
 		populatePopupInputsMenu()
 		update_status_bar()
 		print("[DataFlow] Auto-reloaded graph from disk: %s" % current_resource.resource_path)
 	elif scripts_changed:
+		# Reloaded node scripts may declare different meta_node traits.
+		FlowNodeTraits.clear_cache()
 		# Surgical hot-swap: update metadata on existing nodes and trigger regen
 		for child in gedit.get_children():
-			var node = child as FlowNodeBase
+			var node = child as FlowNodeWidget
 			if node and node_types.has(node.node_template):
-				# Re-bind the factory script and copy new metadata
-				node.set_script(node_types[node.node_template].factory)
+				# Re-bind a fresh element of the reloaded script and copy new metadata
+				node.rebind_script(node_types[node.node_template].factory)
 				node.meta_node = node_types[node.node_template].duplicate()
 				node.meta_node.erase("factory")
 				node.initFromScript()
@@ -1290,11 +1292,10 @@ func registerNodeType(node_type_name: String, file_name: String, base_directory:
 	var flow_node := instance as FlowNodeBase
 	if not flow_node:
 		push_warning("Skipping non-FlowNode script %s" % full_res_path)
-		if instance is Object:
+		if instance is Object and not (instance is RefCounted):
 			instance.free()
 		return
 	var meta = flow_node.getMeta()
-	flow_node.free()
 	if meta.is_empty():
 		push_warning("Skipping node with empty metadata %s" % full_res_path)
 		return
@@ -1329,7 +1330,7 @@ func ensureNodeTypeRegistered(node_template: String) -> bool:
 			registerNodeType(node_template, script_path.get_file(), script_path.get_base_dir())
 	return node_types.has(node_template)
 
-func normalizeDynamicNodeTemplate(node: FlowNodeBase) -> void:
+func normalizeDynamicNodeTemplate(node: FlowNodeWidget) -> void:
 	if node == null or node.settings == null or not ("name" in node.settings):
 		return
 	var param_name := str(node.settings.name)
@@ -1722,7 +1723,7 @@ func _inspect_in_native(target: Object) -> void:
 func _inspect_graph_element(node: Node) -> void:
 	inspected_node = node
 	var target: Object = node
-	var flow_node := node as FlowNodeBase
+	var flow_node := node as FlowNodeWidget
 	if flow_node != null:
 		if current_resource != null and (flow_node.node_template == "input" or flow_node.node_template == "output"):
 			target = current_resource
@@ -1758,8 +1759,8 @@ func _on_native_inspector_property_edited(prop_name: String) -> void:
 		if "out_params" in current_resource and _graph_resource_contains_parameter(edited_object, current_resource.out_params):
 			_refresh_graph_resource_parameter_edit("out_params")
 			return
-	if inspected_node is FlowNodeBase:
-		var flow_node := inspected_node as FlowNodeBase
+	if inspected_node is FlowNodeWidget:
+		var flow_node := inspected_node as FlowNodeWidget
 		if edited_object == flow_node.settings or edited_object == flow_node:
 			onNodePropertyChanged(prop_name)
 			return
@@ -1990,7 +1991,7 @@ func _on_node_translation_toggled(toggled_on: bool):
 func _refresh_node_translations() -> void:
 	if gedit:
 		for child in gedit.get_children():
-			var node := child as FlowNodeBase
+			var node := child as FlowNodeWidget
 			if node:
 				node.refreshLocalizedText()
 
@@ -2034,14 +2035,14 @@ func _input(event: InputEvent):
 			_hotkey_toggle_disabled()
 			get_viewport().set_input_as_handled()
 
-## Returns the FlowNodeBase under the mouse cursor, or null if none.
-func _get_node_under_cursor() -> FlowNodeBase:
+## Returns the FlowNodeWidget under the mouse cursor, or null if none.
+func _get_node_under_cursor() -> FlowNodeWidget:
 	var mouse_pos = gedit.get_local_mouse_position()
 	# Hit test all graph nodes (reverse order = front-to-back)
 	var children = gedit.get_children()
 	for i in range(children.size() - 1, -1, -1):
 		var child = children[i]
-		if child is FlowNodeBase:
+		if child is FlowNodeWidget:
 			var node_rect = Rect2(child.position_offset, child.size)
 			# Account for graph zoom and scroll
 			var graph_pos = (mouse_pos + gedit.scroll_offset) / gedit.zoom
@@ -2058,7 +2059,7 @@ func _get_hotkey_target_nodes() -> Array:
 
 func _refresh_inspector_if_showing_nodes(nodes: Array):
 	for node in nodes:
-		if not is_instance_valid(node) or not (node is FlowNodeBase):
+		if not is_instance_valid(node) or not (node is FlowNodeWidget):
 			continue
 		if inspected_node == node or native_inspector_target == node or native_inspector_target == node.settings:
 			_inspect_graph_element(node)
@@ -2072,7 +2073,7 @@ func _hotkey_toggle_debug():
 	var new_state = not nodes[0].settings.debug_enabled if nodes[0].settings else true
 	var names := PackedStringArray()
 	for node in nodes:
-		if node is FlowNodeBase and node.settings:
+		if node is FlowNodeWidget and node.settings:
 			node.settings.debug_enabled = new_state
 			node.dirty = true
 			node.refreshFromSettings()
@@ -2086,7 +2087,7 @@ func _hotkey_clear_all_debug():
 	var count := 0
 	var changed_nodes := []
 	for child in gedit.get_children():
-		var node = child as FlowNodeBase
+		var node = child as FlowNodeWidget
 		if node and node.settings and node.settings.debug_enabled:
 			node.settings.debug_enabled = false
 			node.dirty = true
@@ -2112,7 +2113,7 @@ func _hotkey_toggle_trace():
 	var new_state = not nodes[0].settings.trace if nodes[0].settings else true
 	var names := PackedStringArray()
 	for node in nodes:
-		if node is FlowNodeBase and node.settings:
+		if node is FlowNodeWidget and node.settings:
 			node.settings.trace = new_state
 			node.dirty = true
 			node.refreshFromSettings()
@@ -2128,7 +2129,7 @@ func _hotkey_toggle_disabled():
 	var new_state = not nodes[0].settings.disabled if nodes[0].settings else true
 	var names := PackedStringArray()
 	for node in nodes:
-		if node is FlowNodeBase and node.settings:
+		if node is FlowNodeWidget and node.settings:
 			node.settings.disabled = new_state
 			node.dirty = true
 			node.refreshFromSettings()
@@ -2211,7 +2212,7 @@ func _insert_reroute_on_connection(conn, screen_pos: Vector2):
 	queueRegen()
 
 ## Analyze a specific node (used by hover-based hotkeys).
-func analyzeNode(node: FlowNodeBase):
+func analyzeNode(node: FlowNodeWidget):
 	if not data_inspector:
 		return
 	var prev_auto_regen := auto_regen
@@ -2270,7 +2271,7 @@ func update_status_bar(eval_msg: String = ""):
 	text_parts.append(FlowI18n.count(status_wires_count, "connections"))
 	if eval_msg != "":
 		text_parts.append(eval_msg)
-	elif inspected_node and inspected_node is FlowNodeBase and inspected_node.has_method("get_data_summary"):
+	elif inspected_node and inspected_node is FlowNodeWidget and inspected_node.has_method("get_data_summary"):
 		var summary = inspected_node.get_data_summary()
 		if summary != "":
 			text_parts.append(summary)
@@ -2331,15 +2332,15 @@ func onNodePropertyChanged( prop_name : String):
 		#print( "Node %s.%s has changed" % [ inspected_node.name, prop_name ])
 		inspected_node.onPropChanged( prop_name )
 		inspected_node.refreshFromSettings()
-		if inspected_node is FlowNodeBase and (inspected_node.node_template == "input" or inspected_node.node_template.begins_with("input_")):
+		if inspected_node is FlowNodeWidget and (inspected_node.node_template == "input" or inspected_node.node_template.begins_with("input_")):
 			if prop_name == "name" or prop_name == "data_type":
 				normalizeDynamicNodeTemplate(inspected_node)
 				syncGraphParameters()
-		elif inspected_node is FlowNodeBase and (inspected_node.node_template == "output" or inspected_node.node_template.begins_with("output_")):
+		elif inspected_node is FlowNodeWidget and (inspected_node.node_template == "output" or inspected_node.node_template.begins_with("output_")):
 			if prop_name == "name" or prop_name == "data_type":
 				normalizeDynamicNodeTemplate(inspected_node)
 				syncGraphOutputs()
-		elif inspected_node is FlowNodeBase and (inspected_node.node_template == "set_variable" or inspected_node.node_template == "get_variable"):
+		elif inspected_node is FlowNodeWidget and (inspected_node.node_template == "set_variable" or inspected_node.node_template == "get_variable"):
 			if inspected_node.node_template == "set_variable" and prop_name == "variable_name":
 				var variable_name := String(inspected_node.settings.variable_name).strip_edges()
 				ensureSetVariableNameUnique(inspected_node)
@@ -2400,11 +2401,11 @@ func deleteNodes( nodes : Array[GraphNode] ):
 	var has_variable_nodes := false
 	for node in nodes:
 		active_nodes.erase(node)
-		if node is FlowNodeBase and (node.node_template == "input" or node.node_template.begins_with("input_")):
+		if node is FlowNodeWidget and (node.node_template == "input" or node.node_template.begins_with("input_")):
 			has_input_nodes = true
-		elif node is FlowNodeBase and (node.node_template == "output" or node.node_template.begins_with("output_")):
+		elif node is FlowNodeWidget and (node.node_template == "output" or node.node_template.begins_with("output_")):
 			has_output_nodes = true
-		elif node is FlowNodeBase and (node.node_template == "set_variable" or node.node_template == "get_variable"):
+		elif node is FlowNodeWidget and (node.node_template == "set_variable" or node.node_template == "get_variable"):
 			has_variable_nodes = true
 		for n in range( node.num_ports ):
 			remove_all_inputs_to_target_connection( node.name, n )
@@ -2516,7 +2517,6 @@ func refreshSignalsInputArgs( node ):
 
 func addNodeFromTemplate( node_template, node_name : String, settings = null, initialize := true ):
 	print( "addNode %s (%s : %s)" % [ node_template, node_name, str(settings) ])
-	var node = packed_node.instantiate() as GraphNode
 	ensureNodeTypeRegistered(node_template)
 	var meta = node_types.get( node_template, null )
 	if not meta:
@@ -2525,10 +2525,21 @@ func addNodeFromTemplate( node_template, node_name : String, settings = null, in
 		return null
 	#print( "Meta:", str(meta) )
 
-	node.set_script(meta.factory)
-
-	node.node_template = node_template
+	# The runtime element (the node script) and the GraphNode widget showing it.
+	var element := meta.factory.new() as FlowNodeBase
+	if element == null:
+		push_error("node_type %s does not create a FlowNodeBase" % node_template)
+		return null
+	element.node_template = node_template
+	element.name = node_name
+	var widget_script : Script = NODE_WIDGET_SCRIPT
+	if element.has_method("widget_script"):
+		var custom_script = element.widget_script()
+		if custom_script is Script:
+			widget_script = custom_script
+	var node : FlowNodeWidget = widget_script.new()
 	node.name = node_name
+	node.element = element
 	node.ui_scale = ui_scale
 	node.position_offset = localToGraphCoords(local_drop_position)
 	if settings:
@@ -2572,7 +2583,7 @@ func addNodeFromTemplate( node_template, node_name : String, settings = null, in
 
 func _has_input_node_named(uname: String) -> bool:
 	for child in gedit.get_children():
-		var node = child as FlowNodeBase
+		var node = child as FlowNodeWidget
 		if node and (node.node_template == "input" or node.node_template.begins_with("input_")):
 			if node.settings and node.settings.name == uname:
 				return true
@@ -2580,16 +2591,16 @@ func _has_input_node_named(uname: String) -> bool:
 
 func _has_output_node_named(uname: String) -> bool:
 	for child in gedit.get_children():
-		var node = child as FlowNodeBase
+		var node = child as FlowNodeWidget
 		if node and (node.node_template == "output" or node.node_template.begins_with("output_")):
 			if node.settings and node.settings.name == uname:
 				return true
 	return false
 
-func _is_multi_port_flow_node(node: FlowNodeBase) -> bool:
-	return node != null and node.has_method("is_multi_port") and node.is_multi_port()
+func _is_multi_port_flow_node(node: FlowNodeWidget) -> bool:
+	return node != null and node.element != null and node.element.has_method("is_multi_port") and node.element.is_multi_port()
 
-func _is_specific_input_node(node: FlowNodeBase) -> bool:
+func _is_specific_input_node(node: FlowNodeWidget) -> bool:
 	if not node or not node.settings:
 		return false
 	if node.node_template.begins_with("input_"):
@@ -2598,7 +2609,7 @@ func _is_specific_input_node(node: FlowNodeBase) -> bool:
 		return not _is_multi_port_flow_node(node)
 	return false
 
-func _is_specific_output_node(node: FlowNodeBase) -> bool:
+func _is_specific_output_node(node: FlowNodeWidget) -> bool:
 	if not node or not node.settings:
 		return false
 	if node.node_template.begins_with("output_"):
@@ -2607,7 +2618,7 @@ func _is_specific_output_node(node: FlowNodeBase) -> bool:
 		return not _is_multi_port_flow_node(node)
 	return false
 
-func canConnect( src : FlowNodeBase, src_port : int, dst : FlowNodeBase, dst_port : int ):
+func canConnect( src : FlowNodeWidget, src_port : int, dst : FlowNodeWidget, dst_port : int ):
 	# Discard self connections and null values
 	if dst == src or src == null or dst == null:
 		push_warning( "canConnect. Invalid inputs: ", src, " <-> ", dst )
@@ -2645,7 +2656,7 @@ func _sync_graph_parameters_for_node_template(node_template: String):
 	elif _node_needs_output_sync(node_template):
 		syncGraphOutputs()
 
-func _get_added_node_undo_data(node: FlowNodeBase) -> Dictionary:
+func _get_added_node_undo_data(node: FlowNodeWidget) -> Dictionary:
 	node.refreshConnectionFlags()
 	return {
 		"name": node.name,
@@ -2667,9 +2678,9 @@ func _has_graph_connection(connection: Dictionary) -> bool:
 func _restore_added_node(node_data: Dictionary, connections: Array, selected_names: Array, restored_name_counter: int):
 	_suppress_next_editor_scene_changed()
 	var node_name = node_data.name
-	var node = gedit.get_node_or_null(NodePath(node_name)) as FlowNodeBase
+	var node = gedit.get_node_or_null(NodePath(node_name)) as FlowNodeWidget
 	if node == null:
-		node = addNodeFromTemplate(node_data.template, node_name, null, false) as FlowNodeBase
+		node = addNodeFromTemplate(node_data.template, node_name, null, false) as FlowNodeWidget
 		if node == null:
 			return
 		node.position_offset = node_data.position_offset
@@ -2710,7 +2721,7 @@ func _remove_added_node(node_name: StringName, selected_names: Array, restored_n
 		queueRegen()
 
 func _record_add_node_undo(
-	node: FlowNodeBase,
+	node: FlowNodeWidget,
 	node_data: Dictionary,
 	connections: Array,
 	selected_before: Array,
@@ -2790,14 +2801,14 @@ func addNode( node_template, settings = null ):
 		refreshVariableNodes()
 	return node
 
-func insertRerouteOnConnection(conn: Dictionary, local_position: Vector2) -> FlowNodeBase:
+func insertRerouteOnConnection(conn: Dictionary, local_position: Vector2) -> FlowNodeWidget:
 	if conn.is_empty():
 		return null
 	ensureCurrentResource()
 	var before_state = get_graph_snapshot()
 	local_drop_position = local_position
 	var reroute_name = getNewName("reroute")
-	var reroute = addNodeFromTemplate("reroute", reroute_name) as FlowNodeBase
+	var reroute = addNodeFromTemplate("reroute", reroute_name) as FlowNodeWidget
 	if not reroute:
 		return null
 	var reroute_size : Vector2 = reroute.custom_minimum_size
@@ -3179,7 +3190,7 @@ func syncGraphParameters():
 	var has_multi_port_input = false
 	var input_nodes = []
 	for child in gedit.get_children():
-		var node = child as FlowNodeBase
+		var node = child as FlowNodeWidget
 		if not node:
 			continue
 		if node.node_template == "input" and _is_multi_port_flow_node(node):
@@ -3223,7 +3234,7 @@ func syncGraphOutputs():
 	var has_multi_port_output = false
 	var output_nodes = []
 	for child in gedit.get_children():
-		var node = child as FlowNodeBase
+		var node = child as FlowNodeWidget
 		if not node:
 			continue
 		if node.node_template == "output" and _is_multi_port_flow_node(node):
@@ -4003,7 +4014,7 @@ func disconnect_nodes(from_node: StringName, from_port: int, to_node: StringName
 	remove_input_source_target_connection( from_node, from_port, to_node, to_port )
 	_mark_status_counts_dirty()
 
-	var dst_node : FlowNodeBase = gedit_nodes_by_name.get( to_node )
+	var dst_node : FlowNodeWidget = gedit_nodes_by_name.get( to_node )
 	if dst_node != null:
 		dst_node.dirty = true
 
@@ -4022,7 +4033,7 @@ func connect_nodes(from_node: StringName, from_port: int, to_node: StringName, t
 	_mark_status_counts_dirty()
 	_add_input_source_target_connection(from_node, from_port, to_node, to_port)
 
-	var dst_node : FlowNodeBase = gedit_nodes_by_name.get( to_node )
+	var dst_node : FlowNodeWidget = gedit_nodes_by_name.get( to_node )
 	if dst_node != null:
 		dst_node.dirty = true
 
@@ -4035,7 +4046,7 @@ func _add_input_source_target_connection(from_node: StringName, from_port: int, 
 		input_sources[key].append(source)
 
 
-func findConnectionToNodeAndPort( node : FlowNodeBase, in_port : int ):
+func findConnectionToNodeAndPort( node : FlowNodeWidget, in_port : int ):
 	for conn in node.deps:
 		if conn.to_port == in_port:
 			return conn
@@ -4143,8 +4154,8 @@ func _on_graph_edit_connection_from_empty(to_node: StringName, to_port: int, rel
 	local_drop_position = release_position
 	_on_graph_edit_popup_request( local_drop_position )
 
-func getDeps( node : FlowNodeBase ) -> Array[ FlowNodeBase ]:
-	var deps : Array[ FlowNodeBase ] = [ node ]
+func getDeps( node : FlowNodeWidget ) -> Array[ FlowNodeWidget ]:
+	var deps : Array[ FlowNodeWidget ] = [ node ]
 	for conn in node.deps:
 		var dep_node = gedit_nodes_by_name.get( conn.from_node, null )
 		if not dep_node:
@@ -4153,17 +4164,17 @@ func getDeps( node : FlowNodeBase ) -> Array[ FlowNodeBase ]:
 		deps.append_array( req_deps )
 	return deps
 
-func getAllNodes() -> Array[ FlowNodeBase ]:
-	var nodes : Array[ FlowNodeBase ] = []
+func getAllNodes() -> Array[ FlowNodeWidget ]:
+	var nodes : Array[ FlowNodeWidget ] = []
 	for child in gedit.get_children():
-		var node = child as FlowNodeBase
+		var node = child as FlowNodeWidget
 		if not node:
 			continue
 		nodes.append( node )
 	return nodes
 
-func getSetVariableNodes(variable_name: String = "", exclude_node: FlowNodeBase = null) -> Array[FlowNodeBase]:
-	var nodes : Array[FlowNodeBase] = []
+func getSetVariableNodes(variable_name: String = "", exclude_node: FlowNodeWidget = null) -> Array[FlowNodeWidget]:
+	var nodes : Array[FlowNodeWidget] = []
 	var requested_name := variable_name.strip_edges()
 	for node in getAllNodes():
 		if node == exclude_node:
@@ -4178,8 +4189,8 @@ func getSetVariableNodes(variable_name: String = "", exclude_node: FlowNodeBase 
 		nodes.append(node)
 	return nodes
 
-func getGetVariableNodes(variable_name: String = "") -> Array[FlowNodeBase]:
-	var nodes : Array[FlowNodeBase] = []
+func getGetVariableNodes(variable_name: String = "") -> Array[FlowNodeWidget]:
+	var nodes : Array[FlowNodeWidget] = []
 	var requested_name := variable_name.strip_edges()
 	if requested_name.is_empty():
 		return nodes
@@ -4189,12 +4200,12 @@ func getGetVariableNodes(variable_name: String = "") -> Array[FlowNodeBase]:
 		var get_name := String(node.settings.variable_name).strip_edges()
 		if get_name == requested_name:
 			nodes.append(node)
-	nodes.sort_custom(func(a: FlowNodeBase, b: FlowNodeBase) -> bool:
+	nodes.sort_custom(func(a: FlowNodeWidget, b: FlowNodeWidget) -> bool:
 		return String(a.name) < String(b.name)
 	)
 	return nodes
 
-func flash_linked_get_variable_nodes(set_node: FlowNodeBase) -> void:
+func flash_linked_get_variable_nodes(set_node: FlowNodeWidget) -> void:
 	if set_node == null or not is_instance_valid(set_node):
 		return
 	if set_node.node_template != "set_variable":
@@ -4205,7 +4216,7 @@ func flash_linked_get_variable_nodes(set_node: FlowNodeBase) -> void:
 	for get_node in getGetVariableNodes(variable_name):
 		_flash_graph_node_white_twice(get_node)
 
-func flash_linked_set_variable_nodes(get_node: FlowNodeBase) -> void:
+func flash_linked_set_variable_nodes(get_node: FlowNodeWidget) -> void:
 	if get_node == null or not is_instance_valid(get_node):
 		return
 	if get_node.node_template != "get_variable":
@@ -4244,10 +4255,10 @@ func _flash_graph_node_white_twice(node: CanvasItem) -> void:
 		_variable_link_flash_tweens.erase(node)
 	, CONNECT_ONE_SHOT)
 
-func _set_variable_name_exists(variable_name: String, exclude_node: FlowNodeBase = null) -> bool:
+func _set_variable_name_exists(variable_name: String, exclude_node: FlowNodeWidget = null) -> bool:
 	return not getSetVariableNodes(variable_name, exclude_node).is_empty()
 
-func getUniqueSetVariableName(base_name: String, exclude_node: FlowNodeBase = null) -> String:
+func getUniqueSetVariableName(base_name: String, exclude_node: FlowNodeWidget = null) -> String:
 	var root_name := base_name.strip_edges()
 	if root_name.is_empty():
 		root_name = "variable"
@@ -4262,7 +4273,7 @@ func getUniqueSetVariableName(base_name: String, exclude_node: FlowNodeBase = nu
 		index += 1
 	return root_name
 
-func ensureSetVariableNameUnique(node: FlowNodeBase, refresh_node := true) -> String:
+func ensureSetVariableNameUnique(node: FlowNodeWidget, refresh_node := true) -> String:
 	if node == null or node.node_template != "set_variable" or not node.settings or not ("variable_name" in node.settings):
 		return ""
 	var variable_name := String(node.settings.variable_name).strip_edges()
@@ -4277,7 +4288,7 @@ func ensureSetVariableNameUnique(node: FlowNodeBase, refresh_node := true) -> St
 			node.refreshFromSettings()
 	return unique_variable_name
 
-func findSetVariableNode(variable_name: String) -> FlowNodeBase:
+func findSetVariableNode(variable_name: String) -> FlowNodeWidget:
 	for node in getSetVariableNodes(variable_name):
 		return node
 	return null
@@ -4311,7 +4322,7 @@ func focusGetVariableNode(get_node: GraphNode) -> bool:
 		return false
 	panToGraphNode(get_node, false)
 	var label := get_node.name
-	if get_node is FlowNodeBase and get_node.has_method("getTitle"):
+	if get_node is FlowNodeWidget and get_node.has_method("getTitle"):
 		label = String(get_node.call("getTitle"))
 	update_status_bar(FlowI18n.t("Located get: %s") % label)
 	return true
@@ -4341,22 +4352,36 @@ func refreshVariableNodes() -> void:
 	for node in getAllNodes():
 		if node.node_template != "set_variable" and node.node_template != "get_variable":
 			continue
-		if node.has_method("refreshVariableChoices"):
-			node.refreshVariableChoices()
+		if node.element.has_method("refreshVariableChoices"):
+			node.element.refreshVariableChoices()
 		node.dirty = true
 		node.refreshFromSettings()
 
-func getEvalOrder() -> Array[FlowNodeBase]:
-	var node_list := getAllNodes()
-	var instances_by_name: Dictionary = {}
-	for node in node_list:
-		instances_by_name[node.name] = node
-	var ordered: Array[FlowNodeBase] = []
-	for node in FlowNodeIO.build_execution_order(node_list, instances_by_name):
-		var flow_node := node as FlowNodeBase
+func getEvalOrder() -> Array[FlowNodeWidget]:
+	var widgets_by_name: Dictionary = {}
+	var element_list: Array = []
+	var elements_by_name: Dictionary = {}
+	for node in getAllNodes():
+		node._sync_element_name()
+		widgets_by_name[node.name] = node
+		element_list.append(node.element)
+		elements_by_name[node.name] = node.element
+	var ordered: Array[FlowNodeWidget] = []
+	for element in FlowNodeIO.build_execution_order(element_list, elements_by_name):
+		var flow_node := widgets_by_name.get(element.name) as FlowNodeWidget
 		if flow_node != null:
 			ordered.append(flow_node)
 	return ordered
+
+## name -> runtime element for every node in the dock. This is what the editor's
+## EvaluationContext.gedit_nodes_by_name holds: element code reads its sources'
+## bulks from it.
+func get_element_map() -> Dictionary:
+	var elements := {}
+	for node in getAllNodes():
+		node._sync_element_name()
+		elements[node.name] = node.element
+	return elements
 func removeGeneratedNodes():
 	if not resource_owner:
 		return
@@ -4370,8 +4395,8 @@ func removeGeneratedNodes():
 		resource_owner.remove_child( child )
 		child.queue_free()
 
-func getDirtyNodes() -> Array[ FlowNodeBase ]:
-	return getAllNodes().filter( func( node : FlowNodeBase ) -> bool:
+func getDirtyNodes() -> Array[ FlowNodeWidget ]:
+	return getAllNodes().filter( func( node : FlowNodeWidget ) -> bool:
 		return node.dirty
 	)
 
@@ -4397,7 +4422,7 @@ func cacheConnections():
 		#print( "  deps: %s" % [ node.deps ])
 		#print( "  dependants: %s" % [ node.dependants ])
 
-func _cache_variable_dependencies(nodes: Array[FlowNodeBase]) -> void:
+func _cache_variable_dependencies(nodes: Array[FlowNodeWidget]) -> void:
 	var set_nodes_by_name := {}
 	for node in nodes:
 		if node.node_template != "set_variable" or not node.settings or not ("variable_name" in node.settings):
@@ -4428,7 +4453,7 @@ func _cache_variable_dependencies(nodes: Array[FlowNodeBase]) -> void:
 			set_node.dependants.append(conn)
 			node.deps.append(conn)
 
-func expandDirtyFlagToDependants( node : FlowNodeBase ):
+func expandDirtyFlagToDependants( node : FlowNodeWidget ):
 	#print( "%s is dirty" % [ node.name ] )
 	for out_conn in node.dependants:
 		#print( "  -> %s" % [ out_conn ])
@@ -4448,6 +4473,7 @@ func _begin_eval_graph() -> Dictionary:
 	removeGeneratedNodes()
 
 	cacheConnections()
+	ctx.gedit_nodes_by_name = get_element_map()
 	# Generated instances are cleared globally; keep all final producers dirty so
 	# unaffected branches respawn instead of disappearing during analyze/debug.
 	markFinalNodesAsDirty()
@@ -4469,7 +4495,7 @@ func _begin_eval_graph() -> Dictionary:
 		"performance": [],
 	}
 
-func _evaluate_graph_node(node: FlowNodeBase, performance: Array) -> void:
+func _evaluate_graph_node(node: FlowNodeWidget, performance: Array) -> void:
 	#print( "  Eval: %s (%d) Dirty:%s" % [ node.name, node.eval_id, node.dirty ] )
 
 	# The node has already been evaluated or it's not dirty. No need to reevaluate it
@@ -4482,19 +4508,15 @@ func _evaluate_graph_node(node: FlowNodeBase, performance: Array) -> void:
 	# Overrides / $param bindings: run the node against a scratch copy of its
 	# settings so the dock shows bound values while the authored resource (and the
 	# inspector, save and undo state) never changes. Restored after the node ran.
+	var element : FlowNodeBase = node.element
 	var authored_settings := FlowNodeIO.begin_scratch_setting_bindings( node, current_resource, ctx, {} )
-	node.preExecute( ctx )
-
-	#print( "Evaluating %s" % node.name )
-	if node.settings.disabled:
-		node.executedDisabled( ctx )
-	elif not FlowVariableEval.try_fast_execute( node, ctx, ctx.gedit_nodes_by_name ):
-		node.run( ctx )
+	# The runtime's per-element core: preExecute, disabled pass-through,
+	# variable fast path or run(), then the debug draw refresh (which the
+	# element forwards to this widget).
+	FlowExecutor.execute_element( element, ctx, ctx.gedit_nodes_by_name )
 
 	if node.settings.inspect_enabled:
 		_queue_data_inspector_refresh(node)
-	if FlowVariableEval.should_refresh_debug_draw( node ):
-		node.setupDrawDebug()
 	node.dirty = false
 	# Baseline for onEditorSceneChanged(): fingerprint the scene state this
 	# evaluation actually consumed
@@ -4512,7 +4534,7 @@ func _evaluate_graph_node(node: FlowNodeBase, performance: Array) -> void:
 	if dump_performance:
 		performance.append( { "name": node.name, "time": exec_usec })
 
-func _queue_data_inspector_refresh(node: FlowNodeBase) -> void:
+func _queue_data_inspector_refresh(node: FlowNodeWidget) -> void:
 	if data_inspector and analyze_panel and analyze_panel.visible and node == current_analyzed_node:
 		data_inspector_refresh_pending = true
 
@@ -4603,7 +4625,7 @@ func _reload_current_graph_with_loading() -> void:
 	repair_graph_integrity()
 	ctx.graph = current_resource
 	ctx.owner = resource_owner
-	ctx.gedit_nodes_by_name = gedit_nodes_by_name
+	ctx.gedit_nodes_by_name = get_element_map()
 	markAllNodesAsDirty()
 	queueForcedRegen()
 	populatePopupInputsMenu()
@@ -4624,7 +4646,7 @@ func _on_node_registry_changed() -> void:
 	FlowNodeIO.loadFromResource(self)
 	ctx.graph = current_resource
 	ctx.owner = resource_owner
-	ctx.gedit_nodes_by_name = gedit_nodes_by_name
+	ctx.gedit_nodes_by_name = get_element_map()
 	markAllNodesAsDirty()
 	queueRegen()
 	populatePopupInputsMenu()
@@ -4694,7 +4716,7 @@ func _on_button_regenerate_pressed() -> void:
 	_cancel_regen_run()
 	markAllNodesAsDirty()
 	evalGraph()
-	#for n : FlowNodeBase in getSelectedNodes():
+	#for n : FlowNodeWidget in getSelectedNodes():
 		#print( "Node: %s  Ins:%d  Outs:%d" % [ n.name, n.num_in_ports, n.num_out_ports ])
 		#for idx in range( n.num_in_ports ):
 			#var type = n.get_slot_type_left( idx )

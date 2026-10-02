@@ -45,9 +45,8 @@ func getTitle() -> String:
 func getExposedParams():
 	return []
 
-func refreshFromSettings():
-	super.refreshFromSettings()
-	title = getTitle()
+func widget_refresh(widget):
+	widget.title = getTitle()
 
 func execute(ctx: FlowData.EvaluationContext):
 	# Pass data through unchanged.

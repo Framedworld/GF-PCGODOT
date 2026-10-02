@@ -47,7 +47,7 @@ func _unit_scene() -> PackedScene:
 	root.free()
 	return packed
 
-func _scenes_node(overrides : Dictionary) -> Node:
+func _scenes_node(overrides : Dictionary) -> FlowNodeBase:
 	var s = SpawnScenesSettings.new()
 	s.scene = _unit_scene()
 	s.property_overrides = overrides

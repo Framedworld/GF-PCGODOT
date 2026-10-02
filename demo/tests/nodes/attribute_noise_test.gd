@@ -49,7 +49,6 @@ func test_set_mode_creates_attribute() -> void:
 	assert_int(stream.container.size()).is_equal(3)
 	for i in range(3):
 		assert_float(stream.container[i]).is_equal_approx(0.5, 0.0001)
-	node.free()
 
 func test_noise_is_position_deterministic_without_seed_stream() -> void:
 	# UE $Seed parity: with no per-point seed stream, the noise must derive from
@@ -81,8 +80,6 @@ func test_noise_is_position_deterministic_without_seed_stream() -> void:
 	assert_float(v1[2]).is_equal_approx(v2[0], 0.0001)  # pc: idx 2 vs idx 0
 	# And the three positions must actually produce distinct noise (sanity).
 	assert_bool(v1[0] != v1[1] or v1[1] != v1[2]).is_true()
-	n1.free()
-	n2.free()
 
 func test_add_mode_with_existing_float_attribute() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -101,7 +98,6 @@ func test_add_mode_with_existing_float_attribute() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.6, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(0.4, 0.0001)
 	assert_float(stream.container[2]).is_equal_approx(0.9, 0.0001)
-	node.free()
 
 func test_multiply_mode_with_existing_float_attribute() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -120,7 +116,6 @@ func test_multiply_mode_with_existing_float_attribute() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.2, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.0001)
 	assert_float(stream.container[2]).is_equal_approx(0.0, 0.0001)
-	node.free()
 
 func test_minimum_and_maximum_modes() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -137,7 +132,6 @@ func test_minimum_and_maximum_modes() -> void:
 	var stream = out.findStream("density")
 	assert_float(stream.container[0]).is_equal_approx(0.3, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(0.6, 0.0001)
-	node.free()
 
 	s.mode = AttributeNoiseSettings.eMode.Maximum
 	node = _run(input, s)
@@ -146,7 +140,6 @@ func test_minimum_and_maximum_modes() -> void:
 	stream = out.findStream("density")
 	assert_float(stream.container[0]).is_equal_approx(0.6, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(0.9, 0.0001)
-	node.free()
 
 func test_invert_source_flag() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -165,7 +158,6 @@ func test_invert_source_flag() -> void:
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(0.7, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(0.3, 0.0001)
-	node.free()
 
 func test_clamp_result_flag() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -183,7 +175,6 @@ func test_clamp_result_flag() -> void:
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(0.9, 0.0001)
-	node.free()
 
 func test_int_source_attribute_is_converted_to_float() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -202,7 +193,6 @@ func test_int_source_attribute_is_converted_to_float() -> void:
 	assert_int(stream.data_type).is_equal(FlowDataScript.DataType.Float)
 	assert_float(stream.container[0]).is_equal_approx(2.0, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(5.0, 0.0001)
-	node.free()
 
 func test_missing_attribute_defaults_for_density_and_custom() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -222,7 +212,6 @@ func test_missing_attribute_defaults_for_density_and_custom() -> void:
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(1.25, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(1.25, 0.0001)
-	node.free()
 
 	s.target_attribute = "custom_attr"
 	s.mode = AttributeNoiseSettings.eMode.Add
@@ -236,7 +225,6 @@ func test_missing_attribute_defaults_for_density_and_custom() -> void:
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(0.25, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(0.25, 0.0001)
-	node.free()
 
 func test_empty_input_passes_through() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -249,7 +237,6 @@ func test_empty_input_passes_through() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -265,7 +252,6 @@ func test_missing_input_error() -> void:
 	node.execute(ctx)
 	dummy.free()
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_target_attribute_error() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -274,7 +260,6 @@ func test_empty_target_attribute_error() -> void:
 	var input = _make_data("density", PackedFloat32Array([0.5]), FlowDataScript.DataType.Float)
 	var node = _run(input, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_non_numeric_attribute_type_error() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -285,7 +270,6 @@ func test_non_numeric_attribute_type_error() -> void:
 	var input = _make_data("tag", PackedStringArray(["hello"]), FlowDataScript.DataType.String)
 	var node = _run(input, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_deterministic_with_seed_stream() -> void:
 	var s = AttributeNoiseSettings.new()
@@ -313,5 +297,3 @@ func test_deterministic_with_seed_stream() -> void:
 	var stream1 = out1.findStream("density")
 	var stream2 = out2.findStream("density")
 	assert_array(stream1.container).is_equal(stream2.container)
-	node1.free()
-	node2.free()

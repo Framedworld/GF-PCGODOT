@@ -61,8 +61,6 @@ func test_single_bulk_single_float_stream_passes_through() -> void:
 	var stream = out.findStream("density")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([1.0, 2.0, 3.0]))
-	node.free()
-	src.free()
 
 func test_two_bulks_concatenates_float_streams() -> void:
 	var d1 = _make_data("value", PackedFloat32Array([10.0, 20.0]), FlowDataScript.DataType.Float)
@@ -80,8 +78,6 @@ func test_two_bulks_concatenates_float_streams() -> void:
 	assert_float(stream.container[1]).is_equal(20.0)
 	assert_float(stream.container[2]).is_equal(30.0)
 	assert_float(stream.container[3]).is_equal(40.0)
-	node.free()
-	src.free()
 
 func test_two_bulks_concatenates_vector_streams() -> void:
 	var d1 = _make_data("position", PackedVector3Array([Vector3(1, 0, 0), Vector3(2, 0, 0)]), FlowDataScript.DataType.Vector)
@@ -96,8 +92,6 @@ func test_two_bulks_concatenates_vector_streams() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(4)
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(1, 0, 0), Vector3(2, 0, 0), Vector3(3, 0, 0), Vector3(4, 0, 0)]))
-	node.free()
-	src.free()
 
 func test_two_bulks_with_disjoint_streams_pads_missing_with_default() -> void:
 	var d1 := FlowDataScript.Data.new()
@@ -134,8 +128,6 @@ func test_two_bulks_with_disjoint_streams_pads_missing_with_default() -> void:
 	assert_float(s3.container[1]).is_equal(0.0)
 	assert_float(s3.container[2]).is_equal(100.0)
 	assert_float(s3.container[3]).is_equal(200.0)
-	node.free()
-	src.free()
 
 func test_single_bulk_multiple_stream_types() -> void:
 	var d := FlowDataScript.Data.new()
@@ -162,8 +154,6 @@ func test_single_bulk_multiple_stream_types() -> void:
 	var id_s = out.findStream("id")
 	assert_object(id_s).is_not_null()
 	assert_int(id_s.container[0]).is_equal(42)
-	node.free()
-	src.free()
 
 func test_null_input_bulk_is_skipped_gracefully() -> void:
 	var d = _make_data("value", PackedFloat32Array([5.0]), FlowDataScript.DataType.Float)
@@ -185,7 +175,6 @@ func test_null_input_bulk_is_skipped_gracefully() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_three_bulks_concatenated_correctly() -> void:
 	var d1 = _make_data("x", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
@@ -201,8 +190,6 @@ func test_three_bulks_concatenated_correctly() -> void:
 	var stream = out.findStream("x")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([1.0, 2.0, 3.0]))
-	node.free()
-	src.free()
 
 func test_type_mismatch_between_bulks_skips_mismatched_values_with_zero_pad() -> void:
 	var d1 = _make_data("score", PackedFloat32Array([9.0, 8.0]), FlowDataScript.DataType.Float)
@@ -221,8 +208,6 @@ func test_type_mismatch_between_bulks_skips_mismatched_values_with_zero_pad() ->
 	assert_float(stream.container[1]).is_equal(8.0)
 	assert_float(stream.container[2]).is_equal(0.0)
 	assert_float(stream.container[3]).is_equal(0.0)
-	node.free()
-	src.free()
 
 func test_empty_data_bulk_produces_empty_streams_with_offsets() -> void:
 	var d1 = _make_data("val", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
@@ -241,8 +226,6 @@ func test_empty_data_bulk_produces_empty_streams_with_offsets() -> void:
 	assert_float(stream.container[0]).is_equal(1.0)
 	assert_float(stream.container[1]).is_equal(2.0)
 	assert_float(stream.container[2]).is_equal(5.0)
-	node.free()
-	src.free()
 
 # A later bulk introducing a stream not seen before must register it (sized to
 # the running offset) BEFORE appending that bulk's values to the other
@@ -263,8 +246,6 @@ func _merge_disjoint_columns() -> Dictionary:
 func test_new_stream_in_later_bulk_emits_no_length_warning() -> void:
 	var holder := {}
 	await assert_error(func(): holder.merge(_merge_disjoint_columns())).is_success()
-	holder.node.free()
-	holder.src.free()
 
 func test_new_stream_in_later_bulk_output_unchanged() -> void:
 	var result = _merge_disjoint_columns()
@@ -281,5 +262,3 @@ func test_new_stream_in_later_bulk_output_unchanged() -> void:
 		[Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ONE, Vector3.UP])
 	# Stream order is first-seen order, as before.
 	assert_array(out.streams.keys()).is_equal(["s1", "s2", "s3", "s4"])
-	node.free()
-	result.src.free()

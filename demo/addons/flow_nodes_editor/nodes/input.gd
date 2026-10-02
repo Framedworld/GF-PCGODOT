@@ -47,22 +47,21 @@ func getTitle() -> String:
 		return "Inputs"
 	return settings.name
 
-func refreshFromSettings():
-	super.refreshFromSettings()
+# --- Widget hooks (see node.gd) -----------------------------------------------
+
+func widget_refresh(widget):
 	if is_multi_port():
-		pass
-	else:
-		if is_slot_enabled_right( 0 ):
-			var color := getColorForFlowDataType( settings.data_type )
-			set_slot_color_right( 0, color )
+		return
+	if widget.is_slot_enabled_right( 0 ):
+		var color := getColorForFlowDataType( settings.data_type )
+		widget.set_slot_color_right( 0, color )
 
 func onPropChanged( prop_name : String ):
 	super.onPropChanged( prop_name )
 	if prop_name == "data_type" or prop_name == "name":
 		refreshFromSettings()
 
-func _ready():
-	super._ready()
+func widget_ready(_widget):
 	if is_multi_port():
 		var editor = getEditor()
 		if editor and editor.current_resource:
@@ -70,8 +69,7 @@ func _ready():
 				editor.current_resource.in_params_changed.connect(_on_in_params_changed)
 			initFromScript()
 
-func _exit_tree():
-	super._exit_tree()
+func widget_exit_tree(_widget):
 	if is_multi_port():
 		var editor = getEditor()
 		if editor and editor.current_resource:
@@ -81,12 +79,11 @@ func _exit_tree():
 func _on_in_params_changed():
 	initFromScript()
 
-func initFromScript():
-	super.initFromScript()
+func widget_init(widget):
 	if is_multi_port():
 		var spacer = Control.new()
 		spacer.custom_minimum_size.y = 4
-		add_child(spacer)
+		widget.add_child(spacer)
 		
 		var btn = Button.new()
 		btn.text = "+ Add Input Parameter"
@@ -94,7 +91,7 @@ func initFromScript():
 		btn.add_theme_font_size_override("font_size", 10)
 		if not btn.pressed.is_connected(_on_add_input_pressed_deferred):
 			btn.pressed.connect(_on_add_input_pressed_deferred)
-		add_child(btn)
+		widget.add_child(btn)
 
 func _on_add_input_pressed_deferred():
 	call_deferred("_on_add_input_pressed")

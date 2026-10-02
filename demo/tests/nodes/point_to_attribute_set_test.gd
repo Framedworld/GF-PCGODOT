@@ -49,7 +49,6 @@ func test_missing_input_sets_error() -> void:
 	var s = _make_default_settings()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_plain_copy_when_drop_disabled() -> void:
 	var s = _make_default_settings()
@@ -68,7 +67,6 @@ func test_plain_copy_when_drop_disabled() -> void:
 	assert_array(out.findStream(FlowData.AttrPosition).container).is_equal(positions)
 	assert_array(out.findStream(FlowData.AttrRotation).container).is_equal(rotations)
 	assert_array(out.findStream(FlowData.AttrSize).container).is_equal(sizes)
-	node.free()
 
 func test_drop_transforms_no_preserve() -> void:
 	var s = _make_default_settings()
@@ -85,7 +83,6 @@ func test_drop_transforms_no_preserve() -> void:
 	assert_bool(out.hasStream(FlowData.AttrPosition)).is_false()
 	assert_bool(out.hasStream(FlowData.AttrRotation)).is_false()
 	assert_bool(out.hasStream(FlowData.AttrSize)).is_false()
-	node.free()
 
 func test_drop_transforms_with_preserve() -> void:
 	var s = _make_default_settings()
@@ -106,7 +103,6 @@ func test_drop_transforms_with_preserve() -> void:
 	assert_array(out.findStream(&"point_position").container).is_equal(positions)
 	assert_array(out.findStream(&"point_rotation").container).is_equal(rotations)
 	assert_array(out.findStream(&"point_size").container).is_equal(sizes)
-	node.free()
 
 func test_custom_attribute_names() -> void:
 	var s = _make_default_settings()
@@ -127,7 +123,6 @@ func test_custom_attribute_names() -> void:
 	assert_bool(out.hasStream(&"point_position")).is_false()
 	assert_bool(out.hasStream(&"point_rotation")).is_false()
 	assert_bool(out.hasStream(&"point_size")).is_false()
-	node.free()
 
 func test_extra_streams_are_preserved() -> void:
 	var s = _make_default_settings()
@@ -142,7 +137,6 @@ func test_extra_streams_are_preserved() -> void:
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream(&"density")).is_true()
 	assert_array(out.findStream(&"density").container).is_equal(extra)
-	node.free()
 
 func test_single_point() -> void:
 	var s = _make_default_settings()
@@ -157,7 +151,6 @@ func test_single_point() -> void:
 	assert_bool(out.hasStream(FlowData.AttrPosition)).is_false()
 	assert_bool(out.hasStream(&"point_position")).is_true()
 	assert_array(out.findStream(&"point_position").container).is_equal(positions)
-	node.free()
 
 func test_empty_point_array() -> void:
 	var s = _make_default_settings()
@@ -169,7 +162,6 @@ func test_empty_point_array() -> void:
 	assert_bool(out.hasStream(FlowData.AttrPosition)).is_false()
 	assert_bool(out.hasStream(&"point_position")).is_true()
 	assert_int(out.findStream(&"point_position").container.size()).is_equal(0)
-	node.free()
 
 func test_blank_attribute_name_skips_copy() -> void:
 	var s = _make_default_settings()
@@ -186,4 +178,3 @@ func test_blank_attribute_name_skips_copy() -> void:
 	assert_bool(out.hasStream(&"")).is_false()
 	assert_bool(out.hasStream(&"point_rotation")).is_true()
 	assert_bool(out.hasStream(&"point_size")).is_true()
-	node.free()

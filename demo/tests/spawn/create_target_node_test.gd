@@ -26,7 +26,7 @@ func before_test() -> void:
 	_scene_root.add_child(_owner)
 	_owner.owner = _scene_root
 
-func _make(configure : Callable = Callable()) -> Node:
+func _make(configure : Callable = Callable()) -> FlowNodeBase:
 	var s = CreateTargetSettings.new()
 	s.node_name = "Props"
 	if configure.is_valid():

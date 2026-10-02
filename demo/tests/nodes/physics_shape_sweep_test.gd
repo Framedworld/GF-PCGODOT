@@ -89,7 +89,6 @@ func test_null_input_sets_error() -> void:
 	var s = _default_settings()
 	var node = _run_no_scene([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_no_scene_root_sets_error() -> void:
 	# A detached owner has no get_tree(), so _scene_root() returns null -> error.
@@ -97,7 +96,6 @@ func test_no_scene_root_sets_error() -> void:
 	var in_data = _make_positions(PackedVector3Array([Vector3(0, 5, 0)]))
 	var node = _run_no_scene([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_position_stream_sets_error() -> void:
 	# Input data has no "position" stream -> execute must set an error.
@@ -106,7 +104,6 @@ func test_missing_position_stream_sets_error() -> void:
 	d.registerStream("color", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = await _run_against_floor(d, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_from_attribute_mode_missing_direction_attribute_sets_error() -> void:
 	# direction_mode = FromAttribute, but the data has no "direction" stream.
@@ -116,7 +113,6 @@ func test_from_attribute_mode_missing_direction_attribute_sets_error() -> void:
 	var in_data = _make_positions(PackedVector3Array([Vector3(0, 5, 0)]))
 	var node = await _run_against_floor(in_data, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_from_attribute_mode_blank_direction_attribute_sets_error() -> void:
 	# direction_mode = FromAttribute, direction_attribute is blank -> error.
@@ -126,7 +122,6 @@ func test_from_attribute_mode_blank_direction_attribute_sets_error() -> void:
 	var in_data = _make_positions(PackedVector3Array([Vector3(0, 5, 0)]))
 	var node = await _run_against_floor(in_data, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_wrong_type_direction_attribute_sets_error() -> void:
 	# direction attribute exists but is Float, not Vector -> error.
@@ -138,7 +133,6 @@ func test_wrong_type_direction_attribute_sets_error() -> void:
 	d.registerStream("dir", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = await _run_against_floor(d, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_distance_attribute_wrong_type_sets_error() -> void:
 	# distance_attribute must be Float or Int; String is not -> error.
@@ -149,7 +143,6 @@ func test_distance_attribute_wrong_type_sets_error() -> void:
 	d.registerStream("dist_str", PackedStringArray(["bad"]), FlowDataScript.DataType.String)
 	var node = await _run_against_floor(d, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_distance_attribute_missing_sets_error() -> void:
 	# distance_attribute is named but the stream doesn't exist in the data.
@@ -158,7 +151,6 @@ func test_distance_attribute_missing_sets_error() -> void:
 	var in_data = _make_positions(PackedVector3Array([Vector3(0, 5, 0)]))
 	var node = await _run_against_floor(in_data, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Empty-input pass-through
@@ -173,7 +165,6 @@ func test_empty_input_passes_through() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Physics-SIM: sphere sweep hits a floor
@@ -202,7 +193,6 @@ func test_sphere_sweep_hits_floor() -> void:
 	assert_bool(safe.container[0] >= 0.0).is_true()
 	assert_bool(safe.container[0] <= 1.0).is_true()
 
-	node.free()
 
 func test_sphere_sweep_misses_returns_no_hit() -> void:
 	# Point far outside the 20x20 floor footprint -> no collision.
@@ -222,7 +212,6 @@ func test_sphere_sweep_misses_returns_no_hit() -> void:
 	assert_object(unsafe).is_not_null()
 	assert_float(unsafe.container[0]).is_equal_approx(1.0, 0.01)
 
-	node.free()
 
 func test_swept_position_lands_on_floor_surface() -> void:
 	# Sphere radius 0.25 sweeping DOWN from y=5. Floor top face at y=0.5.
@@ -243,7 +232,6 @@ func test_swept_position_lands_on_floor_surface() -> void:
 	# y should be well below the start (5.0) — the sweep definitely moved.
 	assert_bool(sweep_pos.container[0].y < 4.9).is_true()
 
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Physics-SIM: box shape
@@ -264,7 +252,6 @@ func test_box_sweep_hits_floor() -> void:
 	assert_object(hit).is_not_null()
 	assert_int(hit.container[0]).is_equal(1)
 
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Physics-SIM: FromAttribute direction
@@ -287,7 +274,6 @@ func test_from_attribute_direction_hits_floor() -> void:
 	assert_object(hit).is_not_null()
 	assert_int(hit.container[0]).is_equal(1)
 
-	node.free()
 
 func test_from_attribute_direction_broadcast_single_value() -> void:
 	# A single direction value broadcast across multiple points.
@@ -313,7 +299,6 @@ func test_from_attribute_direction_broadcast_single_value() -> void:
 	assert_int(hit.container[0]).is_equal(1)
 	assert_int(hit.container[1]).is_equal(1)
 
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Physics-SIM: distance attribute
@@ -330,7 +315,6 @@ func test_distance_attribute_float_accepted() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_distance_attribute_zero_no_hit() -> void:
 	# Distance = 0 means no motion -> sweep should not hit anything.
@@ -347,7 +331,6 @@ func test_distance_attribute_zero_no_hit() -> void:
 	var hit = out.findStream("sweep_hit")
 	assert_object(hit).is_not_null()
 	assert_int(hit.container[0]).is_equal(0)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Physics-SIM: multi-point sweep
@@ -372,7 +355,6 @@ func test_multi_point_sweep_output_size_matches_input() -> void:
 	assert_object(hit).is_not_null()
 	assert_int(hit.container.size()).is_equal(3)
 
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Output stream registration: blank attribute names suppress streams
@@ -394,4 +376,3 @@ func test_blank_out_attributes_suppressed() -> void:
 	assert_object(out).is_not_null()
 	# The hit stream must NOT be present.
 	assert_object(out.findStream("sweep_hit")).is_null()
-	node.free()

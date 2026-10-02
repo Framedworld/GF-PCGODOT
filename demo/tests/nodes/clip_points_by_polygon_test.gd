@@ -70,7 +70,6 @@ func test_keep_inside_xz_plane() -> void:
 	assert_bool(Vector3(0.0, 5.0, 0.0) in pos).is_true()
 	assert_bool(Vector3(1.0, 0.0, 1.0) in pos).is_true()
 	assert_bool(Vector3(-1.5, 0.0, -1.5) in pos).is_true()
-	node.free()
 
 func test_keep_outside_xz_plane() -> void:
 	var points := _make_points(PackedVector3Array([
@@ -88,7 +87,6 @@ func test_keep_outside_xz_plane() -> void:
 	assert_int(pos.size()).is_equal(2)
 	assert_bool(Vector3(3.0, 0.0, 3.0) in pos).is_true()
 	assert_bool(Vector3(5.0, 0.0, 5.0) in pos).is_true()
-	node.free()
 
 func test_keep_inside_xy_plane() -> void:
 	var square_xy := PackedVector3Array([
@@ -110,7 +108,6 @@ func test_keep_inside_xy_plane() -> void:
 	assert_object(out).is_not_null()
 	var pos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(pos.size()).is_equal(2)
-	node.free()
 
 func test_keep_inside_yz_plane() -> void:
 	var square_yz := PackedVector3Array([
@@ -132,7 +129,6 @@ func test_keep_inside_yz_plane() -> void:
 	assert_object(out).is_not_null()
 	var pos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(pos.size()).is_equal(2)
-	node.free()
 
 func test_empty_points_passes_through() -> void:
 	var empty_points := FlowDataScript.Data.new()
@@ -142,13 +138,11 @@ func test_empty_points_passes_through() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_missing_points_input_error() -> void:
 	var s := _make_settings()
 	var node := _run([null, null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_no_polygon_provided_error() -> void:
 	var points := _make_points(PackedVector3Array([
@@ -158,7 +152,6 @@ func test_no_polygon_provided_error() -> void:
 	var s := _make_settings()
 	var node := _run([points, null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_points_missing_position_stream_error() -> void:
 	var d := FlowDataScript.Data.new()
@@ -167,7 +160,6 @@ func test_points_missing_position_stream_error() -> void:
 	var s := _make_settings()
 	var node := _run([d, polygon], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_additional_streams_preserved() -> void:
 	var positions := PackedVector3Array([
@@ -190,7 +182,6 @@ func test_additional_streams_preserved() -> void:
 	var color_stream = out.findStream("color")
 	assert_object(color_stream).is_not_null()
 	assert_int(color_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_polygon_with_fewer_than_three_points_error() -> void:
 	var points := _make_points(PackedVector3Array([
@@ -204,4 +195,3 @@ func test_polygon_with_fewer_than_three_points_error() -> void:
 	var s := _make_settings()
 	var node := _run([points, too_small_polygon], s)
 	assert_str(node.err).is_not_empty()
-	node.free()

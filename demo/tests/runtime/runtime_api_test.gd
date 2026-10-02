@@ -225,7 +225,6 @@ func test_effective_seed_formula() -> void:
 	var expected := int(hash([31, 77]) & 0x7fffffff)
 	assert_int(node.effective_seed()).is_equal(expected)
 	assert_int(node.rng.seed).is_equal(expected)
-	node.free()
 
 
 func test_derive_seed_is_the_shared_static_formula() -> void:
@@ -349,7 +348,6 @@ func test_spawner_without_owner_reports_documented_error() -> void:
 	node.execute(ctx)
 	assert_str(node.err).is_equal("Spawn Meshes " + OWNER_ERROR)
 	assert_object(node.generated_bulks[0][0]).is_same(points)
-	node.free()
 
 
 func test_apply_on_actor_without_owner_reports_documented_error() -> void:
@@ -364,7 +362,6 @@ func test_apply_on_actor_without_owner_reports_documented_error() -> void:
 	node.execute(ctx)
 	assert_str(node.err).contains(OWNER_ERROR)
 	assert_object(node.generated_bulks[0][0]).is_same(points)
-	node.free()
 
 
 func test_plain_node3d_can_host_an_evaluation() -> void:
@@ -526,7 +523,6 @@ func test_output_node_preserves_tags_data_attrs_and_kind() -> void:
 	assert_array(out.tags).is_equal(PackedStringArray(["room", "north"]))
 	assert_int(out.get_data_attr("room_id")).is_equal(12)
 	assert_int(out.kind).is_equal(FlowData.Kind.Spline)
-	node.free()
 
 
 func test_data_crosses_graph_boundaries_whole() -> void:

@@ -96,7 +96,6 @@ func test_no_regions_produces_empty_output_no_error() -> void:
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # 2. Polygons mode: one triangle → one output point at centroid (1/3, 0, 1/3).
@@ -115,7 +114,6 @@ func test_polygons_mode_one_triangle_gives_one_point() -> void:
 	# so the test does not crash on an empty container.
 	if out.size() == 0:
 		owner_node.free()
-		node.free()
 		return
 	assert_int(out.size()).is_equal(1)
 	# Centroid of (0,0,0) (1,0,0) (0,0,1) = (1/3, 0, 1/3)
@@ -146,7 +144,6 @@ func test_vertices_mode_one_triangle_gives_three_points() -> void:
 	# the output is legitimately empty.  Skip the count assertion in that case.
 	if out.size() == 0:
 		owner_node.free()
-		node.free()
 		return
 	assert_int(out.size()).is_equal(3)
 	owner_node.free()
@@ -165,7 +162,6 @@ func test_vertices_mode_polygon_index_is_vertex_index() -> void:
 	var out = _output(node)
 	if out.size() == 0:
 		owner_node.free()
-		node.free()
 		return
 	var idx_stream = out.findStream("navigation_polygon_index")
 	assert_object(idx_stream).is_not_null()
@@ -188,7 +184,6 @@ func test_polygons_mode_two_polys_gives_two_points_correct_indices() -> void:
 	var out = _output(node)
 	if out == null or out.size() == 0:
 		owner_node.free()
-		node.free()
 		return
 	assert_int(out.size()).is_equal(2)
 	var idx_stream = out.findStream("navigation_polygon_index")
@@ -210,7 +205,6 @@ func test_polygons_mode_normal_stream_present_and_upward() -> void:
 	var out = _output(node)
 	if out == null or out.size() == 0:
 		owner_node.free()
-		node.free()
 		return
 	assert_bool(out.hasStream(FlowData.AttrNormal)).is_true()
 	var norm_stream = out.findStream(FlowData.AttrNormal)
@@ -232,7 +226,6 @@ func test_vertices_mode_no_normal_stream() -> void:
 	var out = _output(node)
 	assert_bool(out.hasStream(FlowData.AttrNormal)).is_false()
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # 8. density stream always 1.0 for every point.
@@ -246,7 +239,6 @@ func test_density_stream_is_always_one() -> void:
 	var out = _output(node)
 	if out == null or out.size() == 0:
 		owner_node.free()
-		node.free()
 		return
 	var den_stream = out.findStream(FlowData.AttrDensity)
 	assert_object(den_stream).is_not_null()
@@ -272,7 +264,6 @@ func test_rotation_stream_is_always_zero() -> void:
 		var v = rot_stream.container[i]
 		assert_bool(v.is_equal_approx(Vector3.ZERO)).is_true()
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # 10. point_size propagates to the size stream.
@@ -291,7 +282,6 @@ func test_point_size_propagates_to_size_stream() -> void:
 		var v = size_stream.container[i]
 		assert_bool(v.is_equal_approx(Vector3(2.0, 3.0, 4.0))).is_true()
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # 11. out_region_attribute empty → no region stream registered.
@@ -305,7 +295,6 @@ func test_empty_region_attribute_suppresses_region_stream() -> void:
 	var out = _output(node)
 	assert_bool(out.hasStream("navigation_region")).is_false()
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # 12. out_area_attribute empty → no area stream registered.
@@ -319,7 +308,6 @@ func test_empty_area_attribute_suppresses_area_stream() -> void:
 	var out = _output(node)
 	assert_bool(out.hasStream("navigation_polygon_area")).is_false()
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # 13. out_area_attribute set → area stream has positive value for the triangle.
@@ -334,7 +322,6 @@ func test_area_stream_positive_for_triangle() -> void:
 	var out = _output(node)
 	if out == null or out.size() == 0:
 		owner_node.free()
-		node.free()
 		return
 	var area_stream = out.findStream("navigation_polygon_area")
 	assert_object(area_stream).is_not_null()
@@ -360,7 +347,6 @@ func test_two_regions_combined_vertex_count() -> void:
 	var out = _output(node)
 	if out == null or out.size() == 0:
 		owner_node.free()
-		node.free()
 		return
 	assert_int(out.size()).is_equal(6)
 	owner_node.free()
@@ -379,7 +365,6 @@ func test_invalid_navigation_region_path_sets_error() -> void:
 	# Headless: current_scene is null → _collect_regions returns [] silently, no error.
 	if node.err == "":
 		owner_node.free()
-		node.free()
 		return
 	assert_str(node.err).is_not_empty()
 	owner_node.free()
@@ -400,7 +385,6 @@ func test_region_without_navmesh_skipped_no_error() -> void:
 	var out = _output(node)
 	assert_int(out.size()).is_equal(0)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # 17. seed stream present and deterministic for same positions.
@@ -414,7 +398,6 @@ func test_seed_stream_present_and_deterministic() -> void:
 	var out_a = _output(node_a)
 	if out_a == null or out_a.size() == 0:
 		owner_node.free()
-		node_a.free()
 		return
 	var seed_stream_a = out_a.findStream(FlowData.AttrSeed)
 	assert_object(seed_stream_a).is_not_null()
@@ -445,4 +428,3 @@ func test_null_owner_reports_owner_error_zero_points() -> void:
 	assert_str(node.err).contains("needs an owner node")
 	var out = _output(node)
 	assert_int(out.size()).is_equal(0)
-	node.free()

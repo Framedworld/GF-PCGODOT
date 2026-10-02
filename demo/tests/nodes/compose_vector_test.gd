@@ -55,7 +55,6 @@ func test_compose_from_three_float_streams() -> void:
 	assert_float(stream.container[2].x).is_equal_approx(3.0, 0.001)
 	assert_float(stream.container[2].y).is_equal_approx(6.0, 0.001)
 	assert_float(stream.container[2].z).is_equal_approx(9.0, 0.001)
-	node.free()
 
 func test_all_components_use_default_when_attributes_empty() -> void:
 	var s = ComposeVectorSettings.new()
@@ -78,7 +77,6 @@ func test_all_components_use_default_when_attributes_empty() -> void:
 	assert_float(stream.container[0].x).is_equal_approx(2.0, 0.001)
 	assert_float(stream.container[0].y).is_equal_approx(3.0, 0.001)
 	assert_float(stream.container[0].z).is_equal_approx(4.0, 0.001)
-	node.free()
 
 func test_mix_stream_and_default_components() -> void:
 	var s = ComposeVectorSettings.new()
@@ -101,7 +99,6 @@ func test_mix_stream_and_default_components() -> void:
 	assert_float(stream.container[0].y).is_equal_approx(5.0, 0.001)
 	assert_float(stream.container[0].z).is_equal_approx(9.0, 0.001)
 	assert_float(stream.container[1].x).is_equal_approx(20.0, 0.001)
-	node.free()
 
 func test_broadcast_scalar_stream_to_all_points() -> void:
 	var s = ComposeVectorSettings.new()
@@ -128,7 +125,6 @@ func test_broadcast_scalar_stream_to_all_points() -> void:
 		assert_float(stream.container[i].x).is_equal_approx(99.0, 0.001)
 		assert_float(stream.container[i].y).is_equal_approx(88.0, 0.001)
 		assert_float(stream.container[i].z).is_equal_approx(77.0, 0.001)
-	node.free()
 
 func test_int_stream_accepted_as_component() -> void:
 	var s = ComposeVectorSettings.new()
@@ -150,7 +146,6 @@ func test_int_stream_accepted_as_component() -> void:
 	assert_float(stream.container[0].x).is_equal_approx(3.0, 0.001)
 	assert_float(stream.container[1].x).is_equal_approx(7.0, 0.001)
 	assert_float(stream.container[2].x).is_equal_approx(11.0, 0.001)
-	node.free()
 
 func test_wrong_type_stream_returns_error() -> void:
 	var s = ComposeVectorSettings.new()
@@ -165,7 +160,6 @@ func test_wrong_type_stream_returns_error() -> void:
 
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_size_mismatch_stream_returns_error() -> void:
 	var s = ComposeVectorSettings.new()
@@ -181,7 +175,6 @@ func test_size_mismatch_stream_returns_error() -> void:
 
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_input_returns_error() -> void:
 	var s = ComposeVectorSettings.new()
@@ -192,7 +185,6 @@ func test_missing_input_returns_error() -> void:
 
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_default_out_attribute_is_size() -> void:
 	var s = ComposeVectorSettings.new()
@@ -210,4 +202,3 @@ func test_default_out_attribute_is_size() -> void:
 	assert_object(out).is_not_null()
 	var stream = out.findStream("size")
 	assert_object(stream).is_not_null()
-	node.free()

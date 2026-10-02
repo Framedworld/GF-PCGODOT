@@ -61,7 +61,6 @@ func test_neighbor_count_unlimited_distance() -> void:
 	assert_int(stream.container[0]).is_equal(2)
 	assert_int(stream.container[1]).is_equal(2)
 	assert_int(stream.container[2]).is_equal(2)
-	node.free()
 
 func test_neighbor_count_with_distance_limit() -> void:
 	var s = PointNeighborhoodSettings.new()
@@ -88,7 +87,6 @@ func test_neighbor_count_with_distance_limit() -> void:
 	assert_int(stream.container[0]).is_equal(1)
 	assert_int(stream.container[1]).is_equal(1)
 	assert_int(stream.container[2]).is_equal(0)
-	node.free()
 
 func test_average_center_collinear_points() -> void:
 	var s = PointNeighborhoodSettings.new()
@@ -119,7 +117,6 @@ func test_average_center_collinear_points() -> void:
 	assert_float(center1.x).is_equal_approx(2.0, 0.001)
 	var center2 : Vector3 = stream.container[2]
 	assert_float(center2.x).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_average_density_computed() -> void:
 	var s = PointNeighborhoodSettings.new()
@@ -148,7 +145,6 @@ func test_average_density_computed() -> void:
 	assert_float(stream.container[0]).is_equal_approx(25.0, 0.001)
 	assert_float(stream.container[1]).is_equal_approx(20.0, 0.001)
 	assert_float(stream.container[2]).is_equal_approx(15.0, 0.001)
-	node.free()
 
 func test_null_input_sets_error() -> void:
 	var s = PointNeighborhoodSettings.new()
@@ -160,7 +156,6 @@ func test_null_input_sets_error() -> void:
 
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_density_attribute_errors() -> void:
 	var s = PointNeighborhoodSettings.new()
@@ -177,4 +172,3 @@ func test_missing_density_attribute_errors() -> void:
 	var positions := PackedVector3Array([Vector3(0, 0, 0), Vector3(1, 0, 0)])
 	var node = _run([_make_point_data(positions)], s)
 	assert_str(node.err).is_not_empty()
-	node.free()

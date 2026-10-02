@@ -51,7 +51,6 @@ func test_remove_selected_attributes() -> void:
 	assert_object(out.findStream("val2")).is_not_null()
 	assert_object(out.findStream("val1")).is_null()
 	assert_object(out.findStream("val3")).is_null()
-	node.free()
 
 func test_keep_selected_attributes() -> void:
 	var in_data = _create_test_data()
@@ -64,7 +63,6 @@ func test_keep_selected_attributes() -> void:
 	assert_object(out.findStream("val2")).is_not_null()
 	assert_object(out.findStream("val1")).is_null()
 	assert_object(out.findStream("val3")).is_null()
-	node.free()
 
 func test_remove_nonexistent_attribute() -> void:
 	var in_data = _create_test_data()
@@ -77,7 +75,6 @@ func test_remove_nonexistent_attribute() -> void:
 	assert_object(out.findStream("val1")).is_not_null()
 	assert_object(out.findStream("val2")).is_not_null()
 	assert_object(out.findStream("val3")).is_not_null()
-	node.free()
 
 func test_remove_system_attributes() -> void:
 	var in_data = _create_test_data()
@@ -91,4 +88,3 @@ func test_remove_system_attributes() -> void:
 	assert_object(out.findStream(str(FlowDataScript.AttrRotation))).is_not_null()
 	assert_object(out.findStream(str(FlowDataScript.AttrPosition))).is_null()
 	assert_object(out.findStream(str(FlowDataScript.AttrSize))).is_null()
-	node.free()

@@ -60,7 +60,6 @@ func test_position_x_range_splits_inside_outside() -> void:
 	assert_object(outside_pos).is_not_null()
 	assert_int(inside_pos.container.size()).is_equal(3)
 	assert_int(outside_pos.container.size()).is_equal(2)
-	node.free()
 
 func test_exclusive_boundaries_on_position_x() -> void:
 	var s = PointFilterRangeSettings.new()
@@ -81,7 +80,6 @@ func test_exclusive_boundaries_on_position_x() -> void:
 	assert_object(outside_pos).is_not_null()
 	assert_int(inside_pos.container.size()).is_equal(1)
 	assert_int(outside_pos.container.size()).is_equal(2)
-	node.free()
 
 func test_vector_stream_filters_by_length() -> void:
 	var s = PointFilterRangeSettings.new()
@@ -100,7 +98,6 @@ func test_vector_stream_filters_by_length() -> void:
 	var outside_stream = outside.findStream("position")
 	assert_int(inside_stream.container.size()).is_equal(1)
 	assert_int(outside_stream.container.size()).is_equal(1)
-	node.free()
 
 func test_absolute_value_mode() -> void:
 	var s = PointFilterRangeSettings.new()
@@ -124,7 +121,6 @@ func test_absolute_value_mode() -> void:
 	assert_object(outside_pos).is_not_null()
 	assert_int(inside_pos.container.size()).is_equal(3)
 	assert_int(outside_pos.container.size()).is_equal(1)
-	node.free()
 
 func test_string_match_mode_case_insensitive() -> void:
 	var s = PointFilterRangeSettings.new()
@@ -142,7 +138,6 @@ func test_string_match_mode_case_insensitive() -> void:
 	var outside_stream = outside.findStream("tag")
 	assert_int(inside_stream.container.size()).is_equal(3)
 	assert_int(outside_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_empty_input_data_produces_empty_outputs() -> void:
 	var s = PointFilterRangeSettings.new()
@@ -157,13 +152,11 @@ func test_empty_input_data_produces_empty_outputs() -> void:
 	assert_object(outside).is_not_null()
 	assert_int(inside.size()).is_equal(0)
 	assert_int(outside.size()).is_equal(0)
-	node.free()
 
 func test_missing_input_sets_error() -> void:
 	var s = PointFilterRangeSettings.new()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_attribute_not_found_sets_error() -> void:
 	var s = PointFilterRangeSettings.new()
@@ -171,7 +164,6 @@ func test_attribute_not_found_sets_error() -> void:
 	var d = _make_data("other", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_string_match_no_values_sets_error() -> void:
 	var s = PointFilterRangeSettings.new()
@@ -182,7 +174,6 @@ func test_string_match_no_values_sets_error() -> void:
 	var d = _make_data("tag", packed, FlowDataScript.DataType.String)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_color_stream_filters_by_rgb_average() -> void:
 	var s = PointFilterRangeSettings.new()
@@ -204,4 +195,3 @@ func test_color_stream_filters_by_rgb_average() -> void:
 	var outside_stream = outside.findStream("col")
 	assert_int(inside_stream.container.size()).is_equal(2)
 	assert_int(outside_stream.container.size()).is_equal(1)
-	node.free()

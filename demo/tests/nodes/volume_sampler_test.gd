@@ -57,7 +57,6 @@ func test_null_input_sets_error() -> void:
 	var s = VolumeSamplerSettings.new()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_input_without_position_stream_sets_error() -> void:
 	var s = _uniform_settings()
@@ -65,7 +64,6 @@ func test_input_without_position_stream_sets_error() -> void:
 	d.registerStream("density", PackedFloat32Array([1.0, 1.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_zero_sampling_distance_sets_error() -> void:
 	# UniformGrid with sampling_distance == 0 must set an error (parent enforces this).
@@ -75,7 +73,6 @@ func test_zero_sampling_distance_sets_error() -> void:
 	var d = _make_volume_input(positions, sizes)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_negative_sampling_distance_sets_error() -> void:
 	var s = _uniform_settings(-0.1)
@@ -84,7 +81,6 @@ func test_negative_sampling_distance_sets_error() -> void:
 	var d = _make_volume_input(positions, sizes)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Happy-path: output shape and required streams present
@@ -100,7 +96,6 @@ func test_uniform_grid_produces_output_no_error() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_output_has_density_stream() -> void:
 	var s = _uniform_settings(0.5)
@@ -112,7 +107,6 @@ func test_output_has_density_stream() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream(FlowData.AttrDensity)).is_true()
-	node.free()
 
 func test_output_has_seed_stream() -> void:
 	var s = _uniform_settings(0.5)
@@ -124,7 +118,6 @@ func test_output_has_seed_stream() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream(FlowData.AttrSeed)).is_true()
-	node.free()
 
 func test_density_stream_all_ones() -> void:
 	# Every density value must be exactly 1.0.
@@ -142,7 +135,6 @@ func test_density_stream_all_ones() -> void:
 	assert_int(density_container.size()).is_greater(0)
 	for i in range(density_container.size()):
 		assert_float(density_container[i]).is_equal(1.0)
-	node.free()
 
 func test_seed_stream_size_matches_density_stream() -> void:
 	# The seed stream must have the same length as the density stream (= num output points).
@@ -159,7 +151,6 @@ func test_seed_stream_size_matches_density_stream() -> void:
 	assert_object(density_stream).is_not_null()
 	assert_object(seed_stream).is_not_null()
 	assert_int(seed_stream.container.size()).is_equal(density_stream.container.size())
-	node.free()
 
 func test_seed_stream_matches_point_seed_formula() -> void:
 	# Verify seed values computed against FlowData.point_seed(pos, node_seed).
@@ -182,7 +173,6 @@ func test_seed_stream_matches_point_seed_formula() -> void:
 	for i in range(pos_container.size()):
 		var expected_seed = FlowData.point_seed(pos_container[i], 42)
 		assert_int(seed_container[i]).is_equal(expected_seed)
-	node.free()
 
 func test_seed_changes_with_different_random_seed_setting() -> void:
 	# Two runs with different random_seed in settings must produce different seed streams.
@@ -214,8 +204,6 @@ func test_seed_changes_with_different_random_seed_setting() -> void:
 			any_differ = true
 			break
 	assert_bool(any_differ).is_true()
-	node1.free()
-	node2.free()
 
 func test_uniform_grid_output_point_count() -> void:
 	# One input point, size (1,1,1), distance 0.5 -> floor(1/0.5)=2 per axis -> 2*2*2=8 points.
@@ -229,7 +217,6 @@ func test_uniform_grid_output_point_count() -> void:
 	assert_object(out).is_not_null()
 	# 2 steps per axis = 8 points total
 	assert_int(out.size()).is_equal(8)
-	node.free()
 
 func test_empty_input_data_produces_density_and_seed_streams() -> void:
 	# Input data with 0 points: parent adds density/seed and returns cleanly (no error).
@@ -242,7 +229,6 @@ func test_empty_input_data_produces_density_and_seed_streams() -> void:
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream(FlowData.AttrDensity)).is_true()
 	assert_bool(out.hasStream(FlowData.AttrSeed)).is_true()
-	node.free()
 
 func test_quasi_random_2d_produces_output_no_error() -> void:
 	var s = VolumeSamplerSettings.new()
@@ -260,7 +246,6 @@ func test_quasi_random_2d_produces_output_no_error() -> void:
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream(FlowData.AttrDensity)).is_true()
 	assert_bool(out.hasStream(FlowData.AttrSeed)).is_true()
-	node.free()
 
 func test_quasi_random_2d_point_count_matches_groups_sum() -> void:
 	# groups = [5, 3] -> 8 points per input point; 2 input points -> 16 total.
@@ -279,7 +264,6 @@ func test_quasi_random_2d_point_count_matches_groups_sum() -> void:
 	assert_object(out).is_not_null()
 	# 8 samples per input point, 2 input points = 16
 	assert_int(out.size()).is_equal(16)
-	node.free()
 
 func test_quasi_random_3d_produces_output_no_error() -> void:
 	var s = VolumeSamplerSettings.new()
@@ -297,7 +281,6 @@ func test_quasi_random_3d_produces_output_no_error() -> void:
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream(FlowData.AttrDensity)).is_true()
 	assert_bool(out.hasStream(FlowData.AttrSeed)).is_true()
-	node.free()
 
 func test_multiple_input_points_uniform_grid_accumulates_output() -> void:
 	# Two input points each size (1,1,1), distance 0.5 -> 2*8 = 16 output points.
@@ -310,4 +293,3 @@ func test_multiple_input_points_uniform_grid_accumulates_output() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(16)
-	node.free()

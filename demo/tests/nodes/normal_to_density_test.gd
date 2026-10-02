@@ -60,7 +60,6 @@ func test_normal_pointing_up_against_up_gives_density_one() -> void:
 	assert_int(stream.container.size()).is_equal(2)
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.001)
 	assert_float(stream.container[1]).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_normal_pointing_down_against_up_gives_density_zero() -> void:
 	var normals = PackedVector3Array([Vector3.DOWN])
@@ -72,7 +71,6 @@ func test_normal_pointing_down_against_up_gives_density_zero() -> void:
 	var stream = out.findStream(FlowData.AttrDensity)
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(0.0, 0.001)
-	node.free()
 
 func test_rotation_fallback_used_when_no_normal_stream() -> void:
 	var rotations = PackedVector3Array([Vector3.ZERO])
@@ -84,13 +82,11 @@ func test_rotation_fallback_used_when_no_normal_stream() -> void:
 	var stream = out.findStream(FlowData.AttrDensity)
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_missing_input_gives_error() -> void:
 	var s = _make_settings()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_no_normal_no_rotation_gives_error() -> void:
 	var d := FlowDataScript.Data.new()
@@ -98,7 +94,6 @@ func test_no_normal_no_rotation_gives_error() -> void:
 	var s = _make_settings()
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_input_passes_through_empty_output() -> void:
 	var d := FlowDataScript.Data.new()
@@ -108,7 +103,6 @@ func test_empty_input_passes_through_empty_output() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_density_mode_minimum_takes_lower_value() -> void:
 	var normals = PackedVector3Array([Vector3.UP])
@@ -120,7 +114,6 @@ func test_density_mode_minimum_takes_lower_value() -> void:
 	var out = _output(node)
 	var stream = out.findStream(FlowData.AttrDensity)
 	assert_float(stream.container[0]).is_equal_approx(0.3, 0.001)
-	node.free()
 
 func test_density_mode_maximum_takes_higher_value() -> void:
 	var normals = PackedVector3Array([Vector3.DOWN])
@@ -132,7 +125,6 @@ func test_density_mode_maximum_takes_higher_value() -> void:
 	var out = _output(node)
 	var stream = out.findStream(FlowData.AttrDensity)
 	assert_float(stream.container[0]).is_equal_approx(0.8, 0.001)
-	node.free()
 
 func test_density_mode_add_clamps_to_one() -> void:
 	var normals = PackedVector3Array([Vector3.UP])
@@ -144,7 +136,6 @@ func test_density_mode_add_clamps_to_one() -> void:
 	var out = _output(node)
 	var stream = out.findStream(FlowData.AttrDensity)
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_density_mode_multiply_scales_density() -> void:
 	var normals = PackedVector3Array([Vector3.UP])
@@ -156,7 +147,6 @@ func test_density_mode_multiply_scales_density() -> void:
 	var out = _output(node)
 	var stream = out.findStream(FlowData.AttrDensity)
 	assert_float(stream.container[0]).is_equal_approx(0.5, 0.001)
-	node.free()
 
 func test_offset_shifts_alignment_result() -> void:
 	var normals = PackedVector3Array([Vector3.RIGHT])
@@ -166,7 +156,6 @@ func test_offset_shifts_alignment_result() -> void:
 	var out = _output(node)
 	var stream = out.findStream(FlowData.AttrDensity)
 	assert_float(stream.container[0]).is_equal_approx(0.5, 0.001)
-	node.free()
 
 func test_strength_applies_power_to_result() -> void:
 	var normals = PackedVector3Array([Vector3(0.0, 0.707107, 0.707107).normalized()])
@@ -176,7 +165,6 @@ func test_strength_applies_power_to_result() -> void:
 	var out = _output(node)
 	var stream = out.findStream(FlowData.AttrDensity)
 	assert_float(stream.container[0]).is_equal_approx(0.5, 0.01)
-	node.free()
 
 func test_no_density_stream_defaults_to_one_for_multiply() -> void:
 	var normals = PackedVector3Array([Vector3.UP])
@@ -187,7 +175,6 @@ func test_no_density_stream_defaults_to_one_for_multiply() -> void:
 	var out = _output(node)
 	var stream = out.findStream(FlowData.AttrDensity)
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_large_array_processes_all_points() -> void:
 	var count := 100
@@ -203,4 +190,3 @@ func test_large_array_processes_all_points() -> void:
 	assert_int(stream.container.size()).is_equal(count)
 	for i in range(count):
 		assert_float(stream.container[i]).is_equal_approx(1.0, 0.001)
-	node.free()

@@ -32,7 +32,6 @@ func test_default_settings_produces_correct_count() -> void:
 	assert_object(out).is_not_null()
 	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(9)
-	node.free()
 
 func test_single_point_grid() -> void:
 	var s = GridSettings.new()
@@ -48,7 +47,6 @@ func test_single_point_grid() -> void:
 	assert_float(positions[0].x).is_equal_approx(0.0, 0.001)
 	assert_float(positions[0].y).is_equal_approx(0.0, 0.001)
 	assert_float(positions[0].z).is_equal_approx(0.0, 0.001)
-	node.free()
 
 func test_zero_axis_produces_empty_output() -> void:
 	var s = GridSettings.new()
@@ -61,7 +59,6 @@ func test_zero_axis_produces_empty_output() -> void:
 	assert_object(out).is_not_null()
 	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(0)
-	node.free()
 
 func test_point_positions_match_step() -> void:
 	var s = GridSettings.new()
@@ -85,7 +82,6 @@ func test_point_positions_match_step() -> void:
 	assert_float(positions[2].z).is_equal_approx(3.0, 0.001)
 	assert_float(positions[3].x).is_equal_approx(2.0, 0.001)
 	assert_float(positions[3].z).is_equal_approx(3.0, 0.001)
-	node.free()
 
 func test_origin_offset_applied() -> void:
 	var s = GridSettings.new()
@@ -102,7 +98,6 @@ func test_origin_offset_applied() -> void:
 	assert_float(positions[0].x).is_equal_approx(5.0, 0.001)
 	assert_float(positions[0].y).is_equal_approx(10.0, 0.001)
 	assert_float(positions[0].z).is_equal_approx(-3.0, 0.001)
-	node.free()
 
 func test_common_streams_all_present() -> void:
 	var s = GridSettings.new()
@@ -118,7 +113,6 @@ func test_common_streams_all_present() -> void:
 	assert_bool(out.hasStream(FlowDataScript.AttrSize)).is_true()
 	assert_bool(out.hasStream(FlowDataScript.AttrDensity)).is_true()
 	assert_bool(out.hasStream(FlowDataScript.AttrSeed)).is_true()
-	node.free()
 
 func test_density_stream_all_ones() -> void:
 	var s = GridSettings.new()
@@ -134,7 +128,6 @@ func test_density_stream_all_ones() -> void:
 	assert_int(density.container.size()).is_equal(6)
 	for i in range(density.container.size()):
 		assert_float(density.container[i]).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_size_setting_applied_to_all_points() -> void:
 	var s = GridSettings.new()
@@ -152,7 +145,6 @@ func test_size_setting_applied_to_all_points() -> void:
 		assert_float(sizes[i].x).is_equal_approx(3.5, 0.001)
 		assert_float(sizes[i].y).is_equal_approx(3.5, 0.001)
 		assert_float(sizes[i].z).is_equal_approx(3.5, 0.001)
-	node.free()
 
 func test_large_grid_point_count() -> void:
 	var s = GridSettings.new()
@@ -167,4 +159,3 @@ func test_large_grid_point_count() -> void:
 	assert_int(positions.size()).is_equal(500)
 	var density = out.findStream(FlowDataScript.AttrDensity)
 	assert_int(density.container.size()).is_equal(500)
-	node.free()

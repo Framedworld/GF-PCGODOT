@@ -47,7 +47,6 @@ func test_combine_euler_identity() -> void:
 	var stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(2)
-	node.free()
 
 func test_invert_euler() -> void:
 	var s = RotatorOpSettings.new()
@@ -61,7 +60,6 @@ func test_invert_euler() -> void:
 	var stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
-	node.free()
 
 func test_lerp_euler_half_alpha() -> void:
 	var s = RotatorOpSettings.new()
@@ -77,7 +75,6 @@ func test_lerp_euler_half_alpha() -> void:
 	var stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
-	node.free()
 
 func test_rotate_around_axis_y() -> void:
 	var s = RotatorOpSettings.new()
@@ -93,7 +90,6 @@ func test_rotate_around_axis_y() -> void:
 	var stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(2)
-	node.free()
 
 func test_output_quaternion_representation() -> void:
 	var s = RotatorOpSettings.new()
@@ -108,7 +104,6 @@ func test_output_quaternion_representation() -> void:
 	assert_object(qstream).is_not_null()
 	var euler_stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(euler_stream).is_null()
-	node.free()
 
 func test_input_from_quaternion_stream() -> void:
 	var s = RotatorOpSettings.new()
@@ -123,7 +118,6 @@ func test_input_from_quaternion_stream() -> void:
 	var stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
-	node.free()
 
 func test_empty_input_produces_empty_output() -> void:
 	var s = RotatorOpSettings.new()
@@ -134,7 +128,6 @@ func test_empty_input_produces_empty_output() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_missing_rotation_stream_sets_error() -> void:
 	var s = RotatorOpSettings.new()
@@ -144,7 +137,6 @@ func test_missing_rotation_stream_sets_error() -> void:
 	d.registerStream("position", PackedVector3Array([Vector3.ZERO]), FlowDataScript.DataType.Vector)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_rotate_around_zero_axis_sets_error() -> void:
 	var s = RotatorOpSettings.new()
@@ -155,11 +147,9 @@ func test_rotate_around_zero_axis_sets_error() -> void:
 	var eulers = PackedVector3Array([Vector3.ZERO])
 	var node = _run([_make_euler_data(eulers)], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_input_sets_error() -> void:
 	var s = RotatorOpSettings.new()
 	s.operation = RotatorOpSettings.eOperation.Combine
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()

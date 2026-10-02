@@ -27,7 +27,7 @@ func _settings(node_class := "Node3D") -> SpawnNodesSettings:
 	s.node_class = node_class
 	return s
 
-func _make(s, node_name := "spawner") -> Node:
+func _make(s, node_name := "spawner") -> FlowNodeBase:
 	var node = SpawnNodesNode.new()
 	node.name = node_name
 	node.settings = s

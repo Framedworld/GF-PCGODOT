@@ -46,7 +46,6 @@ func test_default_settings_returns_all_floats() -> void:
 	var stream = out.findStream("In")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([10.0, 20.0, 30.0, 40.0, 50.0]))
-	node.free()
 
 
 func test_count_limits_output() -> void:
@@ -62,7 +61,6 @@ func test_count_limits_output() -> void:
 	var stream = out.findStream("In")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([1.0, 2.0, 3.0]))
-	node.free()
 
 
 func test_step_skips_elements() -> void:
@@ -78,7 +76,6 @@ func test_step_skips_elements() -> void:
 	var stream = out.findStream("In")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([10.0, 30.0, 50.0]))
-	node.free()
 
 
 func test_start_offset() -> void:
@@ -94,7 +91,6 @@ func test_start_offset() -> void:
 	var stream = out.findStream("In")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([3.0, 4.0, 5.0]))
-	node.free()
 
 
 func test_negative_start_counts_from_end() -> void:
@@ -110,7 +106,6 @@ func test_negative_start_counts_from_end() -> void:
 	var stream = out.findStream("In")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([4.0, 5.0]))
-	node.free()
 
 
 func test_negative_step_walks_backwards() -> void:
@@ -126,7 +121,6 @@ func test_negative_step_walks_backwards() -> void:
 	var stream = out.findStream("In")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([5.0, 4.0, 3.0, 2.0, 1.0]))
-	node.free()
 
 
 func test_vector_stream_sampled_correctly() -> void:
@@ -147,7 +141,6 @@ func test_vector_stream_sampled_correctly() -> void:
 	var stream = out.findStream("In")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(1.0, 0.0, 0.0), Vector3(2.0, 0.0, 0.0)]))
-	node.free()
 
 
 func test_single_element_input() -> void:
@@ -163,7 +156,6 @@ func test_single_element_input() -> void:
 	var stream = out.findStream("In")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([42.0]))
-	node.free()
 
 
 func test_start_beyond_bounds_returns_empty() -> void:
@@ -179,7 +171,6 @@ func test_start_beyond_bounds_returns_empty() -> void:
 	var stream = out.findStream("In")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(0)
-	node.free()
 
 
 func test_missing_input_sets_error() -> void:
@@ -189,7 +180,6 @@ func test_missing_input_sets_error() -> void:
 	s.step = 1
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 
 func test_int_stream_with_step_and_count() -> void:
@@ -205,7 +195,6 @@ func test_int_stream_with_step_and_count() -> void:
 	var stream = out.findStream("In")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([100, 300, 500]))
-	node.free()
 
 
 func test_color_stream_sampled() -> void:
@@ -225,4 +214,3 @@ func test_color_stream_sampled() -> void:
 	var stream = out.findStream("In")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedColorArray([Color(1.0, 0.0, 0.0, 1.0), Color(0.0, 1.0, 0.0, 1.0)]))
-	node.free()

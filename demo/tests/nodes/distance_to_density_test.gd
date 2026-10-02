@@ -52,7 +52,6 @@ func test_basic_density_mapping() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.0, 0.001)
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.001)
 	assert_float(stream.container[2]).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_invert_flag_reverses_density() -> void:
 	var s = DistanceToDensitySettings.new()
@@ -76,7 +75,6 @@ func test_invert_flag_reverses_density() -> void:
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.001)
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.001)
 	assert_float(stream.container[2]).is_equal_approx(0.0, 0.001)
-	node.free()
 
 func test_points_closer_than_min_distance_get_min_density() -> void:
 	var s = DistanceToDensitySettings.new()
@@ -99,7 +97,6 @@ func test_points_closer_than_min_distance_get_min_density() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.2, 0.001)
 	assert_float(stream.container[1]).is_equal_approx(0.2, 0.001)
 	assert_float(stream.container[2]).is_equal_approx(0.2, 0.001)
-	node.free()
 
 func test_points_farther_than_max_distance_get_max_density() -> void:
 	var s = DistanceToDensitySettings.new()
@@ -122,7 +119,6 @@ func test_points_farther_than_max_distance_get_max_density() -> void:
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.001)
 	assert_float(stream.container[1]).is_equal_approx(1.0, 0.001)
 	assert_float(stream.container[2]).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_non_zero_reference_position() -> void:
 	var s = DistanceToDensitySettings.new()
@@ -145,7 +141,6 @@ func test_non_zero_reference_position() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.0, 0.001)
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.001)
 	assert_float(stream.container[2]).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_zero_distance_range_does_not_crash() -> void:
 	var s = DistanceToDensitySettings.new()
@@ -166,7 +161,6 @@ func test_zero_distance_range_does_not_crash() -> void:
 	var stream = out.findStream("density")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(3)
-	node.free()
 
 func test_single_point() -> void:
 	var s = DistanceToDensitySettings.new()
@@ -184,7 +178,6 @@ func test_single_point() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
 	assert_float(stream.container[0]).is_equal_approx(0.5, 0.001)
-	node.free()
 
 func test_custom_density_range() -> void:
 	var s = DistanceToDensitySettings.new()
@@ -205,13 +198,11 @@ func test_custom_density_range() -> void:
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(2.0, 0.001)
 	assert_float(stream.container[1]).is_equal_approx(5.0, 0.001)
-	node.free()
 
 func test_missing_input_sets_error() -> void:
 	var s = DistanceToDensitySettings.new()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_position_stream_sets_error() -> void:
 	var s = DistanceToDensitySettings.new()
@@ -219,7 +210,6 @@ func test_missing_position_stream_sets_error() -> void:
 	d.registerStream("some_other_attr", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_output_preserves_input_streams() -> void:
 	var s = DistanceToDensitySettings.new()
@@ -242,4 +232,3 @@ func test_output_preserves_input_streams() -> void:
 	var density_stream = out.findStream("density")
 	assert_object(density_stream).is_not_null()
 	assert_int(density_stream.container.size()).is_equal(2)
-	node.free()

@@ -52,7 +52,6 @@ func test_numeric_comparisons() -> void:
 	var out_f = _get_output_data(node, 1)
 	assert_array(out_t.findStream("A").container).is_equal(PackedFloat32Array([2.0, 4.0]))
 	assert_array(out_f.findStream("A").container).is_equal(PackedFloat32Array([1.0, 3.0]))
-	node.free()
 
 	# Greater
 	node = _run_filter(in_dataA, in_dataB, FilterSettings.eCondition.Greater)
@@ -61,7 +60,6 @@ func test_numeric_comparisons() -> void:
 	out_f = _get_output_data(node, 1)
 	assert_array(out_t.findStream("A").container).is_equal(PackedFloat32Array([3.0]))
 	assert_array(out_f.findStream("A").container).is_equal(PackedFloat32Array([1.0, 2.0, 4.0]))
-	node.free()
 
 	# Less Or Equal
 	node = _run_filter(in_dataA, in_dataB, FilterSettings.eCondition.LessOrEqual)
@@ -70,7 +68,6 @@ func test_numeric_comparisons() -> void:
 	out_f = _get_output_data(node, 1)
 	assert_array(out_t.findStream("A").container).is_equal(PackedFloat32Array([1.0, 2.0, 4.0]))
 	assert_array(out_f.findStream("A").container).is_equal(PackedFloat32Array([3.0]))
-	node.free()
 
 	# AlmostEqual (threshold 1.5)
 	node = _run_filter(in_dataA, in_dataB, FilterSettings.eCondition.AlmostEqual, "A", "B", 1.5)
@@ -79,7 +76,6 @@ func test_numeric_comparisons() -> void:
 	out_f = _get_output_data(node, 1)
 	assert_array(out_t.findStream("A").container).is_equal(PackedFloat32Array([2.0, 4.0]))
 	assert_array(out_f.findStream("A").container).is_equal(PackedFloat32Array([1.0, 3.0]))
-	node.free()
 
 func test_logical_comparisons() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedByteArray([1, 1, 0, 0]), FlowDataScript.DataType.Bool)
@@ -92,7 +88,6 @@ func test_logical_comparisons() -> void:
 	var out_f = _get_output_data(node, 1)
 	assert_array(out_t.findStream("A").container).is_equal(PackedByteArray([1]))
 	assert_array(out_f.findStream("A").container).is_equal(PackedByteArray([1, 0, 0]))
-	node.free()
 
 	# XOR
 	node = _run_filter(in_dataA, in_dataB, FilterSettings.eCondition.LogicalXOR)
@@ -101,7 +96,6 @@ func test_logical_comparisons() -> void:
 	out_f = _get_output_data(node, 1)
 	assert_array(out_t.findStream("A").container).is_equal(PackedByteArray([1, 0]))
 	assert_array(out_f.findStream("A").container).is_equal(PackedByteArray([1, 0]))
-	node.free()
 
 func test_unary_isnull() -> void:
 	# Resourcelist having some nulls and non-nulls
@@ -117,7 +111,6 @@ func test_unary_isnull() -> void:
 	var out_f = _get_output_data(node, 1)
 	assert_int(out_t.size()).is_equal(2) # index 1, 2 are null
 	assert_int(out_f.size()).is_equal(1) # index 0 is not null
-	node.free()
 
 func test_constant_fallback() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedFloat32Array([1.0, 3.0, 5.0]), FlowDataScript.DataType.Float)
@@ -129,7 +122,6 @@ func test_constant_fallback() -> void:
 	var out_f = _get_output_data(node, 1)
 	assert_array(out_t.findStream("A").container).is_equal(PackedFloat32Array([5.0]))
 	assert_array(out_f.findStream("A").container).is_equal(PackedFloat32Array([1.0, 3.0]))
-	node.free()
 
 func test_broadcast_filter() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedFloat32Array([1.0, 3.0, 5.0]), FlowDataScript.DataType.Float)
@@ -142,7 +134,6 @@ func test_broadcast_filter() -> void:
 	var out_f = _get_output_data(node, 1)
 	assert_array(out_t.findStream("A").container).is_equal(PackedFloat32Array([3.0, 5.0]))
 	assert_array(out_f.findStream("A").container).is_equal(PackedFloat32Array([1.0]))
-	node.free()
 
 func test_error_handling() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
@@ -151,11 +142,9 @@ func test_error_handling() -> void:
 	# Mismatched sizes
 	var node = _run_filter(in_dataA, in_dataB_mismatch, FilterSettings.eCondition.Equal)
 	assert_str(node.err).contains("do not match")
-	node.free()
 
 	# String type comparison error (non-numeric)
 	var in_dataA_str = _create_data_with_stream("A", PackedStringArray(["a", "b"]), FlowDataScript.DataType.String)
 	var in_dataB_str = _create_data_with_stream("B", PackedStringArray(["a", "c"]), FlowDataScript.DataType.String)
 	node = _run_filter(in_dataA_str, in_dataB_str, FilterSettings.eCondition.Greater)
 	assert_str(node.err).contains("must have int/float type")
-	node.free()

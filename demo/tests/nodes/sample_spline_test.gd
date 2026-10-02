@@ -68,7 +68,6 @@ func test_uniform_path_sampling() -> void:
 	assert_object(out.findStream(FlowDataScript.AttrDensity)).is_not_null()
 	assert_object(out.findStream(FlowDataScript.AttrSeed)).is_not_null()
 
-	node.free()
 	path_3d.free()
 
 func test_uniform_samples_have_unit_scale_and_interval_bounds() -> void:
@@ -101,7 +100,6 @@ func test_uniform_samples_have_unit_scale_and_interval_bounds() -> void:
 	var ext = bmax[0] - bmin[0]
 	assert_float(ext.x).is_equal_approx(2.0, 0.001)
 
-	node.free()
 	path_3d.free()
 
 func test_legacy_scale_from_extent_writes_size() -> void:
@@ -127,7 +125,6 @@ func test_legacy_scale_from_extent_writes_size() -> void:
 		assert_float(sz.x).is_equal_approx(2.0, 0.001)  # size == interval (old behavior)
 	# The bridge reproduces the pre-bounds node exactly: no bounds streams.
 	assert_bool(out.hasStream(FlowDataScript.AttrBoundsMin)).is_false()
-	node.free()
 	path_3d.free()
 
 func test_random_path_sampling() -> void:
@@ -154,7 +151,6 @@ func test_random_path_sampling() -> void:
 		assert_bool(p.y == 0.0).is_true()
 		assert_bool(p.z == 0.0).is_true()
 		
-	node.free()
 	path_3d.free()
 
 func test_grid_fill() -> void:
@@ -184,7 +180,6 @@ func test_grid_fill() -> void:
 		assert_bool(p.x >= -0.1 and p.x <= 4.1).is_true()
 		assert_bool(p.z >= -0.1 and p.z <= 4.1).is_true()
 		
-	node.free()
 	path_3d.free()
 
 func test_random_fill() -> void:
@@ -212,7 +207,6 @@ func test_random_fill() -> void:
 		assert_bool(p.x >= 0.0 and p.x <= 4.0).is_true()
 		assert_bool(p.z >= 0.0 and p.z <= 4.0).is_true()
 		
-	node.free()
 	path_3d.free()
 
 func test_poisson_fill() -> void:
@@ -241,7 +235,6 @@ func test_poisson_fill() -> void:
 		assert_bool(p.x >= 0.0 and p.x <= 4.0).is_true()
 		assert_bool(p.z >= 0.0 and p.z <= 4.0).is_true()
 		
-	node.free()
 	path_3d.free()
 
 # ---------------------------------------------------------------------------
@@ -327,13 +320,11 @@ func test_empty_node_stream_yields_empty_data_silently() -> void:
 			for stream_name in [FlowDataScript.AttrPosition, FlowDataScript.AttrRotation, FlowDataScript.AttrSize,
 					FlowDataScript.AttrDensity, FlowDataScript.AttrSeed]:
 				assert_object(out.findStream(stream_name)).override_failure_message("missing %s" % stream_name).is_not_null()
-		node.free()
 
 func test_invalid_node_entries_are_skipped_with_one_warning() -> void:
 	var valid := _line_path()
 	var reference = _run_sample_spline(valid, false, func(s): _uniform_settings(s))
 	var expected: PackedVector3Array = _get_output_data(reference).getVector3Container(FlowDataScript.AttrPosition)
-	reference.free()
 
 	var freed := Path3D.new()
 	freed.curve = Curve3D.new()
@@ -356,7 +347,6 @@ func test_invalid_node_entries_are_skipped_with_one_warning() -> void:
 	assert_object(out).is_not_null()
 	if out != null:
 		assert_array(out.getVector3Container(FlowDataScript.AttrPosition)).is_equal(expected)
-	node.free()
 	not_a_path.free()
 	no_curve.free()
 	valid.free()
@@ -373,7 +363,6 @@ func test_only_invalid_entries_yield_empty_data() -> void:
 	assert_object(out).is_not_null()
 	if out != null:
 		assert_int(out.size()).is_equal(0)
-	node.free()
 	not_a_path.free()
 
 func test_missing_node_stream_errors() -> void:
@@ -381,7 +370,6 @@ func test_missing_node_stream_errors() -> void:
 	in_data.registerStream(FlowDataScript.AttrPosition, PackedVector3Array([Vector3.ZERO]), FlowDataScript.DataType.Vector)
 	var node = _run_with_input(in_data)
 	assert_str(node.err).contains("Input has no 'node' stream")
-	node.free()
 
 func test_wrong_node_stream_type_errors() -> void:
 	var mi := MeshInstance3D.new()
@@ -390,7 +378,6 @@ func test_wrong_node_stream_type_errors() -> void:
 	in_data.registerStream("node", meshes, FlowDataScript.DataType.NodeMesh)
 	var node = _run_with_input(in_data)
 	assert_str(node.err).contains("'node' stream must be NodePath/Node typed (got NodeMesh)")
-	node.free()
 	mi.free()
 
 
@@ -415,7 +402,6 @@ func test_legacy_scale_from_extent_writes_no_bounds_streams() -> void:
 	assert_bool(out.hasStream(FlowDataScript.AttrBoundsMax)).is_false()
 	var sizes = out.getVector3Container(FlowDataScript.AttrSize)
 	assert_bool(sizes[0] != Vector3.ONE).is_true()
-	node.free()
 	path_3d.free()
 
 	# Default (bridge off): unit scale and bounds present.
@@ -431,5 +417,4 @@ func test_legacy_scale_from_extent_writes_no_bounds_streams() -> void:
 	var out_b = _get_output_data(node_b)
 	assert_bool(out_b.hasStream(FlowDataScript.AttrBoundsMin)).is_true()
 	assert_bool(out_b.getVector3Container(FlowDataScript.AttrSize)[0].is_equal_approx(Vector3.ONE)).is_true()
-	node_b.free()
 	path_b.free()

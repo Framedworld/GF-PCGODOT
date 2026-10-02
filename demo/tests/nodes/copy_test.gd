@@ -53,7 +53,6 @@ func test_linear_copy_basic_float() -> void:
 	assert_float(stream.container[1]).is_equal(20.0)
 	assert_float(stream.container[2]).is_equal(10.0)
 	assert_float(stream.container[3]).is_equal(20.0)
-	node.free()
 
 func test_linear_copy_num_copies_zero_returns_empty() -> void:
 	var s = CopySettings.new()
@@ -66,7 +65,6 @@ func test_linear_copy_num_copies_zero_returns_empty() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_linear_copy_with_translation_offsets() -> void:
 	var s = CopySettings.new()
@@ -91,7 +89,6 @@ func test_linear_copy_with_translation_offsets() -> void:
 	var pos_container: PackedVector3Array = pos_stream.container
 	assert_float(pos_container[0].x).is_equal(0.0)
 	assert_float(pos_container[1].x).is_equal_approx(10.0, 0.001)
-	node.free()
 
 func test_linear_copy_generates_copy_id() -> void:
 	var s = CopySettings.new()
@@ -110,7 +107,6 @@ func test_linear_copy_generates_copy_id() -> void:
 	assert_int(id_stream.container[0]).is_equal(0)
 	assert_int(id_stream.container[1]).is_equal(1)
 	assert_int(id_stream.container[2]).is_equal(2)
-	node.free()
 
 func test_missing_source_input_sets_error() -> void:
 	var s = CopySettings.new()
@@ -119,7 +115,6 @@ func test_missing_source_input_sets_error() -> void:
 
 	var node = _run([null, null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_source_to_targets_basic_cycle() -> void:
 	var s = CopySettings.new()
@@ -144,7 +139,6 @@ func test_source_to_targets_basic_cycle() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(3)
-	node.free()
 
 func test_source_to_targets_missing_targets_sets_error() -> void:
 	var s = CopySettings.new()
@@ -157,7 +151,6 @@ func test_source_to_targets_missing_targets_sets_error() -> void:
 
 	var node = _run([src, null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_source_to_targets_writes_copy_id_and_target_index() -> void:
 	var s = CopySettings.new()
@@ -194,7 +187,6 @@ func test_source_to_targets_writes_copy_id_and_target_index() -> void:
 	assert_int(tgt_id_stream.container.size()).is_equal(2)
 	assert_int(tgt_id_stream.container[0]).is_equal(0)
 	assert_int(tgt_id_stream.container[1]).is_equal(1)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # SourceToTargets attribute inheritance (UE Copy Points parity)
@@ -239,7 +231,6 @@ func _assert_transforms_unchanged(out: FlowData.Data) -> void:
 		assert_array(Array(out.findStream(stream_name).container)) \
 			.is_equal(Array(ref.findStream(stream_name).container))
 	assert_bool(out.hasStream(FlowData.AttrRotationQuat)).is_false()
-	ref_node.free()
 
 func test_attribute_inheritance_default_is_source_only() -> void:
 	var s = CopySettings.new()
@@ -251,7 +242,6 @@ func test_attribute_inheritance_default_is_source_only() -> void:
 	assert_array(Array(out.findStream("kind").container)).is_equal(["chair", "table", "chair"])
 	assert_array(Array(out.findStream("position").container)).is_equal(
 		[Vector3(10, 1, 0), Vector3(20, 2, 0), Vector3(30, 3, 0)]) # target 2 has size 3
-	node.free()
 
 func test_attribute_inheritance_source_only() -> void:
 	var node = _run_inheritance(CopySettings.eAttributeInheritance.SourceOnly)
@@ -260,7 +250,6 @@ func test_attribute_inheritance_source_only() -> void:
 	assert_bool(out.hasStream("zone")).is_false()
 	assert_int(out.findStream("shared").data_type).is_equal(FlowDataScript.DataType.Float)
 	_assert_transforms_unchanged(out)
-	node.free()
 
 func test_attribute_inheritance_source_first() -> void:
 	var node = _run_inheritance(CopySettings.eAttributeInheritance.SourceFirst)
@@ -275,7 +264,6 @@ func test_attribute_inheritance_source_first() -> void:
 	assert_array(Array(out.findStream("room").container)).is_equal([100, 200, 300])
 	assert_array(Array(out.findStream("zone").container)).is_equal(["crypt"])
 	_assert_transforms_unchanged(out)
-	node.free()
 
 func test_attribute_inheritance_target_first() -> void:
 	var holder := {}
@@ -289,7 +277,6 @@ func test_attribute_inheritance_target_first() -> void:
 	assert_array(Array(out.findStream("kind").container)).is_equal(["chair", "table", "chair"])
 	assert_array(Array(out.findStream("room").container)).is_equal([100, 200, 300])
 	_assert_transforms_unchanged(out)
-	node.free()
 
 func test_attribute_inheritance_target_only() -> void:
 	var node = _run_inheritance(CopySettings.eAttributeInheritance.TargetOnly)
@@ -299,7 +286,6 @@ func test_attribute_inheritance_target_only() -> void:
 	assert_array(Array(out.findStream("room").container)).is_equal([100, 200, 300])
 	assert_array(Array(out.findStream("zone").container)).is_equal(["crypt"])
 	_assert_transforms_unchanged(out)
-	node.free()
 
 func test_attribute_inheritance_copy_id_and_target_index_still_written() -> void:
 	var s = CopySettings.new()
@@ -311,4 +297,3 @@ func test_attribute_inheritance_copy_id_and_target_index_still_written() -> void
 	var out = _output(node)
 	assert_array(Array(out.findStream("copy_id").container)).is_equal([0, 1, 0])
 	assert_array(Array(out.findStream("target_index").container)).is_equal([0, 1, 2])
-	node.free()

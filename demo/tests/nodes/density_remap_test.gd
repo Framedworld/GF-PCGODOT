@@ -57,7 +57,6 @@ func test_identity_remap() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.0, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.0001)
 	assert_float(stream.container[2]).is_equal_approx(1.0, 0.0001)
-	node.free()
 
 func test_invert_remap() -> void:
 	var s := _make_settings(0.0, 1.0, 1.0, 0.0, false)
@@ -71,7 +70,6 @@ func test_invert_remap() -> void:
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.0001)
 	assert_float(stream.container[2]).is_equal_approx(0.0, 0.0001)
-	node.free()
 
 func test_scale_remap() -> void:
 	var s := _make_settings(0.0, 1.0, 0.0, 2.0, false)
@@ -86,7 +84,6 @@ func test_scale_remap() -> void:
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.0001)
 	assert_float(stream.container[2]).is_equal_approx(1.0, 0.0001)
 	assert_float(stream.container[3]).is_equal_approx(2.0, 0.0001)
-	node.free()
 
 func test_clamp_enabled_clips_out_of_range() -> void:
 	var s := _make_settings(0.0, 1.0, 0.0, 1.0, true)
@@ -100,7 +97,6 @@ func test_clamp_enabled_clips_out_of_range() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.0, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.0001)
 	assert_float(stream.container[2]).is_equal_approx(1.0, 0.0001)
-	node.free()
 
 func test_clamp_disabled_allows_out_of_range() -> void:
 	var s := _make_settings(0.0, 1.0, 0.0, 1.0, false)
@@ -113,7 +109,6 @@ func test_clamp_disabled_allows_out_of_range() -> void:
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(-0.5, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(1.5, 0.0001)
-	node.free()
 
 func test_no_density_stream_defaults_to_one() -> void:
 	var s := _make_settings(0.0, 1.0, 0.0, 2.0, false)
@@ -126,7 +121,6 @@ func test_no_density_stream_defaults_to_one() -> void:
 	assert_object(stream).is_not_null()
 	for i in 3:
 		assert_float(stream.container[i]).is_equal_approx(2.0, 0.0001)
-	node.free()
 
 func test_zero_range_in_does_not_divide_by_zero() -> void:
 	var s := _make_settings(0.5, 0.5, 0.0, 1.0, false)
@@ -138,13 +132,11 @@ func test_zero_range_in_does_not_divide_by_zero() -> void:
 	var stream = out.findStream("density")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(3)
-	node.free()
 
 func test_missing_input_sets_error() -> void:
 	var s := _make_settings(0.0, 1.0, 0.0, 1.0, true)
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_single_element_array() -> void:
 	var s := _make_settings(0.0, 1.0, 10.0, 20.0, false)
@@ -157,7 +149,6 @@ func test_single_element_array() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
 	assert_float(stream.container[0]).is_equal_approx(15.0, 0.0001)
-	node.free()
 
 func test_large_array_remap() -> void:
 	var s := _make_settings(0.0, 1.0, -1.0, 1.0, true)
@@ -174,4 +165,3 @@ func test_large_array_remap() -> void:
 	assert_int(stream.container.size()).is_equal(1000)
 	assert_float(stream.container[0]).is_equal_approx(-1.0, 0.0001)
 	assert_float(stream.container[999]).is_equal_approx(1.0, 0.0001)
-	node.free()

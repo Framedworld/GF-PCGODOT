@@ -49,7 +49,6 @@ func test_single_room_expands_to_correct_tile_count() -> void:
 	assert_object(out).is_not_null()
 	# rw*rh = 3*2 = 6 floor tiles
 	assert_int(out.size()).is_equal(6)
-	node.free()
 
 func test_single_tile_room() -> void:
 	var s := DungeonExpandRoomsSettings.new()
@@ -67,7 +66,6 @@ func test_single_tile_room() -> void:
 	var spos = out.getVector3Container(FlowDataScript.AttrPosition)
 	# rx = round(0/2) - int(1/2) = 0 - 0 = 0 ; same for ry -> tile at origin
 	assert_array(spos).is_equal(PackedVector3Array([Vector3(0.0, 0, 0.0)]))
-	node.free()
 
 func test_single_room_tile_positions_correct() -> void:
 	var s := DungeonExpandRoomsSettings.new()
@@ -91,7 +89,6 @@ func test_single_room_tile_positions_correct() -> void:
 		Vector3(0.0, 0, 0.0),
 	])
 	assert_array(spos).is_equal(expected)
-	node.free()
 
 func test_offset_center_room_positions() -> void:
 	var s := DungeonExpandRoomsSettings.new()
@@ -115,7 +112,6 @@ func test_offset_center_room_positions() -> void:
 		Vector3(10.0, 0, 6.0),
 	])
 	assert_array(spos).is_equal(expected)
-	node.free()
 
 func test_room_id_and_cell_type_streams_populated() -> void:
 	var s := DungeonExpandRoomsSettings.new()
@@ -136,7 +132,6 @@ func test_room_id_and_cell_type_streams_populated() -> void:
 	assert_object(s_ct).is_not_null()
 	assert_str(s_ct.container[0]).is_equal("Room")
 	assert_str(s_ct.container[3]).is_equal("Room")
-	node.free()
 
 func test_multiple_rooms_tile_count_sum() -> void:
 	var s := DungeonExpandRoomsSettings.new()
@@ -151,7 +146,6 @@ func test_multiple_rooms_tile_count_sum() -> void:
 	assert_object(out).is_not_null()
 	# (3*3) + (4*2) = 9 + 8 = 17
 	assert_int(out.size()).is_equal(17)
-	node.free()
 
 func test_multiple_rooms_distinct_room_ids() -> void:
 	var s := DungeonExpandRoomsSettings.new()
@@ -172,7 +166,6 @@ func test_multiple_rooms_distinct_room_ids() -> void:
 	assert_int(int(s_rid.container[3])).is_equal(11)
 	assert_int(int(s_rid.container[4])).is_equal(22)
 	assert_int(int(s_rid.container[7])).is_equal(22)
-	node.free()
 
 func test_custom_cell_size() -> void:
 	var s := DungeonExpandRoomsSettings.new()
@@ -194,7 +187,6 @@ func test_custom_cell_size() -> void:
 	assert_float(ssz[0].x).is_equal_approx(4.0, 0.001)
 	assert_float(ssz[0].z).is_equal_approx(4.0, 0.001)
 	assert_float(ssz[0].y).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_empty_input_returns_empty_output() -> void:
 	var s := DungeonExpandRoomsSettings.new()
@@ -205,7 +197,6 @@ func test_empty_input_returns_empty_output() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_missing_room_streams_sets_error() -> void:
 	var s := DungeonExpandRoomsSettings.new()
@@ -214,14 +205,12 @@ func test_missing_room_streams_sets_error() -> void:
 	d.addCommonStreams(1)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_input_sets_error() -> void:
 	var s := DungeonExpandRoomsSettings.new()
 	s.cell_size = 2.0
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_output_has_type_stream_filled_with_zeros() -> void:
 	var s := DungeonExpandRoomsSettings.new()
@@ -238,4 +227,3 @@ func test_output_has_type_stream_filled_with_zeros() -> void:
 	assert_object(s_type).is_not_null()
 	assert_int(s_type.container.size()).is_equal(4)
 	assert_float(float(s_type.container[0])).is_equal_approx(0.0, 0.001)
-	node.free()

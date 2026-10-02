@@ -51,7 +51,6 @@ func test_static_branch_true() -> void:
 	assert_object(out_a).is_equal(in_data)
 	assert_int(out_b.size()).is_equal(0)
 	assert_object(out_b.findStream("val")).is_not_null() # Schema preserved
-	node.free()
 
 func test_static_branch_false() -> void:
 	var in_data = _create_data_with_stream("val", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
@@ -64,7 +63,6 @@ func test_static_branch_false() -> void:
 
 	assert_int(out_a.size()).is_equal(0)
 	assert_object(out_b).is_equal(in_data)
-	node.free()
 
 func test_attribute_branch_bool() -> void:
 	var in_data := FlowDataScript.Data.new()
@@ -75,14 +73,12 @@ func test_attribute_branch_bool() -> void:
 	var node = _run_branch(in_data, false, true, "cond")
 	assert_str(node.err).is_empty()
 	assert_object(_get_output_data(node, 0)).is_equal(in_data)
-	node.free()
 
 	# Try false attribute
 	in_data.registerStream("cond", PackedByteArray([0]), FlowDataScript.DataType.Bool)
 	node = _run_branch(in_data, true, true, "cond")
 	assert_str(node.err).is_empty()
 	assert_object(_get_output_data(node, 1)).is_equal(in_data)
-	node.free()
 
 func test_attribute_branch_truthy_string() -> void:
 	var in_data := FlowDataScript.Data.new()
@@ -93,14 +89,12 @@ func test_attribute_branch_truthy_string() -> void:
 	var node = _run_branch(in_data, false, true, "cond")
 	assert_str(node.err).is_empty()
 	assert_object(_get_output_data(node, 0)).is_equal(in_data)
-	node.free()
 
 	# "no" is falsy
 	in_data.registerStream("cond", PackedStringArray(["no"]), FlowDataScript.DataType.String)
 	node = _run_branch(in_data, true, true, "cond")
 	assert_str(node.err).is_empty()
 	assert_object(_get_output_data(node, 1)).is_equal(in_data)
-	node.free()
 
 func test_attribute_missing_error() -> void:
 	var in_data = _create_data_with_stream("val", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
@@ -108,4 +102,3 @@ func test_attribute_missing_error() -> void:
 	# Use attribute with non-existent stream -> Should throw error
 	var node = _run_branch(in_data, true, true, "NonExistent")
 	assert_str(node.err).contains("Attribute 'NonExistent' not found")
-	node.free()

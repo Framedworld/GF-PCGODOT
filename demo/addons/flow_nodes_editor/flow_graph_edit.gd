@@ -50,7 +50,7 @@ func _get_connection_line(from_position: Vector2, to_position: Vector2) -> Packe
 
 func _resolve_reroute_endpoint(position: Vector2) -> Dictionary:
 	for child in get_children():
-		var node := child as FlowNodeBase
+		var node := child as FlowNodeWidget
 		if node == null or node.node_template != REROUTE_TEMPLATE:
 			continue
 
@@ -79,25 +79,25 @@ func _is_near_scaled_reroute_port(position: Vector2, graph_port_position: Vector
 func _is_near_graph_reroute_port(position: Vector2, graph_port_position: Vector2) -> bool:
 	return position.distance_to(graph_port_position) <= REROUTE_PORT_MATCH_DISTANCE
 
-func _reroute_center_graph_position(node: FlowNodeBase) -> Vector2:
+func _reroute_center_graph_position(node: FlowNodeWidget) -> Vector2:
 	var port_y := node.size.y * 0.5
 	if node.get_input_port_count() > 0:
 		port_y = node.get_input_port_position(0).y
 	return node.position_offset + Vector2(node.size.x * 0.5, port_y)
 
-func _reroute_left_port_graph_position(node: FlowNodeBase) -> Vector2:
+func _reroute_left_port_graph_position(node: FlowNodeWidget) -> Vector2:
 	if node.get_input_port_count() > 0:
 		return node.position_offset + node.get_input_port_position(0)
 	var center := _reroute_center_graph_position(node)
 	return Vector2(node.position_offset.x, center.y)
 
-func _reroute_right_port_graph_position(node: FlowNodeBase) -> Vector2:
+func _reroute_right_port_graph_position(node: FlowNodeWidget) -> Vector2:
 	if node.get_output_port_count() > 0:
 		return node.position_offset + node.get_output_port_position(0)
 	var center := _reroute_center_graph_position(node)
 	return Vector2(node.position_offset.x + node.size.x, center.y)
 
-func _should_reverse_reroute_tangent(node: FlowNodeBase) -> bool:
+func _should_reverse_reroute_tangent(node: FlowNodeWidget) -> bool:
 	var input_average := Vector2.ZERO
 	var output_average := Vector2.ZERO
 	var input_count := 0
@@ -131,13 +131,13 @@ func _should_reverse_reroute_tangent(node: FlowNodeBase) -> bool:
 	return false
 
 func _node_input_port_graph_position(node: GraphNode, port: int) -> Vector2:
-	var flow_node := node as FlowNodeBase
+	var flow_node := node as FlowNodeWidget
 	if flow_node != null and flow_node.node_template == REROUTE_TEMPLATE:
 		return _reroute_center_graph_position(flow_node)
 	return node.position_offset + node.get_input_port_position(port)
 
 func _node_output_port_graph_position(node: GraphNode, port: int) -> Vector2:
-	var flow_node := node as FlowNodeBase
+	var flow_node := node as FlowNodeWidget
 	if flow_node != null and flow_node.node_template == REROUTE_TEMPLATE:
 		return _reroute_center_graph_position(flow_node)
 	return node.position_offset + node.get_output_port_position(port)

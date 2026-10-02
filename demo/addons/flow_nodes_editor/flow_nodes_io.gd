@@ -80,6 +80,39 @@ static func dict_to_resource(data: Dictionary, resource: Resource) -> void:
 				else:
 					resource.set(name, value)
 
+## The writes dict_to_resource(data, resource) makes, as a list to replay on
+## fresh instances of the same settings class (FlowCompiledGraph): one
+## [property, value, is_typed_array] per saved property, in property-list order,
+## with Color / Vector2 / Vector3 strings already parsed. A typed array entry
+## means "clear the instance's own typed array and append these items".
+static func settings_assignments(data: Dictionary, resource: Resource) -> Array:
+	var assignments := []
+	for prop in resource.get_property_list():
+		var name = prop.name
+		if name in FlowNodeAssets.discarded_props:
+			continue
+		if not data.has(name):
+			continue
+		var value = data[name]
+		var type = prop.type
+		match type:
+			TYPE_COLOR:
+				assignments.append([name, _parse_color(value), false])
+			TYPE_VECTOR2:
+				assignments.append([name, _parse_vector2(value), false])
+			TYPE_VECTOR3:
+				assignments.append([name, _parse_vector3(value), false])
+			_:
+				if type == TYPE_ARRAY and typeof(value) == TYPE_ARRAY:
+					var target_arr = resource.get(name)
+					if target_arr != null and target_arr.is_typed():
+						assignments.append([name, value, true])
+					else:
+						assignments.append([name, value, false])
+				else:
+					assignments.append([name, value, false])
+	return assignments
+
 static func _stabilize_missing_seed(settings_res: Resource, node_name: String, template: String, serialized_settings: Dictionary) -> void:
 	if settings_res == null:
 		return
@@ -257,6 +290,9 @@ static func create_nodes_from_dict( dict, editor : Control, paste_offset = null)
 
 		# Apply saved settings...
 		dict_to_resource( in_node.settings, node.settings )
+		# Same per-node fallback seed the runtime evaluator uses, so the dock
+		# previews what a FlowGraphNode3D generates for graphs saved without it.
+		_stabilize_missing_seed( node.settings, String( new_name ), node_template, in_node.settings )
 		_normalize_loaded_node_template(node, editor)
 		_ensure_unique_set_variable_name(node, editor, variable_name_remaps)
 
@@ -344,6 +380,7 @@ static func create_nodes_from_dict_with_progress(dict, editor: Control, paste_of
 			await _report_load_progress(progress_callback, "Building Graph...", completed_steps, total_steps, start_progress, end_progress)
 
 		dict_to_resource(in_node.settings, node.settings)
+		_stabilize_missing_seed(node.settings, String(new_name), node_template, in_node.settings)
 		_normalize_loaded_node_template(node, editor)
 		_ensure_unique_set_variable_name(node, editor, variable_name_remaps)
 		node.settings.inspect_enabled = false
@@ -742,15 +779,6 @@ static func build_execution_order(node_list: Array, instances_by_name: Dictionar
 	return ordered_nodes
 
 
-# FlowNodeBase extends GraphNode (a Control, not RefCounted). evaluate_graph
-# instantiates the whole graph without ever adding the nodes to the tree, so
-# they must be freed explicitly — otherwise every runtime evaluation leaks the
-# full node graph (and loop.gd evaluates once per element).
-static func _free_node_instances(node_list: Array) -> void:
-	for node in node_list:
-		if is_instance_valid(node):
-			node.free()
-
 # Runtime args (e.g. FlowGraphNode3D.args) may hold raw primitives instead of
 # FlowData.Data. Wrap supported primitives into a single-entry Data whose
 # stream is named after the input param, so graph-input constants work at
@@ -824,7 +852,8 @@ static func has_setting_bindings(settings: Resource, ctx: FlowData.EvaluationCon
 ## parameter keeps the saved value silently; a value that cannot be assigned to the
 ## property keeps it with a warning. Does not call refreshFromSettings.
 ## Returns true when at least one setting was written.
-static func apply_setting_bindings(node_instance: FlowNodeBase, graph: FlowGraphResource, ctx: FlowData.EvaluationContext, input_data_map: Dictionary = {}, target_settings: Resource = null) -> bool:
+static func apply_setting_bindings(node_instance, graph: FlowGraphResource, ctx: FlowData.EvaluationContext, input_data_map: Dictionary = {}, target_settings: Resource = null) -> bool:
+	node_instance = _as_element(node_instance)
 	if node_instance == null or ctx == null:
 		return false
 	var settings: Resource = target_settings if target_settings != null else node_instance.settings
@@ -878,7 +907,9 @@ static func apply_setting_bindings(node_instance: FlowNodeBase, graph: FlowGraph
 ## never dirtied, saved or re-emitted as changed) and returns the authored settings
 ## to hand back to end_scratch_setting_bindings() after the node ran. Returns null,
 ## leaving the node untouched, when nothing applies.
-static func begin_scratch_setting_bindings(node: FlowNodeBase, graph: FlowGraphResource, ctx: FlowData.EvaluationContext, input_data_map: Dictionary = {}) -> Resource:
+## `node` is a FlowNodeBase element or the editor's FlowNodeWidget showing one.
+static func begin_scratch_setting_bindings(node, graph: FlowGraphResource, ctx: FlowData.EvaluationContext, input_data_map: Dictionary = {}) -> Resource:
+	node = _as_element(node)
 	if node == null or node.settings == null or not has_setting_bindings(node.settings, ctx):
 		return null
 	var authored: Resource = node.settings
@@ -889,10 +920,18 @@ static func begin_scratch_setting_bindings(node: FlowNodeBase, graph: FlowGraphR
 	return authored
 
 ## Restores the settings returned by begin_scratch_setting_bindings(). No-op on null.
-static func end_scratch_setting_bindings(node: FlowNodeBase, authored: Resource) -> void:
+static func end_scratch_setting_bindings(node, authored: Resource) -> void:
+	node = _as_element(node)
 	if node == null or authored == null or not is_instance_valid(node):
 		return
 	node.settings = authored
+
+## The runtime element behind `node`: the element itself, or the element of an
+## editor widget (FlowNodeWidget, a GraphNode). Null for anything else.
+static func _as_element(node) -> FlowNodeBase:
+	if node is GraphNode:
+		node = node.get("element")
+	return node as FlowNodeBase
 
 ## Name used for "<graph>:" override prefixes: the graph file's basename
 ## ("res://graphs/style_room_default.tres" -> "style_room_default"). Graphs without
@@ -1133,330 +1172,42 @@ static func _warn_unmatched_overrides(overrides: Dictionary, hits: Dictionary) -
 		if not hits.has(key):
 			push_warning("Flow: override '%s' matched no node setting in this evaluation (expected \"[graph:]node_name/property\" or \"[graph:]node_name/dict_property/key\")." % str(key))
 
-# Runtime counterpart of the editor's args_port bookkeeping: remember which
-# parameter ports are actually wired so getSettingValue can read them. Only
-# connected ports past the flow inputs are restored (stale unconnected entries are
-# ignored, matching what the editor rebuilds in initFromScript).
-static func _restore_wired_param_ports(instance: FlowNodeBase, n_data: Dictionary) -> void:
-	var saved_ports = n_data.get("args_port", {})
-	if not (saved_ports is Dictionary) or saved_ports.is_empty():
-		return
-	var num_flow_ins: int = instance.getMeta().get("ins", []).size()
-	for arg_name in saved_ports:
-		var entry = saved_ports[arg_name]
-		if not (entry is Dictionary) or not entry.get("connected", false):
-			continue
-		var port := int(entry.get("port", -1))
-		if port < num_flow_ins:
-			continue
-		instance.args_ports_by_name[arg_name] = { "port": port, "connected": true }
-
 # ---------------------------------------------------------------------------
-# Resumable evaluator foundation (PARITY_ROADMAP "Async / proximity runtime
-# generation", stage 2 only — time-slicing).
+# Evaluator (docs/PARITY_ROUND2.md WP1). The work lives in
+# executor/flow_executor.gd (FlowExecutor) on top of a cached
+# executor/flow_compiled_graph.gd (FlowCompiledGraph). The functions below keep
+# the historical entry points and their signatures:
 #
-# The evaluation has three phases:
-#   1. _build_evaluation_state(): instance nodes, build deps, topo-sort, build
-#      the EvaluationContext, feed graph inputs. (Cheap; done up front.)
-#   2. execution of the ordered node list — the only resumable part. Each node
-#      is run by _execute_single_node().
-#   3. _finalize_evaluation(): collect outputs, publish flow variables, free the
-#      instanced node Controls.
-#
-# evaluate_graph() runs all three phases synchronously in one call and is
-# byte-for-byte identical to the historical behavior (it just drives the same
-# helpers to completion). GraphEvaluation exposes the same work as a resumable
-# state object with a step(budget_ms) method, so a host (FlowGraphNode3D with
-# async_generation = true) can spread phase 2 across frames. Topo sort, cycle
-# detection, variable/runtime-param publishing and node-instance freeing are
-# shared by both paths — there is a single execution implementation.
+#   evaluate_graph()          synchronous (threaded when the context asks)
+#   begin_evaluation()        resumable, time-sliced GraphEvaluation
+#   evaluate_graph_snapshot() golden-output snapshot
+#   _build_evaluation_state / _execute_single_node / _finalize_evaluation
+#                             the three phases, for callers that drive them
 # ---------------------------------------------------------------------------
 
-# Phase 1: instance + order + context + feed inputs. Returns a state Dictionary,
-# or {} on the recursion-guard trip (mirroring evaluate_graph's early return).
+# Phase 1: elements from the compiled graph + context + input feed. Returns a
+# state Dictionary ("graph", "parent_ctx", "instances", "node_list",
+# "ordered_nodes", "ctx", ...).
 static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary, depth: int) -> Dictionary:
-	var instances = {}
-	var node_list = []
-	# Overrides / $param bindings (RUNTIME_API_P0 §4). The scope context is built
-	# lazily, only when a node actually has something to apply.
-	var owns_override_hits := not parent_ctx.has_meta(OVERRIDE_HITS_META)
-	var override_hits: Dictionary = parent_ctx.get_meta(OVERRIDE_HITS_META, {})
-	var binding_scope: FlowData.EvaluationContext = null
-	# Upgrade old graph data to the current format before instantiating nodes. Returns
-	# the resource's own dictionary when already current; never writes back.
-	var graph_data: Dictionary = FlowGraphMigrations.migrate(graph.data)
-	for n_data in graph_data.get("nodes", []):
-		var template = n_data.template
-		var name = n_data.name
-		var script_path = FlowNodeRegistry.get_node_script_path(template)
-		if script_path.is_empty():
-			push_error("Failed to resolve node script for template: %s. Make sure its provider addon registered its node directory before evaluation." % template)
-			continue
-		var node_script = load(script_path)
-		if not node_script:
-			push_error("Failed to load node script for template: %s" % template)
-			continue
-		var raw_instance = node_script.new()
-		var instance := raw_instance as FlowNodeBase
-		if instance == null:
-			push_error("Node script is not a FlowNodeBase: %s" % script_path)
-			if raw_instance is Node:
-				raw_instance.free()
-			continue
-		instance.name = name
-		instance.node_template = template
-
-		# Initialize settings resource if defined. Nodes without a settings
-		# class (e.g. merge_points) fall back to the base NodeSettings,
-		# mirroring the editor — the evaluator reads settings.disabled and
-		# settings.debug_enabled on every node.
-		var meta = instance.getMeta()
-		if meta.has("settings") and meta.settings:
-			instance.settings = meta.settings.new()
-		else:
-			instance.settings = NodeSettings.new()
-
-		# Apply saved settings
-		var saved_settings = n_data.get("settings", {})
-		dict_to_resource(saved_settings, instance.settings)
-		_stabilize_missing_seed(instance.settings, name, template, saved_settings)
-		if has_setting_bindings(instance.settings, parent_ctx):
-			if binding_scope == null:
-				binding_scope = _binding_scope_context(graph, parent_ctx, runtime_params, override_hits)
-			apply_setting_bindings(instance, graph, binding_scope, input_data_map)
-
-		instance.refreshFromSettings()
-		_restore_wired_param_ports(instance, n_data)
-
-		instances[name] = instance
-		node_list.append(instance)
-
-	# Build connections (deps and dependants)
-	for conn in graph_data.get("links", []):
-		var src_node = instances.get(conn.from_node)
-		var dst_node = instances.get(conn.to_node)
-		if src_node and dst_node:
-			src_node.dependants.append(conn)
-			dst_node.deps.append(conn)
-	_add_virtual_variable_dependencies(node_list)
-	var ordered_nodes: Array = build_execution_order(node_list, instances)
-
-	# Construct EvaluationContext for subgraph
-	var ctx = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()
-	ctx.graph = graph
-	# parent_ctx.owner may be null (owner-less evaluation); owner-dependent
-	# nodes report it themselves.
-	ctx.owner = parent_ctx.owner
-	# Copied verbatim: only make_context()/the editor assign the counter, so
-	# legacy callers that hand-build a context (some store a seed in eval_id)
-	# stay byte-identical.
-	ctx.eval_id = parent_ctx.eval_id
-	# Seed, component identity and per-instance overrides flow into nested
-	# subgraph/loop evaluations unchanged (loop derives per-iteration seeds by
-	# setting parent_ctx.seed around its call).
-	ctx.seed = parent_ctx.seed
-	ctx.component_id = parent_ctx.component_id
-	ctx.overrides = parent_ctx.overrides
-	ctx.preview = parent_ctx.preview
-	ctx.gedit_nodes_by_name = instances
-	ctx.runtime_params = parent_ctx.runtime_params.duplicate(true) if parent_ctx.runtime_params else {}
-	for key in runtime_params.keys():
-		ctx.runtime_params[key] = runtime_params[key]
-	ctx.runtime_params["seed"] = ctx.seed
-	ctx.runtime_params["__eval_depth"] = depth
-	ctx.set_meta("flow_eval_depth", depth)
-	ctx.set_meta(OVERRIDE_HITS_META, override_hits)
-	# Nested evaluations share the root's error log. A custom node that builds its
-	# own context still reports into the synchronous evaluation around it.
-	var error_log = parent_ctx.get_meta(FlowNodeBase.ERROR_LOG_META) if parent_ctx.has_meta(FlowNodeBase.ERROR_LOG_META) else _sync_error_log
-	if error_log is Array:
-		ctx.set_meta(FlowNodeBase.ERROR_LOG_META, error_log)
-	_inherit_flow_variables(ctx, parent_ctx)
-	FlowVariableEval._mirror_variables_to_runtime(ctx)
-
-	# Feed subgraph inputs from input_data_map
-	for node in ordered_nodes:
-		var is_specific_input = false
-		var specific_input_name = ""
-		if node.node_template == "input":
-			if node.settings and node.settings.name != "" and node.settings.name != "in_val":
-				for param in graph.in_params:
-					if param and param.name == node.settings.name:
-						is_specific_input = true
-						specific_input_name = param.name
-						break
-		elif node.node_template.begins_with("input_"):
-			is_specific_input = true
-			specific_input_name = node.settings.name
-
-		if is_specific_input:
-			var val = _coerce_input_data(input_data_map.get(specific_input_name, null), specific_input_name)
-			if val:
-				# Create a new Data object to rename/register the stream under the input's name
-				var target_data = load("res://addons/flow_nodes_editor/flow_data.gd").Data.new()
-				for stream_name in val.streams:
-					var stream = val.streams[stream_name]
-					target_data.registerStream(stream_name, stream.container, stream.data_type)
-
-				# Ensure that the main stream is registered under input_name
-				if val.streams.size() > 0 and not target_data.hasStream(specific_input_name):
-					var main_stream_name = val.last_added_stream_name
-					if main_stream_name == "" or not val.hasStream(main_stream_name):
-						main_stream_name = val.streams.keys()[val.streams.size() - 1]
-					var main_stream = val.streams[main_stream_name]
-					# A canonical attribute name (density, seed, ...) only aliases a
-					# main stream of that attribute's type.
-					if FlowData.canonical_type_error(specific_input_name, main_stream.data_type) == "":
-						target_data.registerStream(specific_input_name, main_stream.container, main_stream.data_type)
-				# Carry per-data domain attributes, tags, kind and shape across the subgraph boundary.
-				target_data.copy_meta_from(val)
-				node.set_output(0, target_data)
-		elif node.node_template == "input":
-			# Generic multi-port inputs node
-			for i in range(graph.in_params.size()):
-				var param = graph.in_params[i]
-				if param:
-					var val = _coerce_input_data(input_data_map.get(param.name, null), param.name)
-					var target_data = load("res://addons/flow_nodes_editor/flow_data.gd").Data.new()
-					if val:
-						for stream_name in val.streams:
-							var stream = val.streams[stream_name]
-							target_data.registerStream(stream_name, stream.container, stream.data_type)
-						if val.streams.size() > 0 and not target_data.hasStream(param.name):
-							var main_stream_name = val.last_added_stream_name
-							if main_stream_name == "" or not val.hasStream(main_stream_name):
-								main_stream_name = val.streams.keys()[val.streams.size() - 1]
-							var main_stream = val.streams[main_stream_name]
-							if FlowData.canonical_type_error(param.name, main_stream.data_type) == "":
-								target_data.registerStream(param.name, main_stream.container, main_stream.data_type)
-						target_data.copy_meta_from(val)
-					else:
-						var new_value = param.get_default_value()
-						var container = target_data.addStream(param.name, param.data_type)
-						if container != null:
-							container.resize(1)
-							FlowData.Data.writeValue(container, 0, new_value, param.data_type)
-					node.set_output(i, target_data)
-
-	return {
-		"graph": graph,
-		"parent_ctx": parent_ctx,
-		"instances": instances,
-		"node_list": node_list,
-		"ordered_nodes": ordered_nodes,
-		"ctx": ctx,
-		# Local overrides passed into THIS subgraph invocation. Carried so
-		# _finalize_evaluation can tell _publish_runtime_params which keys are
-		# local (must not leak to the parent) vs. genuinely produced downstream.
-		"local_params": runtime_params,
-		# The outermost evaluation owns the override hit set and reports unmatched
-		# override keys once, after every nested subgraph/loop evaluation has run.
-		"owns_override_hits": owns_override_hits,
-	}
+	return FlowExecutor.build_state(graph, input_data_map, parent_ctx, runtime_params, depth)
 
 
-# Phase 2 (one node): identical body to the historical inline execution loop.
-# Shared verbatim by the synchronous path and the resumable step() so the two
-# can never diverge.
+# Phase 2 (one node).
 static func _execute_single_node(node, instances: Dictionary, graph: FlowGraphResource, ctx: FlowData.EvaluationContext) -> void:
-	if (node.node_template.begins_with("input_") or node.node_template == "input") and node.generated_bulks.size() > 0:
-		return
-
-	node.inputs.clear()
-	var num_ins = node.getMeta().get("ins", []).size()
-	if node.node_template == "output":
-		if "out_params" in graph and graph.out_params.size() > 0:
-			num_ins = graph.out_params.size()
-		else:
-			num_ins = max(num_ins, 1)
-	node.inputs.resize(num_ins)
-	for conn in node.deps:
-		if conn.get("virtual_variable", false):
-			continue
-		var src = instances.get(conn.from_node)
-		if src and src.generated_bulks.size() > 0:
-			var src_bulk = src.generated_bulks[src.generated_bulks.size() - 1]
-			if conn.from_port < src_bulk.size():
-				# Links into exposed setting ports (to_port >= meta ins) are legal;
-				# grow the input array instead of failing the whole evaluation.
-				if conn.to_port >= node.inputs.size():
-					node.inputs.resize(conn.to_port + 1)
-				node.inputs[conn.to_port] = src_bulk[conn.from_port]
-
-	node.preExecute(ctx)
-	if node.settings != null and node.settings.disabled:
-		node.executedDisabled(ctx)
-	elif not FlowVariableEval.try_fast_execute(node, ctx, instances):
-		node.run(ctx)
-	if FlowVariableEval.should_refresh_debug_draw(node):
-		node.setupDrawDebug()
+	FlowExecutor.execute_node(node, instances, graph, ctx)
 
 
-# Phase 3: collect outputs, publish variables, free instances. Identical to the
-# historical tail of evaluate_graph.
+# Phase 3: collect outputs, publish variables, release the elements.
 static func _finalize_evaluation(state: Dictionary) -> Dictionary:
-	var graph: FlowGraphResource = state["graph"]
-	var node_list: Array = state["node_list"]
-	var ctx: FlowData.EvaluationContext = state["ctx"]
-	var parent_ctx: FlowData.EvaluationContext = state["parent_ctx"]
-	var local_params: Dictionary = state.get("local_params", {})
-
-	# Collect output data
-	var outputs = {}
-	for node in node_list:
-		var is_specific_output = false
-		var specific_output_name = ""
-		if node.node_template == "output":
-			if node.settings and node.settings.name != "" and node.settings.name != "out_val":
-				if "out_params" in graph:
-					for param in graph.out_params:
-						if param and param.name == node.settings.name:
-							is_specific_output = true
-							specific_output_name = param.name
-							break
-		elif node.node_template.begins_with("output_"):
-			is_specific_output = true
-			specific_output_name = node.settings.name
-
-		if is_specific_output:
-			if node.generated_bulks.size() > 0:
-				var bulk = node.generated_bulks[node.generated_bulks.size() - 1]
-				if bulk.size() > 0:
-					outputs[specific_output_name] = bulk[0]
-			elif node.inputs.size() > 0 and node.inputs[0] != null:
-				outputs[specific_output_name] = node.inputs[0]
-		elif node.node_template == "output":
-			# Generic multi-port outputs node
-			if "out_params" in graph and graph.out_params.size() > 0:
-				for i in range(graph.out_params.size()):
-					var param = graph.out_params[i]
-					if not param:
-						continue
-					if node.inputs.size() > i and node.inputs[i] != null:
-						outputs[param.name] = node.inputs[i]
-			else:
-				var out_name = node.settings.name
-				if node.generated_bulks.size() > 0:
-					var bulk = node.generated_bulks[node.generated_bulks.size() - 1]
-					if bulk.size() > 0:
-						outputs[out_name] = bulk[0]
-				elif node.inputs.size() > 0 and node.inputs[0] != null:
-					outputs[out_name] = node.inputs[0]
-	_publish_flow_variables(ctx, parent_ctx)
-	_publish_runtime_params(ctx, parent_ctx, local_params)
-	if state.get("owns_override_hits", false):
-		_warn_unmatched_overrides(ctx.overrides, ctx.get_meta(OVERRIDE_HITS_META, {}))
-
-	# Outputs are collected (FlowData.Data is RefCounted, so the references in
-	# `outputs` keep the data alive) — free the instanced node Controls now.
-	_free_node_instances(node_list)
-	return outputs
+	return FlowExecutor.finalize_state(state)
 
 
 ## Build a root EvaluationContext (docs/RUNTIME_API_P0.md §3).
 ## `owner` may be null for owner-less evaluation. Any Node3D can host the
 ## evaluation (spawned content is parented under it and tagged with its
-## instance id); a FlowGraphNode3D additionally contributes its `overrides`.
+## instance id); a FlowGraphNode3D additionally contributes its `overrides`,
+## and its `threaded` / `output_cache` options (FlowExecutor.THREADED_META /
+## OUTPUT_CACHE_META on the context).
 ## `params` become ctx.runtime_params, with "seed" mirrored from `seed`.
 ## `overrides` ("node_name/property" -> value) are merged over the owner's.
 ## eval_id starts at 0 here; nested evaluations copy the parent's verbatim.
@@ -1470,6 +1221,10 @@ static func make_context(owner : Node3D = null, seed : int = 0, params : Diction
 		var owner_overrides = owner.get("overrides")
 		if owner_overrides is Dictionary:
 			merged_overrides = owner_overrides.duplicate()
+		if owner.get("threaded") == true:
+			ctx.set_meta(FlowExecutor.THREADED_META, true)
+		if owner.get("output_cache") == true:
+			ctx.set_meta(FlowExecutor.OUTPUT_CACHE_META, true)
 	if overrides:
 		merged_overrides.merge(overrides, true)
 	ctx.overrides = merged_overrides
@@ -1479,7 +1234,6 @@ static func make_context(owner : Node3D = null, seed : int = 0, params : Diction
 	ctx.runtime_params = params.duplicate(true) if params else {}
 	ctx.runtime_params["seed"] = seed
 	return ctx
-
 
 ## Errors raised (FlowNodeBase.setError) during the most recent top-level
 ## FlowNodeIO.evaluate() or FlowGraphNode3D.generate()/generate_async(), in the
@@ -1532,23 +1286,12 @@ static func evaluate(graph : FlowGraphResource, inputs : Dictionary = {}, seed :
 	return evaluate_collecting_errors(graph, inputs.duplicate() if inputs else {}, ctx).outputs
 
 
-## Synchronous graph evaluation — the default, unchanged runtime path.
-## Builds the state, runs every ordered node in one pass, finalizes. This is
-## the historical evaluate_graph: same phases, same order, same side effects,
-## same return value. Nested subgraph/loop nodes keep calling this.
+## Synchronous graph evaluation — the default runtime path. Same phases, order,
+## side effects and return value as always; the graph is parsed once
+## (FlowCompiledGraph) and reused. Nested subgraph/loop nodes keep calling
+## this. Runs threaded when `parent_ctx` carries FlowExecutor.THREADED_META.
 static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary = {}, depth: int = 0) -> Dictionary:
-	if depth > 20:
-		push_error("PCG graph evaluation exceeded maximum recursion depth (20). Check for circular subgraph references.")
-		return {}
-	var state := _build_evaluation_state(graph, input_data_map, parent_ctx, runtime_params, depth)
-	if state.is_empty():
-		return {}
-	var graph_res: FlowGraphResource = state["graph"]
-	var instances: Dictionary = state["instances"]
-	var ctx: FlowData.EvaluationContext = state["ctx"]
-	for node in state["ordered_nodes"]:
-		_execute_single_node(node, instances, graph_res, ctx)
-	return _finalize_evaluation(state)
+	return FlowExecutor.evaluate(graph, input_data_map, parent_ctx, runtime_params, depth)
 
 
 ## OPT-IN resumable evaluation (PARITY_ROADMAP async stage 2).
@@ -1557,16 +1300,15 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 ## phase 2 (node execution) is spread over multiple calls. Returns null on the
 ## recursion-guard trip, matching evaluate_graph's {} early-out.
 static func begin_evaluation(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary = {}, depth: int = 0):
-	if depth > 20:
-		push_error("PCG graph evaluation exceeded maximum recursion depth (20). Check for circular subgraph references.")
+	var executor := FlowExecutor.new()
+	executor.mode = FlowExecutor.Mode.TIME_SLICED
+	if not executor.begin(graph, input_data_map, parent_ctx, runtime_params, depth):
 		return null
-	var state := _build_evaluation_state(graph, input_data_map, parent_ctx, runtime_params, depth)
-	if state.is_empty():
-		return null
-	return GraphEvaluation.new(state)
+	return GraphEvaluation.new(executor)
 
 
-## Resumable, time-sliced driver over an already-built evaluation state.
+## Resumable, time-sliced driver: a compatibility wrapper over a FlowExecutor
+## in TIME_SLICED mode.
 ##
 ## Lifecycle:
 ##   var ev = FlowNodeIO.begin_evaluation(graph, args, ctx)
@@ -1575,41 +1317,37 @@ static func begin_evaluation(graph: FlowGraphResource, input_data_map: Dictionar
 ##   var outputs = ev.outputs       # populated once is_done() is true
 ##
 ## Granularity is one node: a step never interrupts a node mid-run (a single
-## heavy node can still overrun the budget — the heavy nodes are native-
-## accelerated, so this is acceptable for stage 2). Phase 1 (build) already ran
-## in begin_evaluation; finalize (output collection, variable publishing,
-## instance freeing) runs automatically when the last node completes, so the
-## same teardown guarantees as the synchronous path hold.
+## heavy node can still overrun the budget). Finalize (output collection,
+## variable publishing, element release) runs automatically when the last node
+## completes, so the same teardown guarantees as the synchronous path hold.
 class GraphEvaluation:
 	extends RefCounted
 
+	var executor: FlowExecutor
+	## The evaluation state built by FlowExecutor.build_state.
 	var _state: Dictionary
-	var _ordered: Array
+	## Node name -> element, and the ordered element list (emptied on finalize).
 	var _instances: Dictionary
-	var _graph: FlowGraphResource
-	var _ctx: FlowData.EvaluationContext
-	var _index: int = 0
-	var _finalized: bool = false
+	var _ordered: Array
 	var outputs: Dictionary = {}
 
-	func _init(state: Dictionary) -> void:
-		_state = state
-		_ordered = state["ordered_nodes"]
-		_instances = state["instances"]
-		_graph = state["graph"]
-		_ctx = state["ctx"]
+	func _init(new_executor: FlowExecutor) -> void:
+		executor = new_executor
+		_state = executor.state
+		_instances = _state["instances"]
+		_ordered = _state["ordered_nodes"]
 
 	## Total nodes in the ordered execution list.
 	func node_count() -> int:
-		return _ordered.size()
+		return executor.node_count()
 
 	## Nodes executed so far (for progress reporting / proximity scheduling later).
 	func progress() -> int:
-		return _index
+		return executor.progress()
 
 	## True once every node has run and finalize has published outputs.
 	func is_done() -> bool:
-		return _finalized
+		return executor.is_done()
 
 	## Execute ordered nodes until `budget_ms` of wall-clock time is spent this
 	## call, then return so the host can yield the frame. Resumes from where it
@@ -1617,28 +1355,17 @@ class GraphEvaluation:
 	## call) so a tiny/zero budget cannot deadlock. Returns true when the whole
 	## graph is finished (outputs are then populated).
 	func step(budget_ms: float = 4.0) -> bool:
-		if _finalized:
-			return true
-		var start_us := Time.get_ticks_usec()
-		var budget_us := int(maxf(budget_ms, 0.0) * 1000.0)
-		while _index < _ordered.size():
-			FlowNodeIO._execute_single_node(_ordered[_index], _instances, _graph, _ctx)
-			_index += 1
-			# Node-level granularity: check the budget only between nodes. Guarantee
-			# one node of progress per call regardless of budget.
-			if Time.get_ticks_usec() - start_us >= budget_us:
-				break
-		if _index >= _ordered.size():
-			outputs = FlowNodeIO._finalize_evaluation(_state)
-			_finalized = true
-			return true
-		return false
+		var finished := executor.step(budget_ms)
+		if finished:
+			outputs = executor.outputs
+		return finished
 
 	## Run the remainder synchronously (e.g. on teardown / forced completion),
 	## still finalizing exactly once.
 	func run_to_completion() -> Dictionary:
-		while not _finalized:
-			step(1.0e12)
+		while not executor.is_done():
+			executor.step(1.0e12)
+		outputs = executor.outputs
 		return outputs
 
 
@@ -1648,9 +1375,9 @@ class GraphEvaluation:
 # Self-contained on purpose: it only drives the evaluator phases above and
 # never changes their behaviour. evaluate_graph_snapshot() runs exactly what
 # evaluate_graph() runs (same build, same ordered execution, same finalize and
-# instance freeing) but, before the node instances are freed, records a
-# summary of every node's generated bulks. A regression can then be pinned to
-# the first node whose output drifted instead of only to the graph outputs.
+# element release) but, before the elements are released, records a summary
+# of every node's generated bulks. A regression can then be pinned to the
+# first node whose output drifted instead of only to the graph outputs.
 # ---------------------------------------------------------------------------
 
 ## Float quantization for snapshot hashes: values are rounded to 1/1000 before
@@ -1665,19 +1392,20 @@ const SNAPSHOT_FLOAT_QUANTUM := 1000.0
 ## When `outputs_out` is a Dictionary it receives the graph outputs that
 ## evaluate_graph() would have returned.
 static func evaluate_graph_snapshot(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary = {}, depth: int = 0, outputs_out = null) -> Dictionary:
-	if depth > 20:
-		push_error("PCG graph evaluation exceeded maximum recursion depth (20). Check for circular subgraph references.")
+	var executor := FlowExecutor.new()
+	if parent_ctx != null and parent_ctx.get_meta(FlowExecutor.THREADED_META, false):
+		executor.mode = FlowExecutor.Mode.THREADED
+	if not executor.begin(graph, input_data_map, parent_ctx, runtime_params, depth):
 		return {}
-	var state := _build_evaluation_state(graph, input_data_map, parent_ctx, runtime_params, depth)
-	if state.is_empty():
-		return {}
-	var graph_res: FlowGraphResource = state["graph"]
-	var instances: Dictionary = state["instances"]
-	var ctx: FlowData.EvaluationContext = state["ctx"]
-	for node in state["ordered_nodes"]:
-		_execute_single_node(node, instances, graph_res, ctx)
+	var node_list : Array = executor.state["node_list"].duplicate()
+	# Execute without finalizing, so the elements' bulks can be read first.
+	if executor.mode == FlowExecutor.Mode.THREADED:
+		executor._run_threaded()
+	else:
+		for node in executor.state["ordered_nodes"]:
+			executor._run_element(node)
 	var snapshot := {}
-	for node in state["node_list"]:
+	for node in node_list:
 		var bulks := []
 		for bulk in node.generated_bulks:
 			var ports := []
@@ -1688,7 +1416,7 @@ static func evaluate_graph_snapshot(graph: FlowGraphResource, input_data_map: Di
 					ports.append(null)
 			bulks.append(ports)
 		snapshot[str(node.name)] = bulks
-	var outputs := _finalize_evaluation(state)
+	var outputs := executor.finalize()
 	if outputs_out is Dictionary:
 		outputs_out.clear()
 		for key in outputs:

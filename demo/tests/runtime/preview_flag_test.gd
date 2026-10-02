@@ -40,7 +40,6 @@ func test_require_input_errors_without_preview() -> void:
 	var node := _run("match_and_set", [null, null], _ctx(false))
 	assert_str(node.err).is_equal("Input 'In' not connected")
 	assert_object(_output(node)).is_null()
-	node.free()
 
 
 func test_require_input_is_silent_in_ownerless_preview() -> void:
@@ -50,7 +49,6 @@ func test_require_input_is_silent_in_ownerless_preview() -> void:
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
 	assert_int(out.streams.size()).is_equal(0)
-	node.free()
 
 
 func test_preview_with_owner_still_reports_errors() -> void:
@@ -60,7 +58,6 @@ func test_preview_with_owner_still_reports_errors() -> void:
 	ctx.owner = host
 	var node := _run("match_and_set", [null, null], ctx)
 	assert_str(node.err).is_equal("Input 'In' not connected")
-	node.free()
 	host.free()
 
 
@@ -69,20 +66,16 @@ func test_idiom_node_uses_preview_flag() -> void:
 	var pts := TestGraph.points([Vector3.ZERO, Vector3.ONE])
 	var loud := _run("distance", [pts, null], _ctx(false))
 	assert_str(loud.err).is_equal("Input B not connected")
-	loud.free()
 	var quiet := _run("distance", [pts, null], _ctx(true))
 	assert_str(quiet.err).is_empty()
 	assert_int(_output(quiet).size()).is_equal(0)
-	quiet.free()
 
 
 func test_missing_owner_reported_only_outside_preview() -> void:
 	var loud := _run("create_spline", [TestGraph.points([Vector3.ZERO])], _ctx(false))
 	assert_str(loud.err).contains("needs an owner node")
-	loud.free()
 	var quiet := _run("create_spline", [TestGraph.points([Vector3.ZERO])], _ctx(true))
 	assert_str(quiet.err).not_contains("needs an owner node")
-	quiet.free()
 
 
 func _failing_graph() -> FlowGraphResource:

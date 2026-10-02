@@ -74,7 +74,6 @@ func test_empty_assets_no_error() -> void:
 	# Output data exists even when there are no assets (no streams, but no crash).
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_all_null_entries_no_error() -> void:
 	# Null entries must be skipped without a crash or error.
@@ -85,7 +84,6 @@ func test_all_null_entries_no_error() -> void:
 	s.assets.append(null)
 	var node = _run(s)
 	assert_str(node.err).is_empty()
-	node.free()
 
 func test_mixed_null_and_real_entries_no_error() -> void:
 	var scr = _make_float_asset_script()
@@ -98,7 +96,6 @@ func test_mixed_null_and_real_entries_no_error() -> void:
 	s.assets.append(a)
 	var node = _run(s)
 	assert_str(node.err).is_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Float property: two assets, verify stream length and values
@@ -131,7 +128,6 @@ func test_float_stream_values() -> void:
 	assert_float(float(container[0])).is_equal_approx(0.25, 0.001)
 	assert_float(float(container[1])).is_equal_approx(0.75, 0.001)
 
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Multi-type properties: int, bool, String, Vector3 all in one pass
@@ -194,7 +190,6 @@ func test_multi_type_streams_produced() -> void:
 	assert_vector(offset_c[0]).is_equal_approx(Vector3(1.0, 2.0, 3.0), Vector3.ONE * 0.001)
 	assert_vector(offset_c[1]).is_equal_approx(Vector3(4.0, 5.0, 6.0), Vector3.ONE * 0.001)
 
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Color property: must be converted to Vector3(r, g, b)
@@ -226,7 +221,6 @@ func test_color_mapped_to_vector3_stream() -> void:
 	assert_vector(tint_c[0]).is_equal_approx(Vector3(1.0, 0.0, 0.5), Vector3.ONE * 0.001)
 	assert_vector(tint_c[1]).is_equal_approx(Vector3(0.0, 1.0, 0.0), Vector3.ONE * 0.001)
 
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Stream count: each distinct exported property becomes exactly one stream
@@ -253,7 +247,6 @@ func test_stream_count_matches_property_count() -> void:
 	assert_bool(out.hasStream("label")).is_true()
 	assert_bool(out.hasStream("offset")).is_true()
 
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Null fallback: a null entry at position i must write the default value for
@@ -286,7 +279,6 @@ func test_null_entry_writes_default_float() -> void:
 	assert_float(float(container[0])).is_equal_approx(0.0, 0.001)
 	assert_float(float(container[1])).is_equal_approx(9.0, 0.001)
 
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Trace flag must not error
@@ -304,7 +296,6 @@ func test_trace_flag_does_not_error() -> void:
 
 	var node = _run(s)
 	assert_str(node.err).is_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Single asset produces streams of length 1
@@ -330,4 +321,3 @@ func test_single_asset_stream_length_one() -> void:
 	assert_int(stream.container.size()).is_equal(1)
 	assert_float(float(stream.container[0])).is_equal_approx(42.0, 0.001)
 
-	node.free()

@@ -43,7 +43,6 @@ func test_passthrough_no_attribute_floats() -> void:
 	var stream = out.findStream("P")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([1.0, 2.0, 3.0]))
-	node.free()
 
 func test_passthrough_with_attribute_floats() -> void:
 	var d = _make_data("density", PackedFloat32Array([0.1, 0.5, 0.9]), FlowDataScript.DataType.Float)
@@ -54,7 +53,6 @@ func test_passthrough_with_attribute_floats() -> void:
 	var stream = out.findStream("density")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([0.1, 0.5, 0.9]))
-	node.free()
 
 func test_passthrough_with_attribute_vectors() -> void:
 	var d = _make_data("normal", PackedVector3Array([Vector3(0, 1, 0), Vector3(1, 0, 0)]), FlowDataScript.DataType.Vector)
@@ -65,7 +63,6 @@ func test_passthrough_with_attribute_vectors() -> void:
 	var stream = out.findStream("normal")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(0, 1, 0), Vector3(1, 0, 0)]))
-	node.free()
 
 func test_passthrough_with_attribute_ints() -> void:
 	var d = _make_data("id", PackedInt32Array([10, 20, 30]), FlowDataScript.DataType.Int)
@@ -76,7 +73,6 @@ func test_passthrough_with_attribute_ints() -> void:
 	var stream = out.findStream("id")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([10, 20, 30]))
-	node.free()
 
 func test_passthrough_with_attribute_colors() -> void:
 	var d = _make_data("color", PackedColorArray([Color(1, 0, 0, 1), Color(0, 1, 0, 1)]), FlowDataScript.DataType.Color)
@@ -87,7 +83,6 @@ func test_passthrough_with_attribute_colors() -> void:
 	var stream = out.findStream("color")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedColorArray([Color(1, 0, 0, 1), Color(0, 1, 0, 1)]))
-	node.free()
 
 func test_missing_stream_still_passes_through() -> void:
 	var d = _make_data("P", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
@@ -98,7 +93,6 @@ func test_missing_stream_still_passes_through() -> void:
 	var stream = out.findStream("P")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([1.0, 2.0]))
-	node.free()
 
 func test_large_stream_truncated_print_still_passes_through() -> void:
 	var values = PackedFloat32Array()
@@ -113,7 +107,6 @@ func test_large_stream_truncated_print_still_passes_through() -> void:
 	var stream = out.findStream("big")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(150)
-	node.free()
 
 func test_single_element_stream() -> void:
 	var d = _make_data("val", PackedFloat32Array([42.0]), FlowDataScript.DataType.Float)
@@ -124,7 +117,6 @@ func test_single_element_stream() -> void:
 	var stream = out.findStream("val")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([42.0]))
-	node.free()
 
 func test_missing_input_sets_error() -> void:
 	var node = PrintStringNode.new()
@@ -139,4 +131,3 @@ func test_missing_input_sets_error() -> void:
 	node.execute(ctx)
 	assert_str(node.err).is_not_empty()
 	dummy.free()
-	node.free()

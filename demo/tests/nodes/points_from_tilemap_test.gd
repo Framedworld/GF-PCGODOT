@@ -72,7 +72,6 @@ func test_null_owner_reports_owner_error_and_empty_output() -> void:
 	assert_str(node.err).contains("needs an owner node")
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_invalid_tilemap_path_sets_error() -> void:
 	var s = _default_settings()
@@ -82,7 +81,6 @@ func test_invalid_tilemap_path_sets_error() -> void:
 	var node = _run(owner_node, s)
 	assert_str(node.err).is_not_empty()
 	owner_node.free()
-	node.free()
 
 func test_no_tilemaplayer_in_scene_returns_empty_no_error() -> void:
 	# Owner has only plain Node3D children — no TileMapLayer
@@ -95,7 +93,6 @@ func test_no_tilemaplayer_in_scene_returns_empty_no_error() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # SCENE-BUILD: real TileMapLayer with populated cells
@@ -113,7 +110,6 @@ func test_one_layer_two_cells_produces_two_points() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_empty_layer_produces_zero_points() -> void:
 	var result = _make_owner_with_layer([])
@@ -124,7 +120,6 @@ func test_empty_layer_produces_zero_points() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	owner_node.free()
-	node.free()
 
 func test_cell_stream_carries_raw_grid_coordinates() -> void:
 	# The node sets cells[i] = Vector3(cell.x, 0.0, cell.y) unconditionally.
@@ -152,7 +147,6 @@ func test_cell_stream_carries_raw_grid_coordinates() -> void:
 	var expected : Array = [Vector2(2.0, 3.0), Vector2(5.0, 7.0)]
 	assert_bool(pairs.has(expected[0]) and pairs.has(expected[1])).is_true()
 	owner_node.free()
-	node.free()
 
 func test_size_stream_matches_cell_size_setting() -> void:
 	var result = _make_owner_with_layer([Vector2i(0, 0), Vector2i(1, 0)])
@@ -173,7 +167,6 @@ func test_size_stream_matches_cell_size_setting() -> void:
 		assert_float(sz.y).is_equal_approx(5.0, 0.001)
 		assert_float(sz.z).is_equal_approx(3.0, 0.001)
 	owner_node.free()
-	node.free()
 
 func test_height_setting_applied_to_y_position() -> void:
 	# The node sets y = settings.height for every point regardless of cell pos.
@@ -188,7 +181,6 @@ func test_height_setting_applied_to_y_position() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_float(pos_stream.container[0].y).is_equal_approx(42.0, 0.001)
 	owner_node.free()
-	node.free()
 
 func test_rotation_stream_is_all_zero() -> void:
 	# The execute() appends Vector3.ZERO for every cell's rotation.
@@ -206,7 +198,6 @@ func test_rotation_stream_is_all_zero() -> void:
 		assert_float(r.y).is_equal_approx(0.0, 0.001)
 		assert_float(r.z).is_equal_approx(0.0, 0.001)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Tile ID streams
@@ -225,7 +216,6 @@ func test_tile_id_streams_present_when_include_tile_ids_true() -> void:
 	assert_object(out.findStream("tile_source_id")).is_not_null()
 	assert_object(out.findStream("tile_alt_id")).is_not_null()
 	owner_node.free()
-	node.free()
 
 func test_tile_id_streams_absent_when_include_tile_ids_false() -> void:
 	var result = _make_owner_with_layer([Vector2i(0, 0)])
@@ -239,7 +229,6 @@ func test_tile_id_streams_absent_when_include_tile_ids_false() -> void:
 	assert_object(out.findStream("tile_source_id")).is_null()
 	assert_object(out.findStream("tile_alt_id")).is_null()
 	owner_node.free()
-	node.free()
 
 func test_source_id_stream_value_matches_set_cell_source_id() -> void:
 	# We set_cell with source_id=0; the stream must record 0.
@@ -256,7 +245,6 @@ func test_source_id_stream_value_matches_set_cell_source_id() -> void:
 	assert_int(sid_stream.container.size()).is_equal(1)
 	assert_int(sid_stream.container[0]).is_equal(0)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Source ID filter
@@ -277,7 +265,6 @@ func test_source_id_filter_excludes_non_matching_cells() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(0)
 	owner_node.free()
-	node.free()
 
 func test_source_id_filter_minus_one_passes_all_cells() -> void:
 	var result = _make_owner_with_layer([Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0)])
@@ -291,7 +278,6 @@ func test_source_id_filter_minus_one_passes_all_cells() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(3)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Cell attribute stream toggle
@@ -308,7 +294,6 @@ func test_empty_cell_attribute_name_suppresses_cell_stream() -> void:
 	assert_object(out.findStream("tile_cell")).is_null()
 	assert_object(out.findStream("")).is_null()
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Layer reference stream
@@ -327,7 +312,6 @@ func test_layer_ref_stream_present_when_include_layer_ref_true() -> void:
 	assert_object(layer_stream).is_not_null()
 	assert_int(layer_stream.container.size()).is_equal(1)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Tilemap path resolution
@@ -350,7 +334,6 @@ func test_valid_tilemap_path_finds_single_layer() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_tilemap_path_to_non_tilemaplayer_node_sets_error() -> void:
 	var owner_node = FlowGraphNode3D.new()
@@ -363,7 +346,6 @@ func test_tilemap_path_to_non_tilemaplayer_node_sets_error() -> void:
 	var node = _run(owner_node, s)
 	assert_str(node.err).is_not_empty()
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Multiple layers
@@ -387,4 +369,3 @@ func test_two_layers_points_are_accumulated() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(3)
 	owner_node.free()
-	node.free()

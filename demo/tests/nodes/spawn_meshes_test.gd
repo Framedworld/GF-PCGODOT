@@ -27,7 +27,7 @@ func _settings() -> SpawnMeshesSettings:
 	s.use_vertex_colors = true
 	return s
 
-func _make(s, node_name := "spawner") -> Node:
+func _make(s, node_name := "spawner") -> FlowNodeBase:
 	var node = SpawnMeshesNode.new()
 	node.name = node_name
 	node.settings = s

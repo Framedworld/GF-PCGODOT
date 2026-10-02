@@ -62,7 +62,6 @@ func test_snap_position_default_grid() -> void:
 	assert_float(snapped[1].x).is_equal_approx(6.0, 0.001)
 	assert_float(snapped[1].y).is_equal_approx(6.0, 0.001)
 	assert_float(snapped[1].z).is_equal_approx(2.0, 0.001)
-	node.free()
 
 func test_snap_position_non_uniform_grid() -> void:
 	var s = SnapToGridSettings.new()
@@ -85,7 +84,6 @@ func test_snap_position_non_uniform_grid() -> void:
 	assert_float(snapped[0].x).is_equal_approx(5.0, 0.001)
 	assert_float(snapped[0].y).is_equal_approx(10.0, 0.001)
 	assert_float(snapped[0].z).is_equal_approx(6.0, 0.001)
-	node.free()
 
 func test_snap_rotation_uses_rotation_grid() -> void:
 	var s = SnapToGridSettings.new()
@@ -115,7 +113,6 @@ func test_snap_rotation_uses_rotation_grid() -> void:
 	assert_float(snapped[0].z).is_equal_approx(0.0, 0.001)
 	assert_float(snapped[1].x).is_equal_approx(90.0, 0.001)
 	assert_float(snapped[1].y).is_equal_approx(180.0, 0.001)
-	node.free()
 
 func test_snap_scale_uses_scale_grid() -> void:
 	var s = SnapToGridSettings.new()
@@ -139,7 +136,6 @@ func test_snap_scale_uses_scale_grid() -> void:
 	assert_float(snapped[0].x).is_equal_approx(1.5, 0.001)
 	assert_float(snapped[0].y).is_equal_approx(2.5, 0.001)
 	assert_float(snapped[0].z).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_rotation_grid_falls_back_to_grid_size_when_zero() -> void:
 	var s = SnapToGridSettings.new()
@@ -163,7 +159,6 @@ func test_rotation_grid_falls_back_to_grid_size_when_zero() -> void:
 	assert_float(snapped[0].x).is_equal_approx(90.0, 0.001)
 	assert_float(snapped[0].y).is_equal_approx(90.0, 0.001)
 	assert_float(snapped[0].z).is_equal_approx(90.0, 0.001)
-	node.free()
 
 func test_snap_all_three_simultaneously() -> void:
 	var s = SnapToGridSettings.new()
@@ -203,7 +198,6 @@ func test_snap_all_three_simultaneously() -> void:
 	assert_float(snapped_sz[0].x).is_equal_approx(1.0, 0.001)
 	assert_float(snapped_sz[0].y).is_equal_approx(2.25, 0.001)
 	assert_float(snapped_sz[0].z).is_equal_approx(0.5, 0.001)
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s = SnapToGridSettings.new()
@@ -211,7 +205,6 @@ func test_missing_input_error() -> void:
 
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_position_stream_error() -> void:
 	var s = SnapToGridSettings.new()
@@ -223,7 +216,6 @@ func test_missing_position_stream_error() -> void:
 	d.registerStream("custom", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_rotation_stream_error() -> void:
 	var s = SnapToGridSettings.new()
@@ -234,7 +226,6 @@ func test_missing_rotation_stream_error() -> void:
 	var in_data := _make_point_data(PackedVector3Array([Vector3.ZERO]))
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_size_stream_error() -> void:
 	var s = SnapToGridSettings.new()
@@ -245,7 +236,6 @@ func test_missing_size_stream_error() -> void:
 	var in_data := _make_point_data(PackedVector3Array([Vector3.ZERO]))
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_single_point_snaps_correctly() -> void:
 	var s = SnapToGridSettings.new()
@@ -267,7 +257,6 @@ func test_single_point_snaps_correctly() -> void:
 	assert_float(snapped[0].x).is_equal_approx(0.0, 0.001)
 	assert_float(snapped[0].y).is_equal_approx(0.0, 0.001)
 	assert_float(snapped[0].z).is_equal_approx(0.0, 0.001)
-	node.free()
 
 func test_zero_step_axis_leaves_value_unchanged() -> void:
 	var s = SnapToGridSettings.new()
@@ -288,7 +277,6 @@ func test_zero_step_axis_leaves_value_unchanged() -> void:
 	assert_float(snapped[0].x).is_equal_approx(2.0, 0.001)
 	assert_float(snapped[0].y).is_equal_approx(7.777, 0.001)
 	assert_float(snapped[0].z).is_equal_approx(2.0, 0.001)
-	node.free()
 
 func test_input_data_is_not_modified_in_place() -> void:
 	var s = SnapToGridSettings.new()
@@ -306,4 +294,3 @@ func test_input_data_is_not_modified_in_place() -> void:
 	assert_str(node.err).is_empty()
 	var still_original = in_data.findStream(FlowDataScript.AttrPosition)
 	assert_float(still_original.container[0].x).is_equal_approx(original_x, 0.001)
-	node.free()

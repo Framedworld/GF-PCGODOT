@@ -59,7 +59,6 @@ func test_basic_line_three_points() -> void:
 	assert_bool(path.curve.get_point_position(0).is_equal_approx(Vector3(0, 0, 0))).is_true()
 	assert_bool(path.curve.get_point_position(1).is_equal_approx(Vector3(5, 0, 0))).is_true()
 	assert_bool(path.curve.get_point_position(2).is_equal_approx(Vector3(10, 0, 0))).is_true()
-	node.free()
 
 func test_tangents_computed_for_middle_points() -> void:
 	var positions = PackedVector3Array([
@@ -98,7 +97,6 @@ func test_tangents_computed_for_middle_points() -> void:
 	var out_tan_last: Vector3 = path.curve.get_point_out(3)
 	assert_bool(in_tan_last.is_equal_approx(Vector3.ZERO)).is_true()
 	assert_bool(out_tan_last.is_equal_approx(Vector3.ZERO)).is_true()
-	node.free()
 
 func test_single_point_produces_path_with_one_point() -> void:
 	var positions = PackedVector3Array([Vector3(3, 7, -2)])
@@ -117,7 +115,6 @@ func test_single_point_produces_path_with_one_point() -> void:
 	var path: Path3D = stream.container[0]
 	assert_int(path.curve.point_count).is_equal(1)
 	assert_bool(path.curve.get_point_position(0).is_equal_approx(Vector3(3, 7, -2))).is_true()
-	node.free()
 
 func test_two_points_endpoints_have_zero_tangents() -> void:
 	var positions = PackedVector3Array([Vector3(0, 0, 0), Vector3(1, 2, 3)])
@@ -139,12 +136,10 @@ func test_two_points_endpoints_have_zero_tangents() -> void:
 	assert_bool(path.curve.get_point_out(0).is_equal_approx(Vector3.ZERO)).is_true()
 	assert_bool(path.curve.get_point_in(1).is_equal_approx(Vector3.ZERO)).is_true()
 	assert_bool(path.curve.get_point_out(1).is_equal_approx(Vector3.ZERO)).is_true()
-	node.free()
 
 func test_missing_input_sets_error() -> void:
 	var node = _run([null])
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_transform_streams_sets_error() -> void:
 	var d := FlowDataScript.Data.new()
@@ -152,7 +147,6 @@ func test_missing_transform_streams_sets_error() -> void:
 
 	var node = _run([d])
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_no_scene_tree_sets_error() -> void:
 	var positions = PackedVector3Array([Vector3(0, 0, 0), Vector3(1, 0, 0)])
@@ -162,7 +156,6 @@ func test_no_scene_tree_sets_error() -> void:
 
 	var node = _run([in_data], false)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_output_registered_as_node_path_stream() -> void:
 	var positions = PackedVector3Array([Vector3(0, 0, 0), Vector3(2, 0, 0), Vector3(4, 0, 0)])
@@ -180,7 +173,6 @@ func test_output_registered_as_node_path_stream() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.data_type).is_equal(FlowDataScript.DataType.NodePath)
 	assert_int(stream.container.size()).is_equal(1)
-	node.free()
 
 func test_large_point_cloud_produces_correct_count() -> void:
 	var count := 50
@@ -205,4 +197,3 @@ func test_large_point_cloud_produces_correct_count() -> void:
 	assert_int(path.curve.point_count).is_equal(count)
 	assert_bool(path.curve.get_point_position(0).is_equal_approx(Vector3(0, 0, 0))).is_true()
 	assert_bool(path.curve.get_point_position(count - 1).is_equal_approx(Vector3((count - 1) * 1.0, 0, 0))).is_true()
-	node.free()

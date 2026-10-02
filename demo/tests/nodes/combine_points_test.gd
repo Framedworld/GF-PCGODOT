@@ -40,7 +40,6 @@ func test_null_input_returns_empty_data() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_empty_data_returns_empty_data() -> void:
 	var d := FlowDataScript.Data.new()
@@ -50,14 +49,12 @@ func test_empty_data_returns_empty_data() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_missing_position_stream_sets_error() -> void:
 	var d := FlowDataScript.Data.new()
 	d.registerStream("color", PackedColorArray([Color(1, 0, 0)]), FlowDataScript.DataType.Color)
 	var node = _run(d)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_single_point_no_size() -> void:
 	var positions = PackedVector3Array([Vector3(2.0, 4.0, 6.0)])
@@ -76,7 +73,6 @@ func test_single_point_no_size() -> void:
 	var rot_stream = out.findStream(FlowData.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	assert_array(rot_stream.container).is_equal(PackedVector3Array([Vector3.ZERO]))
-	node.free()
 
 func test_multiple_points_no_size_computes_aabb_center() -> void:
 	var positions = PackedVector3Array([
@@ -97,7 +93,6 @@ func test_multiple_points_no_size_computes_aabb_center() -> void:
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_object(size_stream).is_not_null()
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(10.0, 6.0, 4.0)]))
-	node.free()
 
 func test_points_with_sizes_expand_bounds() -> void:
 	var positions = PackedVector3Array([
@@ -121,7 +116,6 @@ func test_points_with_sizes_expand_bounds() -> void:
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_object(size_stream).is_not_null()
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(12.0, 0.0, 0.0)]))
-	node.free()
 
 func test_broadcast_size_stream() -> void:
 	var positions = PackedVector3Array([
@@ -144,7 +138,6 @@ func test_broadcast_size_stream() -> void:
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_object(size_stream).is_not_null()
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(6.0, 2.0, 2.0)]))
-	node.free()
 
 func test_non_spatial_stream_carries_first_point_value() -> void:
 	var positions = PackedVector3Array([
@@ -167,7 +160,6 @@ func test_non_spatial_stream_carries_first_point_value() -> void:
 	assert_object(color_stream).is_not_null()
 	assert_int(color_stream.container.size()).is_equal(1)
 	assert_array(color_stream.container).is_equal(PackedColorArray([Color(1, 0, 0)]))
-	node.free()
 
 func test_single_point_with_size_center_and_size_correct() -> void:
 	var positions = PackedVector3Array([Vector3(5.0, 10.0, 15.0)])
@@ -186,7 +178,6 @@ func test_single_point_with_size_center_and_size_correct() -> void:
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_object(size_stream).is_not_null()
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(4.0, 6.0, 8.0)]))
-	node.free()
 
 func test_output_rotation_always_zero() -> void:
 	var positions = PackedVector3Array([Vector3(0.0, 0.0, 0.0), Vector3(1.0, 1.0, 1.0)])
@@ -200,4 +191,3 @@ func test_output_rotation_always_zero() -> void:
 	var rot_stream = out.findStream(FlowData.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	assert_array(rot_stream.container).is_equal(PackedVector3Array([Vector3.ZERO]))
-	node.free()

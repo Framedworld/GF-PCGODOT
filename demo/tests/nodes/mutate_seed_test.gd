@@ -66,7 +66,6 @@ func test_replace_mode_no_position() -> void:
 	assert_int(stream.container[0]).is_equal(expected0)
 	assert_int(stream.container[1]).is_equal(expected1)
 	assert_int(stream.container[2]).is_equal(expected2)
-	node.free()
 
 func test_add_mode_no_position() -> void:
 	var s = MutateSeedSettings.new()
@@ -90,7 +89,6 @@ func test_add_mode_no_position() -> void:
 	var mutated1 = _expected_hash(100, 1, 99, 7)
 	assert_int(stream.container[0]).is_equal(int(5 + mutated0))
 	assert_int(stream.container[1]).is_equal(int(100 + mutated1))
-	node.free()
 
 func test_xor_mode_no_position() -> void:
 	var s = MutateSeedSettings.new()
@@ -114,7 +112,6 @@ func test_xor_mode_no_position() -> void:
 	var mutated1 = _expected_hash(1000, 1, 42, 3)
 	assert_int(stream.container[0]).is_equal(int(255 ^ mutated0))
 	assert_int(stream.container[1]).is_equal(int(1000 ^ mutated1))
-	node.free()
 
 func test_index_fallback_when_no_seed_attribute() -> void:
 	var s = MutateSeedSettings.new()
@@ -140,7 +137,6 @@ func test_index_fallback_when_no_seed_attribute() -> void:
 	assert_int(stream.container[0]).is_equal(expected0)
 	assert_int(stream.container[1]).is_equal(expected1)
 	assert_int(stream.container[2]).is_equal(expected2)
-	node.free()
 
 func test_float_seed_attribute() -> void:
 	var s = MutateSeedSettings.new()
@@ -163,7 +159,6 @@ func test_float_seed_attribute() -> void:
 	var expected1 = _expected_hash(int(round(9.2)), 1, 12345, 1)
 	assert_int(stream.container[0]).is_equal(expected0)
 	assert_int(stream.container[1]).is_equal(expected1)
-	node.free()
 
 func test_include_position_changes_output() -> void:
 	var s_no_pos = MutateSeedSettings.new()
@@ -198,8 +193,6 @@ func test_include_position_changes_output() -> void:
 	var stream_with_pos = out_with_pos.findStream("out_seed")
 
 	assert_bool(stream_no_pos.container[0] != stream_with_pos.container[0]).is_true()
-	node_no_pos.free()
-	node_with_pos.free()
 
 func test_single_point() -> void:
 	var s = MutateSeedSettings.new()
@@ -220,7 +213,6 @@ func test_single_point() -> void:
 	assert_int(stream.container.size()).is_equal(1)
 	var expected = _expected_hash(42, 0, 12345, 1)
 	assert_int(stream.container[0]).is_equal(expected)
-	node.free()
 
 func test_empty_input_passthrough() -> void:
 	var s = MutateSeedSettings.new()
@@ -233,7 +225,6 @@ func test_empty_input_passthrough() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s = MutateSeedSettings.new()
@@ -243,7 +234,6 @@ func test_missing_input_error() -> void:
 
 	var node = _run([], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_output_name_error() -> void:
 	var s = MutateSeedSettings.new()
@@ -254,7 +244,6 @@ func test_empty_output_name_error() -> void:
 	var in_data = _make_data("seed", PackedInt32Array([1, 2]), FlowDataScript.DataType.Int)
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_wrong_seed_type_error() -> void:
 	var s = MutateSeedSettings.new()
@@ -265,7 +254,6 @@ func test_wrong_seed_type_error() -> void:
 	var in_data = _make_data("vseed", PackedVector3Array([Vector3(1, 2, 3)]), FlowDataScript.DataType.Vector)
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_include_position_missing_position_stream_error() -> void:
 	var s = MutateSeedSettings.new()
@@ -276,7 +264,6 @@ func test_include_position_missing_position_stream_error() -> void:
 	var in_data = _make_data("seed", PackedInt32Array([1, 2]), FlowDataScript.DataType.Int)
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_broadcast_single_seed_value() -> void:
 	var s = MutateSeedSettings.new()
@@ -298,7 +285,6 @@ func test_broadcast_single_seed_value() -> void:
 	assert_int(stream.container.size()).is_equal(1)
 	var expected0 = _expected_hash(999, 0, 12345, 1)
 	assert_int(stream.container[0]).is_equal(expected0)
-	node.free()
 
 func test_output_stream_is_int_type() -> void:
 	var s = MutateSeedSettings.new()
@@ -317,4 +303,3 @@ func test_output_stream_is_int_type() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.data_type).is_equal(FlowDataScript.DataType.Int)
 	assert_int(stream.container.size()).is_equal(5)
-	node.free()

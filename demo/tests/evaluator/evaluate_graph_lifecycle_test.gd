@@ -95,14 +95,19 @@ func test_nested_subgraph_and_loop_instances_are_freed() -> void:
 
 
 func test_stock_node_instances_are_freed_after_finalize() -> void:
+	# Elements are RefCounted: finalize drops the evaluation's references, so the
+	# instances die once the GraphEvaluation is released (weak refs observe it).
 	var ev = FlowNodeIO.begin_evaluation(_real_node_graph(), {}, TestGraph.make_ctx(), {}, 0)
-	var captured : Array = ev._instances.values()
+	var captured : Array = []
+	for node in ev._instances.values():
+		captured.append(weakref(node))
 	assert_int(captured.size()).is_equal(7)
-	for node in captured:
-		assert_bool(is_instance_valid(node)).is_true()
+	for ref in captured:
+		assert_bool(ref.get_ref() != null).is_true()
 	ev.run_to_completion()
-	for node in captured:
-		assert_bool(is_instance_valid(node)).override_failure_message("instance still alive after finalize").is_false()
+	ev = null
+	for ref in captured:
+		assert_bool(ref.get_ref() == null).override_failure_message("instance still alive after finalize").is_true()
 
 
 func test_outputs_outlive_the_freed_instances() -> void:

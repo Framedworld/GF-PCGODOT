@@ -55,7 +55,6 @@ func test_matching_tag_routes_to_inside() -> void:
 	var outside := _outside(node)
 	assert_object(inside).is_equal(input)
 	assert_int(outside.size()).is_equal(0)
-	node.free()
 
 func test_non_matching_tag_routes_to_outside() -> void:
 	var input := _make_data(PackedStringArray(["rock", "snow"]))
@@ -65,7 +64,6 @@ func test_non_matching_tag_routes_to_outside() -> void:
 	var outside := _outside(node)
 	assert_int(inside.size()).is_equal(0)
 	assert_object(outside).is_equal(input)
-	node.free()
 
 func test_or_semantics_any_matching_tag_routes_inside() -> void:
 	var input := _make_data(PackedStringArray(["rock"]))
@@ -75,7 +73,6 @@ func test_or_semantics_any_matching_tag_routes_inside() -> void:
 	var outside := _outside(node)
 	assert_object(inside).is_equal(input)
 	assert_int(outside.size()).is_equal(0)
-	node.free()
 
 func test_data_with_no_tags_routes_to_outside() -> void:
 	var input := _make_data(PackedStringArray())
@@ -85,7 +82,6 @@ func test_data_with_no_tags_routes_to_outside() -> void:
 	var outside := _outside(node)
 	assert_int(inside.size()).is_equal(0)
 	assert_object(outside).is_equal(input)
-	node.free()
 
 func test_whitespace_around_tags_in_filter_is_trimmed() -> void:
 	var input := _make_data(PackedStringArray(["forest"]))
@@ -93,19 +89,16 @@ func test_whitespace_around_tags_in_filter_is_trimmed() -> void:
 	assert_str(node.err).is_empty()
 	var inside := _inside(node)
 	assert_object(inside).is_equal(input)
-	node.free()
 
 func test_empty_tags_setting_sets_error() -> void:
 	var input := _make_data(PackedStringArray(["grass"]))
 	var node := _run(input, _make_settings(""))
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_whitespace_only_tags_setting_sets_error() -> void:
 	var input := _make_data(PackedStringArray(["grass"]))
 	var node := _run(input, _make_settings("  ,  ,  "))
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_input_not_connected_sets_error() -> void:
 	var node := FilterDataByTagNode.new()
@@ -119,7 +112,6 @@ func test_input_not_connected_sets_error() -> void:
 	node.execute(ctx)
 	dummy.free()
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_multiple_data_tags_all_match_filter_still_routes_inside() -> void:
 	var input := _make_data(PackedStringArray(["grass", "forest", "rock"]))
@@ -129,7 +121,6 @@ func test_multiple_data_tags_all_match_filter_still_routes_inside() -> void:
 	var outside := _outside(node)
 	assert_object(inside).is_equal(input)
 	assert_int(outside.size()).is_equal(0)
-	node.free()
 
 func test_exact_tag_match_required_no_partial_matching() -> void:
 	var input := _make_data(PackedStringArray(["grassland"]))
@@ -139,4 +130,3 @@ func test_exact_tag_match_required_no_partial_matching() -> void:
 	var outside := _outside(node)
 	assert_int(inside.size()).is_equal(0)
 	assert_object(outside).is_equal(input)
-	node.free()

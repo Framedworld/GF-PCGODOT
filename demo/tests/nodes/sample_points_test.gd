@@ -66,7 +66,6 @@ func test_uniform_grid() -> void:
 	assert_object(out.findStream(FlowDataScript.AttrDensity)).is_not_null()
 	assert_object(out.findStream(FlowDataScript.AttrSeed)).is_not_null()
 	
-	node.free()
 
 func test_quasi_random_2d() -> void:
 	var in_data := FlowDataScript.Data.new()
@@ -99,7 +98,6 @@ func test_quasi_random_2d() -> void:
 	for i in range(10, 30):
 		assert_int(groups[i]).is_equal(1)
 		
-	node.free()
 
 func test_quasi_random_3d() -> void:
 	var in_data := FlowDataScript.Data.new()
@@ -119,7 +117,6 @@ func test_quasi_random_3d() -> void:
 	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(15)
 	
-	node.free()
 
 func test_blue_noise_2d() -> void:
 	var in_data := FlowDataScript.Data.new()
@@ -140,7 +137,6 @@ func test_blue_noise_2d() -> void:
 	# BlueNoise limits points by input size. For 10x10, it should output a positive number of points
 	assert_bool(positions.size() > 0).is_true()
 	
-	node.free()
 
 # ---------------------------------------------------------------------------
 # inherit_attributes
@@ -170,7 +166,6 @@ func test_inherit_attributes_default_off_keeps_common_streams_only() -> void:
 	var node = _run_sample_points(_parents_with_attributes(), SamplePointsSettings.eDistribution.QuasiRandom2D, _configure_small)
 	var out = _get_output_data(node)
 	assert_array(out.streams.keys()).is_equal(["position", "rotation", "size", "density", "seed"])
-	node.free()
 
 func test_inherit_attributes_copies_parent_values() -> void:
 	for distribution in [
@@ -209,7 +204,6 @@ func test_inherit_attributes_copies_parent_values() -> void:
 		for d in out.findStream(FlowDataScript.AttrDensity).container:
 			assert_float(d).is_equal(1.0)
 		assert_int(out.findStream(FlowDataScript.AttrSeed).container.size()).is_equal(n)
-		node.free()
 
 func test_inherit_attributes_does_not_change_generated_points() -> void:
 	var off = _run_sample_points(_parents_with_attributes(), SamplePointsSettings.eDistribution.BlueNoise2D, _configure_small)
@@ -220,8 +214,6 @@ func test_inherit_attributes_does_not_change_generated_points() -> void:
 	for stream_name in ["position", "rotation", "size", "density", "seed"]:
 		assert_array(Array(_get_output_data(on).findStream(stream_name).container)) \
 			.is_equal(Array(_get_output_data(off).findStream(stream_name).container))
-	off.free()
-	on.free()
 
 func test_inherit_attributes_empty_input_keeps_schema() -> void:
 	var d := FlowDataScript.Data.new()
@@ -233,7 +225,6 @@ func test_inherit_attributes_empty_input_keeps_schema() -> void:
 	var out = _get_output_data(node)
 	assert_bool(out.hasStream("room")).is_true()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 
 func test_legacy_scale_from_extent_writes_no_bounds_streams() -> void:
@@ -248,9 +239,7 @@ func test_legacy_scale_from_extent_writes_no_bounds_streams() -> void:
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream(FlowDataScript.AttrBoundsMin)).is_false()
 	assert_bool(out.hasStream(FlowDataScript.AttrBoundsMax)).is_false()
-	node.free()
 
 	var node_b = _run_sample_points(in_data, SamplePointsSettings.eDistribution.UniformGrid)
 	var out_b = _get_output_data(node_b)
 	assert_bool(out_b.hasStream(FlowDataScript.AttrBoundsMin)).is_true()
-	node_b.free()

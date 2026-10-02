@@ -42,7 +42,6 @@ func test_missing_input_returns_error() -> void:
 	var s = SplitSplinesSettings.new()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_does_not_mutate_source_curve_bake_interval() -> void:
 	# Sampling must be non-destructive: the scene Curve3D's bake_interval is
@@ -55,7 +54,6 @@ func test_does_not_mutate_source_curve_bake_interval() -> void:
 	var node = _run([_make_spline_data([path])], s)
 	assert_str(node.err).is_empty()
 	assert_float(path.curve.bake_interval).is_equal_approx(3.0, 0.0001)
-	node.free()
 	path.free()
 
 func test_wrong_stream_name_returns_error() -> void:
@@ -66,7 +64,6 @@ func test_wrong_stream_name_returns_error() -> void:
 	s.spline_stream_attribute = "node"
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 	path.free()
 
 func test_basic_line_produces_segments() -> void:
@@ -85,7 +82,6 @@ func test_basic_line_produces_segments() -> void:
 	assert_int(rotations.size()).is_equal(positions.size())
 	var sizes = out.getVector3Container(FlowDataScript.AttrSize)
 	assert_int(sizes.size()).is_equal(positions.size())
-	node.free()
 	path.free()
 
 func test_segment_centers_are_midpoints() -> void:
@@ -109,7 +105,6 @@ func test_segment_centers_are_midpoints() -> void:
 	for i in range(positions.size()):
 		var expected_center = (start_stream.container[i] + end_stream.container[i]) * 0.5
 		assert_bool(positions[i].is_equal_approx(expected_center)).is_true()
-	node.free()
 	path.free()
 
 func test_optional_index_streams() -> void:
@@ -132,7 +127,6 @@ func test_optional_index_streams() -> void:
 		assert_bool(idx >= 0).is_true()
 	for idx in spl_stream.container:
 		assert_int(idx).is_equal(0)
-	node.free()
 	path.free()
 
 func test_multiple_splines_spline_index_increments() -> void:
@@ -158,7 +152,6 @@ func test_multiple_splines_spline_index_increments() -> void:
 			has_one = true
 	assert_bool(has_zero).is_true()
 	assert_bool(has_one).is_true()
-	node.free()
 	path0.free()
 	path1.free()
 
@@ -178,7 +171,6 @@ func test_include_spline_ref_outputs_node_stream() -> void:
 	assert_bool(ref_stream.container.size() > 0).is_true()
 	for ref in ref_stream.container:
 		assert_bool(ref == path).is_true()
-	node.free()
 	path.free()
 
 func test_empty_spline_list_produces_no_output_segments() -> void:
@@ -192,7 +184,6 @@ func test_empty_spline_list_produces_no_output_segments() -> void:
 	assert_object(out).is_not_null()
 	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(0)
-	node.free()
 
 func test_segment_size_xy_applied_to_bounds() -> void:
 	var path = _make_line_path(Vector3.ZERO, Vector3(10, 0, 0))
@@ -221,7 +212,6 @@ func test_segment_size_xy_applied_to_bounds() -> void:
 		assert_float(ext.x).is_equal_approx(3.0, 0.001)
 		assert_float(ext.y).is_equal_approx(7.0, 0.001)
 		assert_bool(ext.z > 0.0).is_true()
-	node.free()
 	path.free()
 
 func test_suppressed_optional_streams_not_registered() -> void:
@@ -242,5 +232,4 @@ func test_suppressed_optional_streams_not_registered() -> void:
 	assert_object(out.findStream("segment_end")).is_null()
 	assert_object(out.findStream("segment_index")).is_null()
 	assert_object(out.findStream("spline_index")).is_null()
-	node.free()
 	path.free()

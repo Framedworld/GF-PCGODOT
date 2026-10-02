@@ -24,12 +24,17 @@ static var _cache : Dictionary = {}
 static var parse_count : int = 0
 ## Number of evaluations served from the cache. Test/diagnostic aid.
 static var cache_hits : int = 0
+# Guards _cache and the counters: FlowExecutor's threaded mode may run several
+# of these nodes at once (docs/PARITY_ROUND2.md WP1).
+static var _cache_mutex := Mutex.new()
 
 ## Drops every cached parse result (and resets the diagnostic counters).
 static func clear_cache() -> void:
+	_cache_mutex.lock()
 	_cache.clear()
 	parse_count = 0
 	cache_hits = 0
+	_cache_mutex.unlock()
 
 func _as_vector3(value) -> Dictionary:
 	if value is Vector3:
@@ -216,14 +221,18 @@ func _parse_json_asset_cached(path : String, format : int) -> FlowData.Data:
 		settings.rows_property_name, settings.streams_property_name,
 		str(settings.add_source_path), settings.source_path_attribute,
 	]
+	_cache_mutex.lock()
 	var cached = _cache.get(key, null)
 	if cached != null:
 		cache_hits += 1
+		_cache_mutex.unlock()
 		return cached.duplicate()
 	parse_count += 1
+	_cache_mutex.unlock()
 	var parsed := _parse_json_asset(path)
 	if parsed == null:
 		return null
+	_cache_mutex.lock()
 	if _cache.size() >= MAX_CACHE_ENTRIES:
 		_cache.clear()
 	# Drop stale entries of the same path (older mtime/length) so edits don't
@@ -235,6 +244,7 @@ func _parse_json_asset_cached(path : String, format : int) -> FlowData.Data:
 		if ks.begins_with(path_prefix) and not ks.begins_with(revision_prefix):
 			_cache.erase(k)
 	_cache[key] = parsed
+	_cache_mutex.unlock()
 	return parsed.duplicate()
 
 func execute(ctx : FlowData.EvaluationContext):

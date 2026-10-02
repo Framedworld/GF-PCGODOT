@@ -49,7 +49,6 @@ func test_decompose_basic_vectors() -> void:
 	assert_array(sx.container).is_equal(PackedFloat32Array([1.0, 4.0]))
 	assert_array(sy.container).is_equal(PackedFloat32Array([2.0, 5.0]))
 	assert_array(sz.container).is_equal(PackedFloat32Array([3.0, 6.0]))
-	node.free()
 
 func test_decompose_single_vector() -> void:
 	var s = DecomposeVectorSettings.new()
@@ -65,7 +64,6 @@ func test_decompose_single_vector() -> void:
 	assert_array(out.findStream("px").container).is_equal(PackedFloat32Array([-1.5]))
 	assert_array(out.findStream("py").container).is_equal(PackedFloat32Array([0.0]))
 	assert_array(out.findStream("pz").container).is_equal(PackedFloat32Array([100.0]))
-	node.free()
 
 func test_decompose_preserves_existing_streams() -> void:
 	var s = DecomposeVectorSettings.new()
@@ -82,7 +80,6 @@ func test_decompose_preserves_existing_streams() -> void:
 	assert_object(out).is_not_null()
 	assert_object(out.findStream("mass")).is_not_null()
 	assert_object(out.findStream("vx")).is_not_null()
-	node.free()
 
 func test_skip_empty_output_attribute_names() -> void:
 	var s = DecomposeVectorSettings.new()
@@ -98,7 +95,6 @@ func test_skip_empty_output_attribute_names() -> void:
 	assert_object(out.findStream("x")).is_not_null()
 	assert_object(out.findStream("y")).is_null()
 	assert_object(out.findStream("z")).is_not_null()
-	node.free()
 
 func test_skip_all_empty_output_attribute_names() -> void:
 	var s = DecomposeVectorSettings.new()
@@ -114,7 +110,6 @@ func test_skip_all_empty_output_attribute_names() -> void:
 	assert_object(out.findStream("x")).is_null()
 	assert_object(out.findStream("y")).is_null()
 	assert_object(out.findStream("z")).is_null()
-	node.free()
 
 func test_missing_input_connection_error() -> void:
 	var s = DecomposeVectorSettings.new()
@@ -124,7 +119,6 @@ func test_missing_input_connection_error() -> void:
 	s.z_attribute = "z"
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_stream_not_found_error() -> void:
 	var s = DecomposeVectorSettings.new()
@@ -135,7 +129,6 @@ func test_stream_not_found_error() -> void:
 	var vecs = PackedVector3Array([Vector3(1.0, 2.0, 3.0)])
 	var node = _run([_make_data("position", vecs, FlowDataScript.DataType.Vector)], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_wrong_type_error() -> void:
 	var s = DecomposeVectorSettings.new()
@@ -145,7 +138,6 @@ func test_wrong_type_error() -> void:
 	s.z_attribute = "z"
 	var node = _run([_make_data("vec", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_decompose_large_array() -> void:
 	var s = DecomposeVectorSettings.new()
@@ -169,4 +161,3 @@ func test_decompose_large_array() -> void:
 	assert_array(out.findStream("x").container).is_equal(expected_x)
 	assert_array(out.findStream("y").container).is_equal(expected_y)
 	assert_array(out.findStream("z").container).is_equal(expected_z)
-	node.free()

@@ -68,7 +68,6 @@ func test_float_default_value() -> void:
 	var stream = out.findStream("my_float")
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(3.14, 0.001)
-	node.free()
 
 func test_int_default_value() -> void:
 	var s := InputSettings.new()
@@ -82,7 +81,6 @@ func test_int_default_value() -> void:
 	var stream = out.findStream("my_int")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container[0]).is_equal(42)
-	node.free()
 
 func test_vector_default_value() -> void:
 	var s := InputSettings.new()
@@ -96,7 +94,6 @@ func test_vector_default_value() -> void:
 	var stream = out.findStream("my_vec")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(1.0, 2.0, 3.0)]))
-	node.free()
 
 func test_float_overridden_by_args() -> void:
 	var s := InputSettings.new()
@@ -110,7 +107,6 @@ func test_float_overridden_by_args() -> void:
 	var stream = out.findStream("speed")
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(9.5, 0.001)
-	node.free()
 
 func test_float_overridden_by_flowdata_args() -> void:
 	var s := InputSettings.new()
@@ -126,7 +122,6 @@ func test_float_overridden_by_flowdata_args() -> void:
 	var stream = out.findStream("density")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([0.25, 0.5, 0.75]))
-	node.free()
 
 func test_error_no_graph() -> void:
 	var s := InputSettings.new()
@@ -143,7 +138,6 @@ func test_error_no_graph() -> void:
 	node.execute(ctx)
 	dummy.free()
 	assert_str(node.err).is_empty()
-	node.free()
 
 func test_error_empty_in_params() -> void:
 	var s := InputSettings.new()
@@ -152,7 +146,6 @@ func test_error_empty_in_params() -> void:
 	var graph := FlowGraphResource.new()
 	var node = _run(s, graph)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_param_name_not_found() -> void:
 	var s := InputSettings.new()
@@ -161,7 +154,6 @@ func test_error_param_name_not_found() -> void:
 	var graph = _make_graph_with_float_param("other_param", 0.0)
 	var node = _run(s, graph)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_multiple_params_output_correct_stream() -> void:
 	var s := InputSettings.new()
@@ -184,4 +176,3 @@ func test_multiple_params_output_correct_stream() -> void:
 	var stream = out.findStream("beta")
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(2.0, 0.001)
-	node.free()

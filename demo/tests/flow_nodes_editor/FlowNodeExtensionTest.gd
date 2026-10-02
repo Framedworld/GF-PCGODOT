@@ -175,7 +175,6 @@ func test_every_stock_node_declares_a_known_category() -> void:
 		var key := FlowNodeBaseScript.normalize_category(category)
 		if not FlowNodeBaseScript.CATEGORY_HUES.has(key):
 			missing.append("%s (%s)" % [file_name, category])
-		instance.free()
 	assert_array(missing).is_empty()
 
 func test_category_hue_comes_from_metadata() -> void:
@@ -191,7 +190,6 @@ func test_category_hue_comes_from_metadata() -> void:
 	node.meta_node = {}
 	var expected := float(node.node_template.hash() % 360) / 360.0
 	assert_float(node._get_category_hue()).is_equal(expected)
-	node.free()
 
 func test_search_popup_prefers_meta_category() -> void:
 	var popup := SearchAddNodePopup.new()
@@ -215,7 +213,6 @@ func test_fixture_node_with_meta_hue_gets_that_hue() -> void:
 	var node := _ext_instance("ext_fixture_hued")
 	assert_float(node._get_category_hue()).is_equal_approx(0.62, 0.00001)
 	assert_object(node._get_meta_node_color()).is_null()
-	node.free()
 
 func test_meta_hue_is_shared_across_project_category_and_clamped() -> void:
 	var a = FlowNodeBaseScript.new()
@@ -233,15 +230,12 @@ func test_meta_hue_is_shared_across_project_category_and_clamped() -> void:
 	# A non-numeric hue is ignored: the category table applies.
 	a.meta_node = { "category": "Filter", "hue": "red" }
 	assert_float(a._get_category_hue()).is_equal(FlowNodeBaseScript.CATEGORY_HUES["filter"])
-	a.free()
-	b.free()
 
 func test_fixture_node_with_meta_color_uses_its_hue_and_colour() -> void:
 	var node := _ext_instance("ext_fixture_colored")
 	var expected := Color(0.9, 0.3, 0.1)
 	assert_object(node._get_meta_node_color()).is_equal(expected)
 	assert_float(node._get_category_hue()).is_equal_approx(expected.h, 0.00001)
-	node.free()
 
 func _color_nodes_editor() -> Control:
 	var script := GDScript.new()
@@ -250,8 +244,9 @@ func _color_nodes_editor() -> Control:
 	var editor: Control = script.new()
 	return editor
 
-# update_node_style tints the title bar from meta_node.color (or the hue) when
-# the editor colours nodes. getEditor() is GraphEdit -> 3 Control ancestors up.
+# FlowNodeWidget.update_node_style tints the title bar from meta_node.color (or the
+# hue) when the editor colours nodes. getEditor() is GraphEdit -> 3 Control
+# ancestors up.
 func _styled_titlebar(node: FlowNodeBase) -> StyleBox:
 	var editor := _color_nodes_editor()
 	var c1 := Control.new()
@@ -260,10 +255,13 @@ func _styled_titlebar(node: FlowNodeBase) -> StyleBox:
 	editor.add_child(c1)
 	c1.add_child(c2)
 	c2.add_child(gedit)
-	gedit.add_child(node)
+	# Node scripts are runtime elements; the editor shows them through a widget.
+	var widget := FlowNodeWidget.new()
+	widget.element = node
+	gedit.add_child(widget)
 	add_child(editor)
-	node.update_node_style()
-	var sb := node.get_theme_stylebox("titlebar")
+	widget.update_node_style()
+	var sb := widget.get_theme_stylebox("titlebar")
 	editor.queue_free()
 	return sb
 

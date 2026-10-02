@@ -38,7 +38,7 @@ func _feedback_body() -> FlowGraphResource:
 		.link("grow", 0, "out_acc", 0) \
 		.build()
 
-func _make(graph: FlowGraphResource, output_name := "result", item_name := "item", feedback := "") -> Node:
+func _make(graph: FlowGraphResource, output_name := "result", item_name := "item", feedback := "") -> FlowNodeBase:
 	var node = LoopNode.new()
 	node.name = "test_loop"
 	var s = LoopSettings.new()

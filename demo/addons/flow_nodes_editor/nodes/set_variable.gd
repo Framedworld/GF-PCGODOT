@@ -33,14 +33,15 @@ func getTitle() -> String:
 func getExposedParams():
 	return []
 
-func refreshFromSettings():
-	super.refreshFromSettings()
+# --- Widget hooks (see node.gd) -----------------------------------------------
+
+func widget_refresh(widget):
 	var color := _get_custom_node_color()
-	if is_slot_enabled_left(0):
-		set_slot_color_left(0, color)
-	if is_slot_enabled_right(0):
-		set_slot_color_right(0, color)
-	title = getTitle()
+	if widget.is_slot_enabled_left(0):
+		widget.set_slot_color_left(0, color)
+	if widget.is_slot_enabled_right(0):
+		widget.set_slot_color_right(0, color)
+	widget.title = getTitle()
 
 func execute(ctx : FlowData.EvaluationContext):
 	var in_data : FlowData.Data = get_optional_input(0)

@@ -49,7 +49,6 @@ func test_missing_input_error() -> void:
 	var s = _default_row_index_settings()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_row_index_selects_correct_row() -> void:
 	var s = _default_row_index_settings()
@@ -71,7 +70,6 @@ func test_row_index_selects_correct_row() -> void:
 	var label_stream = out.findStream("label")
 	assert_object(label_stream).is_not_null()
 	assert_array(label_stream.container).is_equal(PackedInt32Array([2]))
-	node.free()
 
 func test_row_index_out_of_range_returns_empty() -> void:
 	var s = _default_row_index_settings()
@@ -87,7 +85,6 @@ func test_row_index_out_of_range_returns_empty() -> void:
 	var val_stream = out.findStream("value")
 	assert_object(val_stream).is_not_null()
 	assert_int(val_stream.container.size()).is_equal(0)
-	node.free()
 
 func test_empty_input_passthrough() -> void:
 	var s = _default_row_index_settings()
@@ -97,7 +94,6 @@ func test_empty_input_passthrough() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_match_attribute_first_match_only() -> void:
 	var s = _default_match_settings()
@@ -120,7 +116,6 @@ func test_match_attribute_first_match_only() -> void:
 	var score_stream = out.findStream("score")
 	assert_object(score_stream).is_not_null()
 	assert_array(score_stream.container).is_equal(PackedFloat32Array([2.0]))
-	node.free()
 
 func test_match_attribute_include_all_matches() -> void:
 	var s = _default_match_settings()
@@ -142,7 +137,6 @@ func test_match_attribute_include_all_matches() -> void:
 	var score_stream = out.findStream("score")
 	assert_object(score_stream).is_not_null()
 	assert_array(score_stream.container).is_equal(PackedFloat32Array([2.0, 4.0]))
-	node.free()
 
 func test_match_attribute_case_insensitive() -> void:
 	var s = _default_match_settings()
@@ -164,7 +158,6 @@ func test_match_attribute_case_insensitive() -> void:
 	var score_stream = out.findStream("score")
 	assert_object(score_stream).is_not_null()
 	assert_array(score_stream.container).is_equal(PackedFloat32Array([2.0]))
-	node.free()
 
 func test_match_attribute_case_sensitive_no_match() -> void:
 	var s = _default_match_settings()
@@ -186,7 +179,6 @@ func test_match_attribute_case_sensitive_no_match() -> void:
 	var score_stream = out.findStream("score")
 	assert_object(score_stream).is_not_null()
 	assert_int(score_stream.container.size()).is_equal(0)
-	node.free()
 
 func test_match_attribute_key_attribute_not_found_error() -> void:
 	var s = _default_match_settings()
@@ -198,7 +190,6 @@ func test_match_attribute_key_attribute_not_found_error() -> void:
 
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_row_index_first_row() -> void:
 	var s = _default_row_index_settings()
@@ -215,7 +206,6 @@ func test_row_index_first_row() -> void:
 	var val_stream = out.findStream("value")
 	assert_object(val_stream).is_not_null()
 	assert_array(val_stream.container).is_equal(PackedFloat32Array([100.0]))
-	node.free()
 
 func test_match_attribute_no_matches_returns_empty() -> void:
 	var s = _default_match_settings()
@@ -236,4 +226,3 @@ func test_match_attribute_no_matches_returns_empty() -> void:
 	var score_stream = out.findStream("score")
 	assert_object(score_stream).is_not_null()
 	assert_int(score_stream.container.size()).is_equal(0)
-	node.free()

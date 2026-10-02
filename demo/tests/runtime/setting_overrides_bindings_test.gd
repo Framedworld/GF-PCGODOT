@@ -314,6 +314,9 @@ func _editor_like_node(bindings: Dictionary) -> FlowNodeBase:
 
 func test_editor_path_applies_on_scratch_settings_without_emitting_changed() -> void:
 	var node := _editor_like_node({ "cte_float": "$k" })
+	# In the editor a FlowNodeWidget shows the element and watches its settings.
+	var widget := FlowNodeWidget.new()
+	widget.element = node
 	var authored: Resource = node.settings
 	var changed_count := [0]
 	authored.changed.connect(func(): changed_count[0] += 1)
@@ -335,9 +338,9 @@ func test_editor_path_applies_on_scratch_settings_without_emitting_changed() -> 
 	assert_float(authored.cte_float).is_equal(1.0)
 	assert_dict(authored.bindings).is_equal({ "cte_float": "$k" })
 	assert_int(changed_count[0]).is_equal(0)
-	# The node listens to the authored resource again after the swap back.
-	assert_bool(authored.changed.is_connected(node._on_settings_changed)).is_true()
-	node.free()
+	# The node's editor widget listens to the authored resource again after the swap back.
+	assert_bool(authored.changed.is_connected(widget._on_settings_changed)).is_true()
+	widget.free()
 
 
 func test_editor_path_is_noop_without_overrides_or_resolvable_bindings() -> void:
@@ -348,7 +351,6 @@ func test_editor_path_is_noop_without_overrides_or_resolvable_bindings() -> void
 	node.settings.bindings = { "cte_float": "$absent" }
 	assert_object(FlowNodeIO.begin_scratch_setting_bindings(node, null, ctx, {})).is_null()
 	assert_object(node.settings).is_same(authored)
-	node.free()
 
 
 func test_editor_uses_scratch_binding_helpers() -> void:
@@ -402,7 +404,6 @@ func test_graph_input_default_single_sources_nodes_in_editor_path() -> void:
 	assert_float(node.settings.cte_float).is_equal(6.5)
 	FlowNodeIO.end_scratch_setting_bindings(node, restored)
 	assert_float(node.settings.cte_float).is_equal(1.0)
-	node.free()
 
 
 
@@ -490,7 +491,6 @@ func test_dict_entry_binding_does_not_mutate_authored_args() -> void:
 	assert_float(scratch.args["theme"]).is_equal(7.0)
 	assert_float(authored_args["theme"]).is_equal(1.0)
 	assert_float(settings.args["theme"]).is_equal(1.0)
-	node.free()
 
 
 func test_unknown_binding_name_still_warns() -> void:

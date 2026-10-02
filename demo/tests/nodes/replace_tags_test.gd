@@ -47,7 +47,6 @@ func test_replace_existing_tags_with_new_set() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["rock", "ice"]))
-	node.free()
 
 func test_replace_empty_tags_with_new_set() -> void:
 	var s := _make_settings("grass, forest")
@@ -56,7 +55,6 @@ func test_replace_empty_tags_with_new_set() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["grass", "forest"]))
-	node.free()
 
 func test_replace_tags_with_empty_csv_clears_all_tags() -> void:
 	var s := _make_settings("")
@@ -66,7 +64,6 @@ func test_replace_tags_with_empty_csv_clears_all_tags() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray())
-	node.free()
 
 func test_replace_single_tag() -> void:
 	var s := _make_settings("desert")
@@ -76,7 +73,6 @@ func test_replace_single_tag() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["desert"]))
-	node.free()
 
 func test_duplicate_tags_in_csv_deduplicated() -> void:
 	var s := _make_settings("rock, rock, ice, rock")
@@ -86,7 +82,6 @@ func test_duplicate_tags_in_csv_deduplicated() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["rock", "ice"]))
-	node.free()
 
 func test_case_insensitive_deduplication_in_csv() -> void:
 	var s := _make_settings("Rock, rock, ROCK", false)
@@ -96,7 +91,6 @@ func test_case_insensitive_deduplication_in_csv() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["Rock"]))
-	node.free()
 
 func test_case_sensitive_allows_different_case_variants() -> void:
 	var s := _make_settings("Rock, rock, ROCK", true)
@@ -106,7 +100,6 @@ func test_case_sensitive_allows_different_case_variants() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["Rock", "rock", "ROCK"]))
-	node.free()
 
 func test_operation_setting_is_ignored_always_replaces() -> void:
 	var s := _make_settings("snow")
@@ -117,7 +110,6 @@ func test_operation_setting_is_ignored_always_replaces() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["snow"]))
-	node.free()
 
 func test_input_not_connected_sets_error() -> void:
 	var node := ReplaceTagsNode.new()
@@ -131,7 +123,6 @@ func test_input_not_connected_sets_error() -> void:
 	node.execute(ctx)
 	dummy.free()
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_does_not_mutate_original_input() -> void:
 	var s := _make_settings("rock")
@@ -140,7 +131,6 @@ func test_does_not_mutate_original_input() -> void:
 	var node := _run(input, s)
 	assert_str(node.err).is_empty()
 	assert_array(input.tags).is_equal(PackedStringArray(["grass", "forest"]))
-	node.free()
 
 func test_whitespace_trimmed_from_csv_tags() -> void:
 	var s := _make_settings("  grass  ,  forest  ,  rock  ")
@@ -149,4 +139,3 @@ func test_whitespace_trimmed_from_csv_tags() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["grass", "forest", "rock"]))
-	node.free()

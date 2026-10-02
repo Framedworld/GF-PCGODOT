@@ -40,7 +40,6 @@ func test_null_input_sets_error() -> void:
 	s.padding = 0.0
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_position_stream_sets_error() -> void:
 	var d := FlowDataScript.Data.new()
@@ -51,7 +50,6 @@ func test_missing_position_stream_sets_error() -> void:
 	s.padding = 0.0
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_well_separated_points_unchanged() -> void:
 	var positions = PackedVector3Array([
@@ -79,7 +77,6 @@ func test_well_separated_points_unchanged() -> void:
 	assert_float(result[0].distance_to(positions[0])).is_less(0.001)
 	assert_float(result[1].distance_to(positions[1])).is_less(0.001)
 	assert_float(result[2].distance_to(positions[2])).is_less(0.001)
-	node.free()
 
 func test_overlapping_points_pushed_apart() -> void:
 	var positions = PackedVector3Array([
@@ -104,7 +101,6 @@ func test_overlapping_points_pushed_apart() -> void:
 	assert_int(result.size()).is_equal(2)
 	var dist = result[0].distance_to(result[1])
 	assert_float(dist).is_greater(0.1)
-	node.free()
 
 func test_padding_increases_separation() -> void:
 	var positions = PackedVector3Array([
@@ -125,7 +121,6 @@ func test_padding_increases_separation() -> void:
 	var stream_no_pad = out_no_pad.findStream(FlowData.AttrPosition)
 	var result_no_pad : PackedVector3Array = stream_no_pad.container
 	var dist_no_pad = result_no_pad[0].distance_to(result_no_pad[1])
-	node_no_pad.free()
 
 	var s_padding = RelaxSettings.new()
 	s_padding.num_iterations = 20
@@ -137,7 +132,6 @@ func test_padding_increases_separation() -> void:
 	var stream_pad = out_pad.findStream(FlowData.AttrPosition)
 	var result_pad : PackedVector3Array = stream_pad.container
 	var dist_pad = result_pad[0].distance_to(result_pad[1])
-	node_pad.free()
 
 	assert_float(dist_pad).is_greater(dist_no_pad - 0.001)
 
@@ -160,4 +154,3 @@ func test_output_preserves_other_streams() -> void:
 	var density_stream = out.findStream("density")
 	assert_object(density_stream).is_not_null()
 	assert_array(density_stream.container).is_equal(PackedFloat32Array([0.8, 0.4]))
-	node.free()

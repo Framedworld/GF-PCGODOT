@@ -42,7 +42,7 @@ func _settings(scene: PackedScene = null) -> SpawnScenesSettings:
 	s.scene = scene
 	return s
 
-func _make(s, node_name := "spawner") -> Node:
+func _make(s, node_name := "spawner") -> FlowNodeBase:
 	var node = SpawnScenesNode.new()
 	node.name = node_name
 	node.settings = s

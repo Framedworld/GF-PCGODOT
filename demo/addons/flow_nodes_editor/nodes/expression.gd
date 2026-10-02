@@ -48,12 +48,15 @@ func getExposedParams():
 	return params
 	
 func getTitle() -> String:
-	size = get_combined_minimum_size()
 	if settings.title and settings.title != "Expression":
 		return settings.title
 	if !settings.expression:
 		return "Expression"
 	return shorten( settings.expression )
+
+# The title follows the expression text; shrink the widget to fit it.
+func widget_refresh(widget):
+	widget.size = widget.get_combined_minimum_size()
 
 # Translate UE-style `$Attribute` references into the matching Expression
 # variable name. UE PCG addresses built-ins with a `$` prefix ($Position, $Index,

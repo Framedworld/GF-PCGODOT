@@ -45,7 +45,6 @@ func test_count_float_stream() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
 	assert_int(stream.container[0]).is_equal(5)
-	node.free()
 
 
 func test_count_vector_stream() -> void:
@@ -59,7 +58,6 @@ func test_count_vector_stream() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container[0]).is_equal(3)
-	node.free()
 
 
 func test_count_int_stream() -> void:
@@ -73,7 +71,6 @@ func test_count_int_stream() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container[0]).is_equal(7)
-	node.free()
 
 
 func test_count_color_stream() -> void:
@@ -87,7 +84,6 @@ func test_count_color_stream() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container[0]).is_equal(2)
-	node.free()
 
 
 func test_single_element_input() -> void:
@@ -101,7 +97,6 @@ func test_single_element_input() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container[0]).is_equal(1)
-	node.free()
 
 
 func test_custom_output_stream_name() -> void:
@@ -117,7 +112,6 @@ func test_custom_output_stream_name() -> void:
 	var custom_stream = out.findStream("my_count")
 	assert_object(custom_stream).is_not_null()
 	assert_int(custom_stream.container[0]).is_equal(3)
-	node.free()
 
 
 func test_output_is_int_type() -> void:
@@ -132,7 +126,6 @@ func test_output_is_int_type() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.data_type).is_equal(FlowDataScript.DataType.Int)
 	assert_bool(stream.container is PackedInt32Array).is_true()
-	node.free()
 
 
 func test_missing_input_sets_error() -> void:
@@ -140,4 +133,3 @@ func test_missing_input_sets_error() -> void:
 	s.out_name = "count"
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()

@@ -73,6 +73,20 @@ signal cleaned_up
 ## async_generation is false.
 @export var frame_budget_ms : float = 4.0
 
+## Run independent pure nodes on WorkerThreadPool threads during synchronous
+## generate() (FlowExecutor THREADED mode). Nodes that touch the scene, physics,
+## rendering, spawn, or use graph variables stay on the main thread, in order.
+## Output is identical to the sequential run. Off by default. With
+## async_generation the top-level graph stays time-sliced (node by node); nested
+## subgraph and loop evaluations still honour this flag.
+@export var threaded : bool = false
+## Reuse the outputs of pure nodes whose settings, seed and input content did
+## not change since an earlier run (FlowOutputCache, shared process-wide,
+## bounded, LRU). Output is identical to running them. Off by default. Call
+## FlowOutputCache.clear() after editing a resource a node setting references
+## in place (a Curve, a Mesh).
+@export var output_cache : bool = false
+
 ## Outputs of the most recent generation (output name -> FlowData.Data).
 var last_outputs : Dictionary = {}
 

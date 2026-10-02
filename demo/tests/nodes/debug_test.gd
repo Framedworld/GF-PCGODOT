@@ -5,7 +5,7 @@ const FlowDataScript = preload("res://addons/flow_nodes_editor/flow_data.gd")
 const TestGraph = preload("res://tests/evaluator/support/test_graph.gd")
 const DebugNode = preload("res://addons/flow_nodes_editor/nodes/debug.gd")
 
-func _make() -> Node:
+func _make() -> FlowNodeBase:
 	var node = DebugNode.new()
 	node.name = "debug"
 	node.settings = NodeSettings.new()

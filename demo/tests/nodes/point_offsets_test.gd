@@ -64,7 +64,6 @@ func test_basic_single_offset_world_space() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_float(pos_stream.container[0].x).is_equal_approx(1.0, 0.001)
 	assert_float(pos_stream.container[1].x).is_equal_approx(6.0, 0.001)
-	node.free()
 
 func test_multiple_offsets_expand_count() -> void:
 	var s = PointOffsetsSettings.new()
@@ -88,7 +87,6 @@ func test_multiple_offsets_expand_count() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(6)
-	node.free()
 
 func test_local_space_applies_anchor_rotation() -> void:
 	var s = PointOffsetsSettings.new()
@@ -116,7 +114,6 @@ func test_local_space_applies_anchor_rotation() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_float(pos_stream.container[0].x).is_equal_approx(0.0, 0.001)
 	assert_float(pos_stream.container[0].z).is_equal_approx(-1.0, 0.001)
-	node.free()
 
 func test_parent_and_offset_index_attributes() -> void:
 	var s = PointOffsetsSettings.new()
@@ -154,7 +151,6 @@ func test_parent_and_offset_index_attributes() -> void:
 	assert_int(offset_stream.container[1]).is_equal(1)
 	assert_int(offset_stream.container[2]).is_equal(0)
 	assert_int(offset_stream.container[3]).is_equal(1)
-	node.free()
 
 func test_label_attribute_generated() -> void:
 	var s = PointOffsetsSettings.new()
@@ -183,7 +179,6 @@ func test_label_attribute_generated() -> void:
 	assert_object(label_stream).is_not_null()
 	assert_str(label_stream.container[0]).is_equal("base")
 	assert_str(label_stream.container[1]).is_equal("side")
-	node.free()
 
 func test_inherit_anchor_size_and_scale_offsets() -> void:
 	var s = PointOffsetsSettings.new()
@@ -215,7 +210,6 @@ func test_inherit_anchor_size_and_scale_offsets() -> void:
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_object(size_stream).is_not_null()
 	assert_float(size_stream.container[0].x).is_equal_approx(6.0, 0.001)
-	node.free()
 
 func test_empty_input_returns_empty_output() -> void:
 	var s = PointOffsetsSettings.new()
@@ -232,7 +226,6 @@ func test_empty_input_returns_empty_output() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_empty_offsets_list_returns_empty_output() -> void:
 	var s = PointOffsetsSettings.new()
@@ -250,7 +243,6 @@ func test_empty_offsets_list_returns_empty_output() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_missing_input_errors() -> void:
 	var s = PointOffsetsSettings.new()
@@ -262,7 +254,6 @@ func test_missing_input_errors() -> void:
 
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_extra_streams_copied_to_output() -> void:
 	var s = PointOffsetsSettings.new()
@@ -294,7 +285,6 @@ func test_extra_streams_copied_to_output() -> void:
 	assert_float(density_stream.container[1]).is_equal_approx(0.5, 0.001)
 	assert_float(density_stream.container[2]).is_equal_approx(0.8, 0.001)
 	assert_float(density_stream.container[3]).is_equal_approx(0.8, 0.001)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Bookkeeping columns: parent_index / offset_index / offset_label are written
@@ -314,7 +304,6 @@ func test_bookkeeping_columns_written_by_default() -> void:
 	assert_array(Array(out.findStream("parent_index").container)).is_equal([0, 0, 1, 1])
 	assert_array(Array(out.findStream("offset_index").container)).is_equal([0, 1, 0, 1])
 	assert_array(Array(out.findStream("offset_label").container)).is_equal(["0", "1", "0", "1"])
-	node.free()
 
 func test_empty_attribute_name_disables_each_column_independently() -> void:
 	var columns := {
@@ -334,7 +323,6 @@ func test_empty_attribute_name_disables_each_column_independently() -> void:
 			# No stray empty-named stream either.
 			assert_bool(out.hasStream("")).is_false()
 			assert_int(out.numFields()).is_equal(5)
-			node.free()
 
 func test_all_bookkeeping_columns_disabled_leaves_only_input_streams() -> void:
 	var node = _run_two_offsets(func(s):
@@ -344,4 +332,3 @@ func test_all_bookkeeping_columns_disabled_leaves_only_input_streams() -> void:
 	)
 	var out = _output(node)
 	assert_array(out.streams.keys()).is_equal(["position", "rotation", "size"])
-	node.free()

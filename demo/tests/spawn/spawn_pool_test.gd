@@ -33,7 +33,7 @@ func _scene(root_name : String) -> PackedScene:
 	root.free()
 	return packed
 
-func _scenes_node(scene : PackedScene, reuse := true) -> Node:
+func _scenes_node(scene : PackedScene, reuse := true) -> FlowNodeBase:
 	var s = SpawnScenesSettings.new()
 	s.scene = scene
 	s.reuse_instances = reuse
@@ -42,7 +42,7 @@ func _scenes_node(scene : PackedScene, reuse := true) -> Node:
 	node.settings = s
 	return auto_free(node)
 
-func _meshes_node(mesh : Mesh, reuse := true) -> Node:
+func _meshes_node(mesh : Mesh, reuse := true) -> FlowNodeBase:
 	var s = SpawnMeshesSettings.new()
 	s.mesh = mesh
 	s.use_vertex_colors = false

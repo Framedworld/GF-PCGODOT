@@ -53,7 +53,6 @@ func test_null_input_sets_error() -> void:
 	var s = PointFromMeshSettings.new()
 	var node = _run(null, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_node_mesh_stream_sets_error() -> void:
 	# Input data has no NodeMesh stream at all
@@ -63,7 +62,6 @@ func test_missing_node_mesh_stream_sets_error() -> void:
 	d.registerStream("positions", PackedVector3Array([Vector3.ZERO]), FlowData.DataType.Vector)
 	var node = _run(d, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_custom_stream_name_falls_back_to_node_stream_or_errors() -> void:
 	# A non-existent custom stream name with no "node" fallback -> error
@@ -79,7 +77,6 @@ func test_custom_stream_name_falls_back_to_node_stream_or_errors() -> void:
 	# source_stream_name = "nonexistent_stream" -> not found; fallback to "node" -> also not found -> error
 	assert_str(node.err).is_not_empty()
 	mi.free()
-	node.free()
 
 func test_all_non_mesh_instance_nodes_emits_empty_output_no_error() -> void:
 	# Nodes that are not MeshInstance3D should be skipped; output is empty but no hard error
@@ -97,7 +94,6 @@ func test_all_non_mesh_instance_nodes_emits_empty_output_no_error() -> void:
 	# no nodes were emitted so the stream should not exist
 	assert_object(node_stream).is_null()
 	plain.free()
-	node.free()
 
 func test_mesh_instance_without_mesh_is_skipped() -> void:
 	# MeshInstance3D with no mesh assigned should be skipped (num_skipped incremented)
@@ -113,7 +109,6 @@ func test_mesh_instance_without_mesh_is_skipped() -> void:
 	var node_stream = out.findStream("node")
 	assert_object(node_stream).is_null()
 	mi.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Core value tests
@@ -133,7 +128,6 @@ func test_single_box_mesh_produces_one_point() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(1)
 	mi.free()
-	node.free()
 
 func test_multiple_box_meshes_produce_correct_count() -> void:
 	# Three mesh instances -> three output points
@@ -156,7 +150,6 @@ func test_multiple_box_meshes_produce_correct_count() -> void:
 	assert_int(node_stream.container.size()).is_equal(3)
 	for mi in mis:
 		mi.free()
-	node.free()
 
 func test_position_is_mesh_aabb_center_at_identity_transform() -> void:
 	# BoxMesh default size=(1,1,1): aabb.position=(-0.5,-0.5,-0.5), aabb.size=(1,1,1)
@@ -176,7 +169,6 @@ func test_position_is_mesh_aabb_center_at_identity_transform() -> void:
 	var expected_pos := Vector3.ZERO
 	assert_bool(pos_container[0].is_equal_approx(expected_pos)).is_true()
 	mi.free()
-	node.free()
 
 func test_size_equals_aabb_size_with_identity_scale() -> void:
 	# BoxMesh size=(2,3,4) -> aabb.size=(2,3,4)
@@ -197,7 +189,6 @@ func test_size_equals_aabb_size_with_identity_scale() -> void:
 	var expected_size := Vector3(2.0, 3.0, 4.0)
 	assert_bool(size_container[0].is_equal_approx(expected_size)).is_true()
 	mi.free()
-	node.free()
 
 func test_size_without_world_scale() -> void:
 	# use_world_scale_for_bounds = false -> world_size = aabb.size directly
@@ -216,7 +207,6 @@ func test_size_without_world_scale() -> void:
 	var expected_size := Vector3(2.0, 3.0, 4.0)
 	assert_bool(size_container[0].is_equal_approx(expected_size)).is_true()
 	mi.free()
-	node.free()
 
 func test_rotation_is_zero_for_identity_transform() -> void:
 	# basisToEuler(Basis.IDENTITY) = Vector3(0,0,0) in degrees
@@ -233,7 +223,6 @@ func test_rotation_is_zero_for_identity_transform() -> void:
 	var rot_container : PackedVector3Array = rot_stream.container
 	assert_bool(rot_container[0].is_equal_approx(Vector3.ZERO)).is_true()
 	mi.free()
-	node.free()
 
 func test_node_stream_contains_original_mesh_instances() -> void:
 	# The "node" output stream should contain the actual MeshInstance3D references
@@ -250,7 +239,6 @@ func test_node_stream_contains_original_mesh_instances() -> void:
 	assert_int(node_stream.container.size()).is_equal(1)
 	assert_object(node_stream.container[0]).is_equal(mi)
 	mi.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Mesh attribute stream tests
@@ -273,7 +261,6 @@ func test_mesh_attribute_stream_registered_when_enabled() -> void:
 	assert_int(mesh_stream.container.size()).is_equal(1)
 	assert_object(mesh_stream.container[0]).is_instanceof(BoxMesh)
 	mi.free()
-	node.free()
 
 func test_mesh_attribute_stream_not_registered_when_disabled() -> void:
 	# include_mesh_attribute=false -> no "mesh" stream in output
@@ -290,7 +277,6 @@ func test_mesh_attribute_stream_not_registered_when_disabled() -> void:
 	var mesh_stream = out.findStream("mesh")
 	assert_object(mesh_stream).is_null()
 	mi.free()
-	node.free()
 
 func test_mesh_attribute_stream_not_registered_when_name_empty() -> void:
 	# include_mesh_attribute=true but mesh_attribute_name="" -> no stream registered
@@ -308,7 +294,6 @@ func test_mesh_attribute_stream_not_registered_when_name_empty() -> void:
 	var mesh_stream = out.findStream("mesh")
 	assert_object(mesh_stream).is_null()
 	mi.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Custom source stream name tests
@@ -328,7 +313,6 @@ func test_custom_source_stream_name_is_used() -> void:
 	var pos_stream = out.findStream("position")
 	assert_int(pos_stream.container.size()).is_equal(1)
 	mi.free()
-	node.free()
 
 func test_blank_source_stream_name_defaults_to_node() -> void:
 	# source_stream_name = "" -> stripped to "" -> defaults to "node"
@@ -344,7 +328,6 @@ func test_blank_source_stream_name_defaults_to_node() -> void:
 	var pos_stream = out.findStream("position")
 	assert_int(pos_stream.container.size()).is_equal(1)
 	mi.free()
-	node.free()
 
 func test_custom_stream_name_fallback_to_node_stream() -> void:
 	# source_stream_name = "custom" not found, but "node" exists -> falls back to "node"
@@ -361,7 +344,6 @@ func test_custom_stream_name_fallback_to_node_stream() -> void:
 	var pos_stream = out.findStream("position")
 	assert_int(pos_stream.container.size()).is_equal(1)
 	mi.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Mixed valid/invalid node tests
@@ -391,4 +373,3 @@ func test_mixed_valid_and_skipped_nodes_only_valid_emitted() -> void:
 	mi2.free()
 	plain.free()
 	empty_mi.free()
-	node.free()

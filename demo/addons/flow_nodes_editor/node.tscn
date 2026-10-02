@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bnbhxhwqoqbj1"]
 
-[ext_resource type="Script" uid="uid://4epcqfovpgk7" path="res://addons/flow_nodes_editor/node.gd" id="1_3mr3y"]
+[ext_resource type="Script" path="res://addons/flow_nodes_editor/executor/flow_node_widget.gd" id="1_3mr3y"]
 
 [node name="NodeBase" type="GraphNode"]
 offset_right = 208.0
@@ -8,5 +8,3 @@ offset_bottom = 158.0
 title = "Title"
 ignore_invalid_connection_type = true
 script = ExtResource("1_3mr3y")
-
-[connection signal="draw" from="." to="." method="_on_draw"]

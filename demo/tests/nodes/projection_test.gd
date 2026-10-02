@@ -77,7 +77,6 @@ func test_null_input_sets_error() -> void:
 	var s = _make_settings()
 	var node = _run_no_scene([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_no_world_sets_error() -> void:
 	# FlowGraphNode3D not added to the tree has no World3D.
@@ -86,7 +85,6 @@ func test_no_world_sets_error() -> void:
 	var in_data = _make_pos_data(positions)
 	var node = _run_no_scene([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_position_stream_sets_error() -> void:
 	# Input data has no position stream — node should error.
@@ -97,7 +95,6 @@ func test_missing_position_stream_sets_error() -> void:
 	# missing stream check (not the missing world check).
 	var node = await _run_against_floor(d, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Physics-sim tests — require a live StaticBody3D in the scene
@@ -115,7 +112,6 @@ func test_hit_snaps_position_to_floor() -> void:
 	assert_object(pos_stream).is_not_null()
 	# Hit position should be near the top face of the box (y = 0.5)
 	assert_float(pos_stream.container[0].y).is_equal_approx(0.5, 0.05)
-	node.free()
 
 # The hit normal for a flat horizontal floor should point straight up.
 func test_hit_writes_normal_stream() -> void:
@@ -131,7 +127,6 @@ func test_hit_writes_normal_stream() -> void:
 	assert_float(n.y).is_equal_approx(1.0, 0.05)
 	assert_float(n.x).is_equal_approx(0.0, 0.05)
 	assert_float(n.z).is_equal_approx(0.0, 0.05)
-	node.free()
 
 # A point outside the 20x20 floor footprint misses; position should be unchanged.
 func test_miss_preserves_original_position() -> void:
@@ -145,7 +140,6 @@ func test_miss_preserves_original_position() -> void:
 	# Miss: output position equals input position unchanged
 	assert_float(pos_stream.container[0].x).is_equal_approx(original_pos.x, 0.01)
 	assert_float(pos_stream.container[0].y).is_equal_approx(original_pos.y, 0.01)
-	node.free()
 
 # discard_misses=true: points that miss are removed from the output.
 func test_discard_misses_removes_miss_points() -> void:
@@ -159,7 +153,6 @@ func test_discard_misses_removes_miss_points() -> void:
 	assert_object(out).is_not_null()
 	# Only the hitting point should remain
 	assert_int(out.size()).is_equal(1)
-	node.free()
 
 # discard_misses=false: both hit and miss points appear in output.
 func test_keep_misses_preserves_all_points() -> void:
@@ -170,7 +163,6 @@ func test_keep_misses_preserves_all_points() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_int(out.size()).is_equal(2)
-	node.free()
 
 # align_to_normal=true: rotation stream should reflect the hit normal.
 # For a flat floor the Y-axis of the aligned basis points up, meaning the
@@ -185,7 +177,6 @@ func test_align_to_normal_sets_rotation() -> void:
 	assert_object(rot_stream).is_not_null()
 	# Rotation stream exists and has one entry
 	assert_int(rot_stream.container.size()).is_equal(1)
-	node.free()
 
 # Empty input (zero points) should produce no error and an empty output.
 func test_empty_input_produces_no_error() -> void:
@@ -196,7 +187,6 @@ func test_empty_input_produces_no_error() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 # Output size matches input size when discard_misses is off, regardless of hits.
 func test_output_size_matches_input_size_no_discard() -> void:
@@ -210,4 +200,3 @@ func test_output_size_matches_input_size_no_discard() -> void:
 	var node = await _run_against_floor(in_data, s)
 	assert_str(node.err).is_empty()
 	assert_int(_output(node).size()).is_equal(3)
-	node.free()

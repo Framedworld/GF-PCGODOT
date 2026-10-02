@@ -50,7 +50,6 @@ func test_float_range_splits_inside_outside() -> void:
 	assert_object(outside_stream).is_not_null()
 	assert_int(inside_stream.container.size()).is_equal(3)
 	assert_int(outside_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_exclusive_min_max_boundaries() -> void:
 	var s = AttributeFilterRangeSettings.new()
@@ -68,7 +67,6 @@ func test_exclusive_min_max_boundaries() -> void:
 	var outside_stream = outside.findStream("v")
 	assert_int(inside_stream.container.size()).is_equal(1)
 	assert_int(outside_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_int_stream_filter() -> void:
 	var s = AttributeFilterRangeSettings.new()
@@ -86,7 +84,6 @@ func test_int_stream_filter() -> void:
 	var outside_stream = outside.findStream("score")
 	assert_int(inside_stream.container.size()).is_equal(3)
 	assert_int(outside_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_vector_stream_filters_by_length() -> void:
 	var s = AttributeFilterRangeSettings.new()
@@ -107,7 +104,6 @@ func test_vector_stream_filters_by_length() -> void:
 	var outside_stream = outside.findStream("pos")
 	assert_int(inside_stream.container.size()).is_equal(1)
 	assert_int(outside_stream.container.size()).is_equal(1)
-	node.free()
 
 func test_absolute_value_mode() -> void:
 	var s = AttributeFilterRangeSettings.new()
@@ -126,7 +122,6 @@ func test_absolute_value_mode() -> void:
 	var outside_stream = outside.findStream("n")
 	assert_int(inside_stream.container.size()).is_equal(3)
 	assert_int(outside_stream.container.size()).is_equal(1)
-	node.free()
 
 func test_string_match_mode() -> void:
 	var s = AttributeFilterRangeSettings.new()
@@ -145,7 +140,6 @@ func test_string_match_mode() -> void:
 	var outside_stream = outside.findStream("tag")
 	assert_int(inside_stream.container.size()).is_equal(3)
 	assert_int(outside_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_string_match_case_sensitive() -> void:
 	var s = AttributeFilterRangeSettings.new()
@@ -163,7 +157,6 @@ func test_string_match_case_sensitive() -> void:
 	var outside_stream = outside.findStream("tag")
 	assert_int(inside_stream.container.size()).is_equal(1)
 	assert_int(outside_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_empty_input_data_produces_empty_outputs() -> void:
 	var s = AttributeFilterRangeSettings.new()
@@ -179,14 +172,12 @@ func test_empty_input_data_produces_empty_outputs() -> void:
 	assert_object(outside).is_not_null()
 	assert_int(inside.size()).is_equal(0)
 	assert_int(outside.size()).is_equal(0)
-	node.free()
 
 func test_missing_input_sets_error() -> void:
 	var s = AttributeFilterRangeSettings.new()
 	s.attribute_name = "val"
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_attribute_name_sets_error() -> void:
 	var s = AttributeFilterRangeSettings.new()
@@ -194,7 +185,6 @@ func test_missing_attribute_name_sets_error() -> void:
 	var d = _make_data("val", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_attribute_not_found_sets_error() -> void:
 	var s = AttributeFilterRangeSettings.new()
@@ -202,7 +192,6 @@ func test_attribute_not_found_sets_error() -> void:
 	var d = _make_data("val", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_string_match_no_values_sets_error() -> void:
 	var s = AttributeFilterRangeSettings.new()
@@ -213,7 +202,6 @@ func test_string_match_no_values_sets_error() -> void:
 	var d = _make_data("tag", packed, FlowDataScript.DataType.String)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_inverted_min_max_normalizes_correctly() -> void:
 	var s = AttributeFilterRangeSettings.new()
@@ -231,4 +219,3 @@ func test_inverted_min_max_normalizes_correctly() -> void:
 	var outside_stream = outside.findStream("v")
 	assert_int(inside_stream.container.size()).is_equal(1)
 	assert_int(outside_stream.container.size()).is_equal(1)
-	node.free()

@@ -64,7 +64,6 @@ func test_clips_points_inside_polygon_xz() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_clips_points_outside_polygon() -> void:
 	var s = ClipPathsSettings.new()
@@ -94,7 +93,6 @@ func test_clips_points_outside_polygon() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_empty_points_passthrough() -> void:
 	var s = ClipPathsSettings.new()
@@ -115,7 +113,6 @@ func test_empty_points_passthrough() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_missing_points_input_error() -> void:
 	var s = ClipPathsSettings.new()
@@ -124,7 +121,6 @@ func test_missing_points_input_error() -> void:
 
 	var node = _run([null, null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_no_position_stream_error() -> void:
 	var s = ClipPathsSettings.new()
@@ -144,7 +140,6 @@ func test_no_position_stream_error() -> void:
 
 	var node = _run([bad_points, polygon_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_no_polygon_input_and_no_path_setting_error() -> void:
 	var s = ClipPathsSettings.new()
@@ -160,7 +155,6 @@ func test_no_polygon_input_and_no_path_setting_error() -> void:
 
 	var node = _run([points_data, null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_clip_on_xy_plane() -> void:
 	var s = ClipPathsSettings.new()
@@ -189,7 +183,6 @@ func test_clip_on_xy_plane() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_clip_on_yz_plane() -> void:
 	var s = ClipPathsSettings.new()
@@ -218,7 +211,6 @@ func test_clip_on_yz_plane() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_all_points_outside_polygon_returns_empty() -> void:
 	var s = ClipPathsSettings.new()
@@ -247,4 +239,3 @@ func test_all_points_outside_polygon_returns_empty() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(0)
-	node.free()

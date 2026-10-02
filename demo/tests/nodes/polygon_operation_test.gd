@@ -59,7 +59,6 @@ func test_keep_inside_xz_plane() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_keep_outside_xz_plane() -> void:
 	var s = PolygonOperationSettings.new()
@@ -86,7 +85,6 @@ func test_keep_outside_xz_plane() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(1)
-	node.free()
 
 func test_xy_plane_clipping() -> void:
 	var s = PolygonOperationSettings.new()
@@ -112,7 +110,6 @@ func test_xy_plane_clipping() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(1)
-	node.free()
 
 func test_yz_plane_clipping() -> void:
 	var s = PolygonOperationSettings.new()
@@ -138,7 +135,6 @@ func test_yz_plane_clipping() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(1)
-	node.free()
 
 func test_missing_points_input_error() -> void:
 	var s = PolygonOperationSettings.new()
@@ -147,7 +143,6 @@ func test_missing_points_input_error() -> void:
 
 	var node = _run([null, null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_points_passthrough() -> void:
 	var s = PolygonOperationSettings.new()
@@ -168,7 +163,6 @@ func test_empty_points_passthrough() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_no_polygon_source_error() -> void:
 	var s = PolygonOperationSettings.new()
@@ -182,7 +176,6 @@ func test_no_polygon_source_error() -> void:
 
 	var node = _run([points, null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_points_without_position_stream_error() -> void:
 	var s = PolygonOperationSettings.new()
@@ -201,7 +194,6 @@ func test_points_without_position_stream_error() -> void:
 
 	var node = _run([bad_points, poly_pts], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_all_points_clipped_out() -> void:
 	var s = PolygonOperationSettings.new()
@@ -225,4 +217,3 @@ func test_all_points_clipped_out() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()

@@ -62,7 +62,6 @@ func test_one_per_vertex() -> void:
 	assert_object(out.findStream(FlowDataScript.AttrDensity)).is_not_null()
 	assert_object(out.findStream(FlowDataScript.AttrSeed)).is_not_null()
 	
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -81,7 +80,6 @@ func test_face_centers() -> void:
 	# 6 faces of BoxMesh * 2 triangles per face = 12 face center points
 	assert_int(positions.size()).is_equal(12)
 	
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -101,7 +99,6 @@ func test_use_num_samples() -> void:
 	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(15)
 	
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -124,7 +121,6 @@ func test_use_density() -> void:
 	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(15)
 	
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -149,7 +145,6 @@ func test_discard_hard_edges() -> void:
 	# With 50 initial samples, some should be discarded since the threshold is 0.4 on a 1x1x1 cube
 	assert_bool(positions.size() < 50).is_true()
 	
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -178,7 +173,6 @@ func test_plane_mesh_area_weighted_normals_face_up() -> void:
 	for i in range(normals.size()):
 		assert_float(normals[i].y).is_greater(0.99)
 		assert_float(_rotation_normal_axis(rots[i]).y).is_greater(0.99)
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -194,7 +188,6 @@ func test_plane_mesh_face_center_normals_face_up() -> void:
 	for i in range(normals.size()):
 		assert_float(normals[i].y).is_greater(0.99)
 		assert_float(_rotation_normal_axis(rots[i]).y).is_greater(0.99)
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -218,7 +211,6 @@ func test_box_mesh_normals_point_outward() -> void:
 				top_count += 1
 				assert_float(normals[i].y).is_greater(0.99)
 		assert_int(top_count).is_greater(0)
-		node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -288,7 +280,6 @@ func test_non_indexed_surface_samples_in_every_mode() -> void:
 			var normals = out.findStream(FlowDataScript.AttrNormal).container
 			for i in range(normals.size()):
 				assert_float(normals[i].y).is_greater(0.99)
-		node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -310,6 +301,5 @@ func test_non_indexed_surface_hard_edges() -> void:
 		var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 		assert_int(positions.size()).is_greater(0)
 		assert_int(positions.size()).is_less(40)
-	node.free()
 	remove_child(mi)
 	mi.free()

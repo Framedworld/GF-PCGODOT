@@ -38,7 +38,6 @@ func test_static_select_a_floats() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(data_a)
-	node.free()
 
 func test_static_select_b_floats() -> void:
 	var s = SelectSettings.new()
@@ -49,7 +48,6 @@ func test_static_select_b_floats() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(data_b)
-	node.free()
 
 func test_static_select_a_vectors() -> void:
 	var s = SelectSettings.new()
@@ -60,7 +58,6 @@ func test_static_select_a_vectors() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(data_a)
-	node.free()
 
 func test_attribute_select_b_via_bool_true() -> void:
 	var s = SelectSettings.new()
@@ -74,7 +71,6 @@ func test_attribute_select_b_via_bool_true() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(data_b)
-	node.free()
 
 func test_attribute_select_a_via_bool_false() -> void:
 	var s = SelectSettings.new()
@@ -88,7 +84,6 @@ func test_attribute_select_a_via_bool_false() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(data_a)
-	node.free()
 
 func test_attribute_select_via_truthy_string() -> void:
 	var s = SelectSettings.new()
@@ -102,7 +97,6 @@ func test_attribute_select_via_truthy_string() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(data_b)
-	node.free()
 
 func test_attribute_select_via_float_one() -> void:
 	var s = SelectSettings.new()
@@ -116,7 +110,6 @@ func test_attribute_select_via_float_one() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(data_b)
-	node.free()
 
 func test_attribute_falls_back_to_input_b_when_a_missing() -> void:
 	var s = SelectSettings.new()
@@ -129,7 +122,6 @@ func test_attribute_falls_back_to_input_b_when_a_missing() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(data_b)
-	node.free()
 
 func test_missing_both_inputs_returns_empty_data() -> void:
 	var s = SelectSettings.new()
@@ -139,7 +131,6 @@ func test_missing_both_inputs_returns_empty_data() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_only_input_b_connected_select_b_true() -> void:
 	var s = SelectSettings.new()
@@ -149,7 +140,6 @@ func test_only_input_b_connected_select_b_true() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(data_b)
-	node.free()
 
 func test_only_input_a_connected_select_b_true_returns_empty() -> void:
 	var s = SelectSettings.new()
@@ -160,7 +150,6 @@ func test_only_input_a_connected_select_b_true_returns_empty() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_attribute_name_empty_uses_static_select_b() -> void:
 	var s = SelectSettings.new()
@@ -173,4 +162,3 @@ func test_attribute_name_empty_uses_static_select_b() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_equal(data_b)
-	node.free()

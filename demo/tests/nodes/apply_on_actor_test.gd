@@ -42,7 +42,7 @@ func _settings(mode: int) -> Resource:
 	s.target_mode = mode
 	return s
 
-func _make(s) -> Node:
+func _make(s) -> FlowNodeBase:
 	var node = ApplyOnActorNode.new()
 	node.name = "apply"
 	node.settings = s

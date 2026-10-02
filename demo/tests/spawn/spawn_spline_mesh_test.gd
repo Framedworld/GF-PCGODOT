@@ -27,7 +27,7 @@ func before_test() -> void:
 	_owner.name = "SpawnOwner"
 	add_child(_owner)
 
-func _make(node_name := "spline_spawner") -> Node:
+func _make(node_name := "spline_spawner") -> FlowNodeBase:
 	var node = SpawnSplineMeshNode.new()
 	node.name = node_name
 	node.settings = SpawnSplineMeshSettingsScript.new()

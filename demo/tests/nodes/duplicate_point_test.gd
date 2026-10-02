@@ -55,7 +55,6 @@ func test_basic_duplicate_one_iteration() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(4)
-	node.free()
 
 func test_world_space_offset_applied_correctly() -> void:
 	var s = DuplicatePointSettings.new()
@@ -74,7 +73,6 @@ func test_world_space_offset_applied_correctly() -> void:
 	assert_int(pos_stream.container.size()).is_equal(2)
 	assert_float(pos_stream.container[0].y).is_equal_approx(0.0, 0.001)
 	assert_float(pos_stream.container[1].y).is_equal_approx(5.0, 0.001)
-	node.free()
 
 func test_multiple_iterations_output_size() -> void:
 	var s = DuplicatePointSettings.new()
@@ -91,7 +89,6 @@ func test_multiple_iterations_output_size() -> void:
 	assert_object(out).is_not_null()
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_int(pos_stream.container.size()).is_equal(8)
-	node.free()
 
 func test_multiple_iterations_offset_accumulates() -> void:
 	var s = DuplicatePointSettings.new()
@@ -111,7 +108,6 @@ func test_multiple_iterations_offset_accumulates() -> void:
 	assert_float(pos_stream.container[0].x).is_equal_approx(0.0, 0.001)
 	assert_float(pos_stream.container[1].x).is_equal_approx(10.0, 0.001)
 	assert_float(pos_stream.container[2].x).is_equal_approx(20.0, 0.001)
-	node.free()
 
 func test_extra_attribute_streams_are_duplicated() -> void:
 	var s = DuplicatePointSettings.new()
@@ -134,7 +130,6 @@ func test_extra_attribute_streams_are_duplicated() -> void:
 	assert_float(density_stream.container[1]).is_equal_approx(0.8, 0.001)
 	assert_float(density_stream.container[2]).is_equal_approx(0.5, 0.001)
 	assert_float(density_stream.container[3]).is_equal_approx(0.8, 0.001)
-	node.free()
 
 func test_rotation_and_size_preserved_in_duplicates() -> void:
 	var s = DuplicatePointSettings.new()
@@ -155,7 +150,6 @@ func test_rotation_and_size_preserved_in_duplicates() -> void:
 	assert_int(rot_stream.container.size()).is_equal(2)
 	assert_float(rot_stream.container[0].y).is_equal_approx(1.5708, 0.001)
 	assert_float(rot_stream.container[1].y).is_equal_approx(1.5708, 0.001)
-	node.free()
 
 func test_iterations_clamped_to_minimum_one() -> void:
 	var s = DuplicatePointSettings.new()
@@ -172,7 +166,6 @@ func test_iterations_clamped_to_minimum_one() -> void:
 	assert_object(out).is_not_null()
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_int(pos_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_missing_input_errors() -> void:
 	var s = DuplicatePointSettings.new()
@@ -181,7 +174,6 @@ func test_missing_input_errors() -> void:
 
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_input_without_required_streams_errors() -> void:
 	var s = DuplicatePointSettings.new()
@@ -192,4 +184,3 @@ func test_input_without_required_streams_errors() -> void:
 
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()

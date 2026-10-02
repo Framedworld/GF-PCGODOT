@@ -64,7 +64,6 @@ func test_float_output_basic() -> void:
 	for i in range(stream.container.size()):
 		var v: float = stream.container[i]
 		assert_bool(v >= 0.0 and v <= 1.0).is_true()
-	node.free()
 
 func test_float_output_xz2d() -> void:
 	var s = NoiseSettings.new()
@@ -92,7 +91,6 @@ func test_float_output_xz2d() -> void:
 	var stream = out.findStream("density")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(3)
-	node.free()
 
 func test_vector3_output() -> void:
 	var s = NoiseSettings.new()
@@ -123,7 +121,6 @@ func test_vector3_output() -> void:
 	assert_bool(v0.x >= 0.0 and v0.x <= 1.0).is_true()
 	assert_bool(v0.y >= 0.0 and v0.y <= 1.0).is_true()
 	assert_bool(v0.z >= 0.0 and v0.z <= 1.0).is_true()
-	node.free()
 
 func test_add_mode_float() -> void:
 	var s = NoiseSettings.new()
@@ -154,7 +151,6 @@ func test_add_mode_float() -> void:
 	for i in range(stream.container.size()):
 		var v: float = stream.container[i]
 		assert_bool(v >= 0.5).is_true()
-	node.free()
 
 func test_fractal_fbm() -> void:
 	var s = NoiseSettings.new()
@@ -185,7 +181,6 @@ func test_fractal_fbm() -> void:
 	var stream = out.findStream("density")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(3)
-	node.free()
 
 func test_bias_and_amplitude() -> void:
 	var s = NoiseSettings.new()
@@ -215,7 +210,6 @@ func test_bias_and_amplitude() -> void:
 	for i in range(stream.container.size()):
 		var v: float = stream.container[i]
 		assert_float(v).is_equal_approx(2.0, 0.0001)
-	node.free()
 
 func test_custom_sample_attribute() -> void:
 	var s = NoiseSettings.new()
@@ -248,7 +242,6 @@ func test_custom_sample_attribute() -> void:
 	var stream = out.findStream("density")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(2)
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s = NoiseSettings.new()
@@ -257,7 +250,6 @@ func test_missing_input_error() -> void:
 	assert_str(node.err).is_not_empty()
 	var out = _output(node)
 	assert_object(out).is_null()
-	node.free()
 
 func test_single_element_array() -> void:
 	var s = NoiseSettings.new()
@@ -281,4 +273,3 @@ func test_single_element_array() -> void:
 	var stream = out.findStream("density")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
-	node.free()

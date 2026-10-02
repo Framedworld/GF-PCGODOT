@@ -41,7 +41,6 @@ func test_partition_int_three_groups() -> void:
 		assert_object(out_data).is_not_null()
 		total_points += out_data.size()
 	assert_int(total_points).is_equal(6)
-	node.free()
 
 func test_partition_float_two_groups() -> void:
 	var data = _make_data("weight", PackedFloat32Array([1.0, 2.0, 1.0, 2.0]), FlowDataScript.DataType.Float)
@@ -54,7 +53,6 @@ func test_partition_float_two_groups() -> void:
 		sizes.append(bulk[0].size())
 	sizes.sort()
 	assert_array(sizes).is_equal([2, 2])
-	node.free()
 
 func test_partition_group_sizes_match_values() -> void:
 	var data = _make_data("group", PackedInt32Array([0, 0, 0, 1, 1]), FlowDataScript.DataType.Int)
@@ -67,7 +65,6 @@ func test_partition_group_sizes_match_values() -> void:
 		sizes.append(bulk[0].size())
 	sizes.sort()
 	assert_array(sizes).is_equal([2, 3])
-	node.free()
 
 func test_partition_preserves_other_streams() -> void:
 	var data = FlowDataScript.Data.new()
@@ -81,7 +78,6 @@ func test_partition_preserves_other_streams() -> void:
 		var out_data: FlowData.Data = bulk[0]
 		assert_object(out_data.findStream("tag")).is_not_null()
 		assert_object(out_data.findStream("value")).is_not_null()
-	node.free()
 
 func test_partition_out_partition_attribute() -> void:
 	var data = _make_data("color", PackedInt32Array([1, 2, 1]), FlowDataScript.DataType.Int)
@@ -93,7 +89,6 @@ func test_partition_out_partition_attribute() -> void:
 	for bulk in node.generated_bulks:
 		var out_data: FlowData.Data = bulk[0]
 		assert_object(out_data.findStream("partition_id")).is_not_null()
-	node.free()
 
 func test_partition_data_attr_stamped() -> void:
 	var data = _make_data("region", PackedInt32Array([10, 20, 10]), FlowDataScript.DataType.Int)
@@ -105,7 +100,6 @@ func test_partition_data_attr_stamped() -> void:
 		var attr_stream = out_data.findStream(FlowData.DataAttrPrefix + "region")
 		assert_object(attr_stream).is_not_null()
 		assert_int(attr_stream.container.size()).is_equal(1)
-	node.free()
 
 func test_partition_single_element() -> void:
 	var data = _make_data("type", PackedInt32Array([42]), FlowDataScript.DataType.Int)
@@ -114,7 +108,6 @@ func test_partition_single_element() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(node.generated_bulks.size()).is_equal(1)
 	assert_int(node.generated_bulks[0][0].size()).is_equal(1)
-	node.free()
 
 func test_partition_all_same_value() -> void:
 	var data = _make_data("tier", PackedInt32Array([5, 5, 5, 5]), FlowDataScript.DataType.Int)
@@ -123,17 +116,14 @@ func test_partition_all_same_value() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(node.generated_bulks.size()).is_equal(1)
 	assert_int(node.generated_bulks[0][0].size()).is_equal(4)
-	node.free()
 
 func test_partition_missing_attribute_error() -> void:
 	var data = _make_data("value", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var s = _default_settings("nonexistent_attr")
 	var node = _run(data, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_partition_missing_input_error() -> void:
 	var s = _default_settings("category")
 	var node = _run(null, s)
 	assert_str(node.err).is_not_empty()
-	node.free()

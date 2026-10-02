@@ -53,7 +53,6 @@ func test_binary_boolean_ops() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([1, 0, 0, 0]))
-	node.free()
 
 	# OR
 	node = _run_boolean(in_dataA, in_dataB, BooleanSettings.eOperation.Or)
@@ -61,7 +60,6 @@ func test_binary_boolean_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([1, 1, 1, 0]))
-	node.free()
 
 	# XOR
 	node = _run_boolean(in_dataA, in_dataB, BooleanSettings.eOperation.Xor)
@@ -69,7 +67,6 @@ func test_binary_boolean_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([0, 1, 1, 0]))
-	node.free()
 
 	# IMPLY
 	node = _run_boolean(in_dataA, in_dataB, BooleanSettings.eOperation.Imply)
@@ -77,7 +74,6 @@ func test_binary_boolean_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([1, 0, 1, 1]))
-	node.free()
 
 	# NAND
 	node = _run_boolean(in_dataA, in_dataB, BooleanSettings.eOperation.Nand)
@@ -85,7 +81,6 @@ func test_binary_boolean_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([0, 1, 1, 1]))
-	node.free()
 
 	# NIMPLY
 	node = _run_boolean(in_dataA, in_dataB, BooleanSettings.eOperation.Nimply)
@@ -93,7 +88,6 @@ func test_binary_boolean_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([0, 1, 0, 0]))
-	node.free()
 
 	# NOR
 	node = _run_boolean(in_dataA, in_dataB, BooleanSettings.eOperation.Nor)
@@ -101,7 +95,6 @@ func test_binary_boolean_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([0, 0, 0, 1]))
-	node.free()
 
 	# XNOR
 	node = _run_boolean(in_dataA, in_dataB, BooleanSettings.eOperation.Xnor)
@@ -109,7 +102,6 @@ func test_binary_boolean_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([1, 0, 0, 1]))
-	node.free()
 
 func test_unary_boolean_op() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedByteArray([1, 0]), FlowDataScript.DataType.Bool)
@@ -120,7 +112,6 @@ func test_unary_boolean_op() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([0, 1]))
-	node.free()
 
 func test_constant_b_logic() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedByteArray([1, 0]), FlowDataScript.DataType.Bool)
@@ -131,7 +122,6 @@ func test_constant_b_logic() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([0, 0]))
-	node.free()
 
 	# OR with constant B = true
 	node = _run_boolean(in_dataA, null, BooleanSettings.eOperation.Or, "A", "B", "bool_out", true, true)
@@ -139,7 +129,6 @@ func test_constant_b_logic() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([1, 1]))
-	node.free()
 
 func test_fallback_literal_b() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedByteArray([1, 0]), FlowDataScript.DataType.Bool)
@@ -150,7 +139,6 @@ func test_fallback_literal_b() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([1, 0]))
-	node.free()
 
 	# B is not connected, but in_nameB = "false" (literal fallback)
 	node = _run_boolean(in_dataA, null, BooleanSettings.eOperation.Or, "A", "false")
@@ -158,7 +146,6 @@ func test_fallback_literal_b() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([1, 0]))
-	node.free()
 
 func test_fallback_same_input_a() -> void:
 	# Single input data holds both streams "A" and "B"
@@ -172,7 +159,6 @@ func test_fallback_same_input_a() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([1, 1]))
-	node.free()
 
 func test_broadcast_and_errors() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedByteArray([1, 0, 1]), FlowDataScript.DataType.Bool)
@@ -184,15 +170,12 @@ func test_broadcast_and_errors() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("bool_out")
 	assert_array(stream.container).is_equal(PackedByteArray([1, 0, 1]))
-	node.free()
 
 	# Mismatched sizes (no broadcast)
 	var in_dataB_mismatch = _create_data_with_stream("B", PackedByteArray([0, 0]), FlowDataScript.DataType.Bool)
 	node = _run_boolean(in_dataA, in_dataB_mismatch, BooleanSettings.eOperation.And)
 	assert_str(node.err).contains("Input sizes from A and B don't match")
-	node.free()
 
 	# Missing stream A
 	node = _run_boolean(in_dataA, in_dataB, BooleanSettings.eOperation.And, "NonExistent")
 	assert_str(node.err).contains("Input A NonExistent not found")
-	node.free()

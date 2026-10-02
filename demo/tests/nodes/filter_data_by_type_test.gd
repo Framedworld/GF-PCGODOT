@@ -67,7 +67,6 @@ func test_point_data_matches_point_target() -> void:
 	assert_object(outside).is_not_null()
 	assert_bool(inside.hasStream("position")).is_true()
 	assert_bool(outside.streams.size() == 0).is_true()
-	node.free()
 
 func test_point_data_does_not_match_spline_target() -> void:
 	var s = FilterDataByTypeSettings.new()
@@ -78,7 +77,6 @@ func test_point_data_does_not_match_spline_target() -> void:
 	var outside = _outside(node)
 	assert_bool(inside.streams.size() == 0).is_true()
 	assert_bool(outside.hasStream("position")).is_true()
-	node.free()
 
 func test_spline_data_matches_spline_target() -> void:
 	var s = FilterDataByTypeSettings.new()
@@ -89,7 +87,6 @@ func test_spline_data_matches_spline_target() -> void:
 	var outside = _outside(node)
 	assert_bool(inside.hasStream("node")).is_true()
 	assert_bool(outside.streams.size() == 0).is_true()
-	node.free()
 
 func test_attr_set_matches_attr_set_target() -> void:
 	var s = FilterDataByTypeSettings.new()
@@ -100,7 +97,6 @@ func test_attr_set_matches_attr_set_target() -> void:
 	var outside = _outside(node)
 	assert_bool(inside.hasStream("my_attr")).is_true()
 	assert_bool(outside.streams.size() == 0).is_true()
-	node.free()
 
 func test_attr_set_does_not_match_point_target() -> void:
 	var s = FilterDataByTypeSettings.new()
@@ -111,14 +107,12 @@ func test_attr_set_does_not_match_point_target() -> void:
 	var outside = _outside(node)
 	assert_bool(inside.streams.size() == 0).is_true()
 	assert_bool(outside.hasStream("my_attr")).is_true()
-	node.free()
 
 func test_missing_input_returns_error() -> void:
 	var s = FilterDataByTypeSettings.new()
 	s.target_type = FilterDataByTypeSettings.eTargetType.PointData
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_data_does_not_match_attr_set() -> void:
 	var s = FilterDataByTypeSettings.new()
@@ -128,7 +122,6 @@ func test_empty_data_does_not_match_attr_set() -> void:
 	var inside = _inside(node)
 	var outside = _outside(node)
 	assert_bool(inside.streams.size() == 0).is_true()
-	node.free()
 
 func test_explicit_kind_spline_matches_spline_target() -> void:
 	var s = FilterDataByTypeSettings.new()
@@ -140,7 +133,6 @@ func test_explicit_kind_spline_matches_spline_target() -> void:
 	var outside = _outside(node)
 	assert_bool(inside.streams.size() > 0).is_true()
 	assert_bool(outside.streams.size() == 0).is_true()
-	node.free()
 
 func test_explicit_kind_attr_set_matches_attr_set_target() -> void:
 	var s = FilterDataByTypeSettings.new()
@@ -152,7 +144,6 @@ func test_explicit_kind_attr_set_matches_attr_set_target() -> void:
 	var outside = _outside(node)
 	assert_bool(inside.streams.size() > 0).is_true()
 	assert_bool(outside.streams.size() == 0).is_true()
-	node.free()
 
 func test_explicit_kind_spline_does_not_match_point_target() -> void:
 	var s = FilterDataByTypeSettings.new()
@@ -164,4 +155,3 @@ func test_explicit_kind_spline_does_not_match_point_target() -> void:
 	var outside = _outside(node)
 	assert_bool(inside.streams.size() == 0).is_true()
 	assert_bool(outside.streams.size() > 0).is_true()
-	node.free()

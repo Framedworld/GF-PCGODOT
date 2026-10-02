@@ -22,7 +22,7 @@ func before_test() -> void:
 	_owner.name = "SpawnOwner"
 	add_child(_owner)
 
-func _make(entries : Array, node_name := "spawner") -> Node:
+func _make(entries : Array, node_name := "spawner") -> FlowNodeBase:
 	var s = SpawnMeshesSettings.new()
 	var typed : Array[FlowMeshSpawnEntry] = []
 	for e in entries:

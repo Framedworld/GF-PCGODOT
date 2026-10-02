@@ -41,7 +41,6 @@ func test_passthrough_float_stream() -> void:
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.0001)
 	assert_float(stream.container[1]).is_equal_approx(2.0, 0.0001)
 	assert_float(stream.container[2]).is_equal_approx(3.0, 0.0001)
-	node.free()
 
 func test_passthrough_vector_stream() -> void:
 	var values := PackedVector3Array([Vector3(1, 2, 3), Vector3(4, 5, 6)])
@@ -55,7 +54,6 @@ func test_passthrough_vector_stream() -> void:
 	assert_int(stream.container.size()).is_equal(2)
 	assert_bool(stream.container[0].is_equal_approx(Vector3(1, 2, 3))).is_true()
 	assert_bool(stream.container[1].is_equal_approx(Vector3(4, 5, 6))).is_true()
-	node.free()
 
 func test_passthrough_int_stream() -> void:
 	var values := PackedInt32Array([10, 20, 30, 40])
@@ -69,7 +67,6 @@ func test_passthrough_int_stream() -> void:
 	assert_int(stream.container.size()).is_equal(4)
 	assert_int(stream.container[0]).is_equal(10)
 	assert_int(stream.container[3]).is_equal(40)
-	node.free()
 
 func test_passthrough_color_stream() -> void:
 	var values := PackedColorArray([Color(1, 0, 0, 1), Color(0, 1, 0, 1)])
@@ -83,7 +80,6 @@ func test_passthrough_color_stream() -> void:
 	assert_int(stream.container.size()).is_equal(2)
 	assert_bool(stream.container[0].is_equal_approx(Color(1, 0, 0, 1))).is_true()
 	assert_bool(stream.container[1].is_equal_approx(Color(0, 1, 0, 1))).is_true()
-	node.free()
 
 func test_passthrough_multiple_streams() -> void:
 	var in_data = FlowDataScript.Data.new()
@@ -97,14 +93,12 @@ func test_passthrough_multiple_streams() -> void:
 	assert_object(out.findStream("position")).is_not_null()
 	assert_object(out.findStream("density")).is_not_null()
 	assert_object(out.findStream("id")).is_not_null()
-	node.free()
 
 func test_no_input_produces_empty_data() -> void:
 	var node = _run([null])
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_passthrough_single_element() -> void:
 	var values := PackedFloat32Array([42.0])
@@ -117,7 +111,6 @@ func test_passthrough_single_element() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
 	assert_float(stream.container[0]).is_equal_approx(42.0, 0.0001)
-	node.free()
 
 func test_passthrough_large_float_array() -> void:
 	var values := PackedFloat32Array()
@@ -134,4 +127,3 @@ func test_passthrough_large_float_array() -> void:
 	assert_int(stream.container.size()).is_equal(1000)
 	assert_float(stream.container[0]).is_equal_approx(0.0, 0.0001)
 	assert_float(stream.container[999]).is_equal_approx(99.9, 0.01)
-	node.free()

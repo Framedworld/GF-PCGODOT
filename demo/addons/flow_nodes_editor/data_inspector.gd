@@ -14,7 +14,7 @@ extends Control
 @onready var slot_selector : OptionButton = %SlotSelector
 @onready var bulk_selector : OptionButton = %BulkSelector
 
-var node : FlowNodeBase
+var node : FlowNodeWidget
 var num_rows : int = 0
 var num_cols : int = 0
 var col_titles : Array[String]
@@ -35,7 +35,7 @@ var is_output : bool = true
 var container
 var _flow_editor: FlowEditor
 
-func setNode( new_node : FlowNodeBase ):
+func setNode( new_node : FlowNodeWidget ):
 	# If there was already one active... disabled it
 	if node:
 		%LabelTitle.text = "..."

@@ -39,7 +39,6 @@ func test_passthrough_no_input_produces_empty_data() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_passthrough_float_stream_unchanged() -> void:
 	var s = GridSizeSettings.new()
@@ -52,7 +51,6 @@ func test_passthrough_float_stream_unchanged() -> void:
 	var stream = out.findStream("pts")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([1.0, 2.0, 3.0]))
-	node.free()
 
 func test_passthrough_vector_stream_unchanged() -> void:
 	var s = GridSizeSettings.new()
@@ -65,7 +63,6 @@ func test_passthrough_vector_stream_unchanged() -> void:
 	var stream = out.findStream("pos")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(1, 2, 3), Vector3(4, 5, 6)]))
-	node.free()
 
 func test_default_cell_size_written_to_ctx() -> void:
 	var s = GridSizeSettings.new()
@@ -75,7 +72,6 @@ func test_default_cell_size_written_to_ctx() -> void:
 	assert_str(node.err).is_empty()
 	assert_bool(ctx.variables.has(GridSizeNodeSettings.CTX_KEY)).is_true()
 	assert_float(ctx.variables[GridSizeNodeSettings.CTX_KEY]).is_equal(64.0)
-	node.free()
 
 func test_custom_cell_size_written_to_ctx() -> void:
 	var s = GridSizeSettings.new()
@@ -85,7 +81,6 @@ func test_custom_cell_size_written_to_ctx() -> void:
 	var ctx = result["ctx"]
 	assert_str(node.err).is_empty()
 	assert_float(ctx.variables[GridSizeNodeSettings.CTX_KEY]).is_equal(128.0)
-	node.free()
 
 func test_cell_size_snaps_to_nearest_power_of_two() -> void:
 	var s = GridSizeSettings.new()
@@ -112,7 +107,6 @@ func test_cell_size_snap_written_to_ctx() -> void:
 	var ctx = result["ctx"]
 	assert_str(node.err).is_empty()
 	assert_float(ctx.variables[GridSizeNodeSettings.CTX_KEY]).is_equal(256.0)
-	node.free()
 
 func test_no_settings_defaults_cell_size_to_one() -> void:
 	var result = _run([null], null)
@@ -120,7 +114,6 @@ func test_no_settings_defaults_cell_size_to_one() -> void:
 	var ctx = result["ctx"]
 	assert_str(node.err).is_empty()
 	assert_float(ctx.variables[GridSizeNodeSettings.CTX_KEY]).is_equal(1.0)
-	node.free()
 
 func test_passthrough_preserves_multiple_streams() -> void:
 	var s = GridSizeSettings.new()
@@ -136,4 +129,3 @@ func test_passthrough_preserves_multiple_streams() -> void:
 	assert_object(out.findStream("pos")).is_not_null()
 	assert_object(out.findStream("density")).is_not_null()
 	assert_object(out.findStream("idx")).is_not_null()
-	node.free()

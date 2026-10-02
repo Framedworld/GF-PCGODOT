@@ -65,7 +65,6 @@ func test_identity_curve_passthrough() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.0, 0.01)
 	assert_float(stream.container[2]).is_equal_approx(0.5, 0.01)
 	assert_float(stream.container[4]).is_equal_approx(1.0, 0.01)
-	node.free()
 
 func test_invert_curve_flips_values() -> void:
 	var s := RemapSettings.new()
@@ -81,7 +80,6 @@ func test_invert_curve_flips_values() -> void:
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.01)
 	assert_float(stream.container[2]).is_equal_approx(0.0, 0.01)
-	node.free()
 
 func test_at_in_name_overwrites_source_attribute() -> void:
 	var s := RemapSettings.new()
@@ -98,7 +96,6 @@ func test_at_in_name_overwrites_source_attribute() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.5, 0.01)
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.01)
 	assert_float(stream.container[2]).is_equal_approx(0.5, 0.01)
-	node.free()
 
 func test_custom_stream_name() -> void:
 	var s := RemapSettings.new()
@@ -114,7 +111,6 @@ func test_custom_stream_name() -> void:
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.01)
 	assert_float(stream.container[2]).is_equal_approx(0.0, 0.01)
-	node.free()
 
 func test_broadcast_stream_expands_to_data_size() -> void:
 	var s := RemapSettings.new()
@@ -137,7 +133,6 @@ func test_broadcast_stream_expands_to_data_size() -> void:
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.01)
 	assert_float(stream.container[1]).is_equal_approx(1.0, 0.01)
 	assert_float(stream.container[2]).is_equal_approx(1.0, 0.01)
-	node.free()
 
 func test_other_streams_preserved_in_output() -> void:
 	var s := RemapSettings.new()
@@ -154,7 +149,6 @@ func test_other_streams_preserved_in_output() -> void:
 	var pos_stream = out.findStream("position")
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_single_element_data() -> void:
 	var s := RemapSettings.new()
@@ -170,7 +164,6 @@ func test_single_element_data() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
 	assert_float(stream.container[0]).is_equal_approx(0.784, 0.05)
-	node.free()
 
 func test_missing_input_sets_error() -> void:
 	var s := RemapSettings.new()
@@ -179,7 +172,6 @@ func test_missing_input_sets_error() -> void:
 	s.remap_curve = _make_linear_curve()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_stream_sets_error() -> void:
 	var s := RemapSettings.new()
@@ -189,7 +181,6 @@ func test_missing_stream_sets_error() -> void:
 	var d = _make_data("position", PackedVector3Array([Vector3(0,0,0)]), FlowDataScript.DataType.Vector)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_non_float_stream_sets_error() -> void:
 	var s := RemapSettings.new()
@@ -199,4 +190,3 @@ func test_non_float_stream_sets_error() -> void:
 	var d = _make_data("weight", PackedInt32Array([0, 1, 2]), FlowDataScript.DataType.Int)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()

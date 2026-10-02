@@ -48,7 +48,6 @@ func test_default_settings_produces_output() -> void:
 	assert_object(out).is_not_null()
 	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_bool(positions.size() > 0).is_true()
-	node.free()
 
 func test_output_has_required_streams() -> void:
 	var s = _make_settings()
@@ -60,7 +59,6 @@ func test_output_has_required_streams() -> void:
 	assert_object(out.getVector3Container(FlowDataScript.AttrRotation)).is_not_null()
 	assert_object(out.getVector3Container(FlowDataScript.AttrSize)).is_not_null()
 	assert_object(out.findStream("type")).is_not_null()
-	node.free()
 
 func test_type_stream_contains_known_values_only() -> void:
 	var s = _make_settings(20, 20, 2.0, 6, 4, 8, 0.0, 42)
@@ -73,7 +71,6 @@ func test_type_stream_contains_known_values_only() -> void:
 	var types: PackedFloat32Array = type_stream.container
 	for t in types:
 		assert_bool(t == 0.0 or t == 1.0 or t == 2.0 or t == 3.0 or t == 4.0).is_true()
-	node.free()
 
 func test_output_contains_floor_and_wall_points() -> void:
 	var s = _make_settings(20, 20, 2.0, 6, 4, 8, 0.0, 99)
@@ -93,7 +90,6 @@ func test_output_contains_floor_and_wall_points() -> void:
 			has_wall = true
 	assert_bool(has_floor).is_true()
 	assert_bool(has_wall).is_true()
-	node.free()
 
 func test_chest_count_matches_room_count() -> void:
 	var s = _make_settings(30, 30, 2.0, 5, 4, 6, 0.0, 7777)
@@ -110,7 +106,6 @@ func test_chest_count_matches_room_count() -> void:
 			chest_count += 1
 	assert_bool(chest_count > 0).is_true()
 	assert_bool(chest_count <= 5).is_true()
-	node.free()
 
 func test_cell_size_affects_positions() -> void:
 	var s1 = _make_settings(20, 20, 1.0, 4, 4, 6, 0.0, 5555)
@@ -131,8 +126,6 @@ func test_cell_size_affects_positions() -> void:
 	if pos1.size() > 0 and pos2.size() > 0:
 		assert_bool(pos1[0] != pos2[0]).is_true()
 
-	node1.free()
-	node2.free()
 
 func test_deterministic_with_same_seed() -> void:
 	var s1 = _make_settings(20, 20, 2.0, 6, 4, 8, 0.1, 12345)
@@ -151,14 +144,11 @@ func test_deterministic_with_same_seed() -> void:
 	var pos2 = out2.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(pos1.size()).is_equal(pos2.size())
 
-	node1.free()
-	node2.free()
 
 func test_invalid_room_min_greater_than_max_sets_error() -> void:
 	var s = _make_settings(20, 20, 2.0, 6, 8, 4, 0.0, 12345)
 	var node = _run(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_torch_probability_zero_produces_no_torches() -> void:
 	var s = _make_settings(20, 20, 2.0, 6, 4, 8, 0.0, 12345)
@@ -174,7 +164,6 @@ func test_torch_probability_zero_produces_no_torches() -> void:
 		if t == 3.0:
 			torch_count += 1
 	assert_int(torch_count).is_equal(0)
-	node.free()
 
 func test_torch_probability_one_produces_torches_on_walls() -> void:
 	var s = _make_settings(20, 20, 2.0, 6, 4, 8, 1.0, 12345)
@@ -194,7 +183,6 @@ func test_torch_probability_one_produces_torches_on_walls() -> void:
 			torch_count += 1
 	assert_bool(torch_count > 0).is_true()
 	assert_bool(torch_count == wall_count).is_true()
-	node.free()
 
 func test_all_sizes_are_unit_vectors() -> void:
 	var s = _make_settings(20, 20, 2.0, 6, 4, 8, 0.0, 12345)
@@ -206,7 +194,6 @@ func test_all_sizes_are_unit_vectors() -> void:
 	assert_bool(sizes.size() > 0).is_true()
 	for sz in sizes:
 		assert_bool(sz == Vector3.ONE).is_true()
-	node.free()
 
 func test_stream_lengths_are_consistent() -> void:
 	var s = _make_settings(20, 20, 2.0, 6, 4, 8, 0.2, 12345)
@@ -223,4 +210,3 @@ func test_stream_lengths_are_consistent() -> void:
 	assert_int(rotations.size()).is_equal(n)
 	assert_int(sizes.size()).is_equal(n)
 	assert_int(types.size()).is_equal(n)
-	node.free()
