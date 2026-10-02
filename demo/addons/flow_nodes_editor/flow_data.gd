@@ -29,16 +29,17 @@ enum DataType {
 	Invalid = 999
 }
 
-# Spatial data type lattice (lightweight `kind` marker). A Data is a bag of
-# point streams by default; `kind` lets source nodes annotate what the data
-# *represents* so consumers (e.g. filter_data_by_type) can classify it honestly
-# instead of heuristically. Absent/Points = identical to historical behavior,
-# so existing .tres / graphs are untouched.
+# Spatial data type lattice marker. A Data is a bag of point streams by default;
+# `kind` says what the data *represents* so consumers (e.g. filter_data_by_type)
+# can classify it honestly instead of heuristically. When a Data carries a
+# FlowSpatial `shape` (spatial/flow_spatial.gd), `kind` follows shape.get_kind().
+# Absent/Points = identical to historical behavior, so existing .tres / graphs
+# are untouched.
 enum Kind {
 	Points,     # default: per-point streams
-	Spline,     # spline reference data (NodePath 'node' stream, etc.)
-	Surface,    # surface description (bounds + reference geometry)
-	Volume,     # volume description (bounds + reference geometry)
+	Spline,     # spline data (FlowSplineShape, or a NodePath 'node' stream)
+	Surface,    # surface data (FlowPolygonSurface / FlowMeshSurface / FlowHeightfieldSurface / surface composites)
+	Volume,     # volume data (FlowBoxVolume / FlowSphereVolume / FlowMeshVolume / volume composites)
 	AttrSet     # an attribute set with no spatial role
 }
 
@@ -307,8 +308,24 @@ class Data:
 	var kind : Kind = Kind.Points
 	# Deferred spatial description (a FlowSpatial: spline, surface, volume, composite)
 	# carried alongside — or instead of — point streams. null for plain point data.
-	# Shapes are immutable value objects, so copies share the reference.
-	var shape = null
+	# Shapes are immutable value objects, so copies share the reference. A
+	# shape-bearing Data may have zero points. Setting a shape makes `kind` follow
+	# shape.get_kind(); clearing it (null) leaves `kind` as it was.
+	var shape : FlowSpatial = null:
+		set( value ):
+			shape = value
+			if value != null:
+				kind = value.get_kind() as Kind
+
+	## A zero-point Data carrying `spatial` (kind follows the shape).
+	static func from_shape( spatial : FlowSpatial ) -> Data:
+		var d := Data.new()
+		d.shape = spatial
+		return d
+
+	## True when this Data carries a spatial shape.
+	func has_shape() -> bool:
+		return shape != null
 
 	## Copies everything that is not a per-point stream from `src`: tags, per-data
 	## attributes, the kind marker and the spatial shape. EVERY site that rebuilds a
@@ -317,8 +334,9 @@ class Data:
 	func copy_meta_from( src : Data ) -> Data:
 		tags = src.tags.duplicate()
 		data_attrs = src.data_attrs.duplicate( true )
-		kind = src.kind
+		# Shape first: its setter derives kind; then copy the source kind verbatim.
 		shape = src.shape
+		kind = src.kind
 		return self
 
 	## Stable hash of the whole Data: stream order, names, types and contents, tags,
@@ -335,8 +353,8 @@ class Data:
 			var rec = data_attrs[attr_name]
 			var value = rec.get( "value", null ) if rec is Dictionary else rec
 			h = hash( [ h, attr_name, _value_content_hash( value ) ] )
-		if shape != null and shape.has_method( "content_hash" ):
-			h = hash( [ h, shape.content_hash() ] )
+		if shape != null:
+			h = hash( [ h, shape.get_type_name(), shape.content_hash() ] )
 		return h
 
 	static func _value_content_hash( value ) -> int:

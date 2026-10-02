@@ -12,7 +12,7 @@ func _init():
 		"ins" : [{ "label": "In A" }, { "label": "In B" }],
 		"outs" : [{ "label" : "Out" }],
 		"hide_inputs" : true,
-		"tooltip" : "Performs set operations between two point sets based on position/size overlap.",
+		"tooltip" : "Performs set operations between two point sets based on position/size overlap.\nWith spatial data: shape with shape gives a composite (sampled later); points with a shape\nare filtered (Binary) or density-attenuated by the shape's density.",
 	}
 
 func getTitle() -> String:
@@ -191,6 +191,12 @@ func execute(ctx : FlowData.EvaluationContext):
 	var op_idx = clampi(settings.operation, 0, DifferenceNodeSettings.eOperation.keys().size() - 1)
 	var op = op_idx
 
+	# Spatial data (Data.shape) on either side: the spatial path. Plain point
+	# inputs never carry a shape, so they keep the legacy path below unchanged.
+	if in_dataA.shape != null or in_dataB.shape != null:
+		_execute_spatial(in_dataA, in_dataB, op)
+		return
+
 	if in_dataA.size() == 0 and in_dataB.size() == 0:
 		_emit_empty_output()
 		return
@@ -350,3 +356,108 @@ func _attenuate_difference(keep_data : FlowData.Data, keep_pos : PackedVector3Ar
 		setError(err)
 		return out_data
 	return out_data
+
+# --- Spatial data (WP2) -------------------------------------------------------------
+#
+# Shape with shape: a FlowCompositeShape (nothing is sampled here). The density
+# function picks how densities combine (see FlowSpatial.combine_density).
+#   A_Minus_B -> Difference(A, B)       B_Minus_A -> Difference(B, A)
+#   Intersection -> Intersection(A, B)  Union -> Union(A, B)
+#   SymmetricDifference -> Union(Difference(A, B), Difference(B, A))
+# Points with a shape: the result is points (UE "inferred" output). Each point's
+# shape density s at its position decides:
+#   Binary: Difference drops points with s > 0, Intersection keeps them, Union
+#           sets density to 1 where the point or the shape has density.
+#   Minimum / Multiply / Subtract: every point is kept and its density becomes
+#           combine_density(op, fn, density, s); cull downstream with density_filter.
+# When the kept side of a difference is a shape and the cutter is points, the
+# points become a FlowPointsVolume (their bounds boxes) and the result is a
+# composite. SymmetricDifference of points and a shape returns the points minus
+# the shape (the shape-only part cannot be represented as points without
+# sampling; use two Difference nodes for it).
+
+func _density_function() -> int:
+	return settings.density_function if "density_function" in settings else DifferenceNodeSettings.eDensityFunction.Binary
+
+func _as_shape(data : FlowData.Data) -> FlowSpatial:
+	if data.shape != null:
+		return data.shape
+	if data.size() > 0 and data.hasStream(FlowData.AttrPosition):
+		return FlowPointsVolume.from_data(data)
+	return null
+
+func _shape_output(shape : FlowSpatial, meta_src : FlowData.Data) -> FlowData.Data:
+	var out := FlowData.Data.from_shape(shape)
+	out.tags = meta_src.tags.duplicate()
+	out.data_attrs = meta_src.data_attrs.duplicate(true)
+	return out
+
+func _execute_spatial(in_dataA : FlowData.Data, in_dataB : FlowData.Data, op : int) -> void:
+	var fn := _density_function()
+	var a_shape : FlowSpatial = in_dataA.shape
+	var b_shape : FlowSpatial = in_dataB.shape
+	match op:
+		DifferenceNodeSettings.eOperation.A_Minus_B:
+			_spatial_difference(in_dataA, in_dataB, fn)
+		DifferenceNodeSettings.eOperation.B_Minus_A:
+			_spatial_difference(in_dataB, in_dataA, fn)
+		DifferenceNodeSettings.eOperation.Intersection:
+			if a_shape != null and b_shape != null:
+				set_output(0, _shape_output(FlowCompositeShape.new(FlowSpatial.Op.Intersection, a_shape, b_shape, fn), in_dataA))
+			elif a_shape != null:
+				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Intersection, fn))
+			else:
+				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Intersection, fn))
+		DifferenceNodeSettings.eOperation.Union:
+			if a_shape != null and b_shape != null:
+				set_output(0, _shape_output(FlowCompositeShape.new(FlowSpatial.Op.Union, a_shape, b_shape, fn), in_dataA))
+			elif a_shape != null:
+				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Union, fn))
+			else:
+				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Union, fn))
+		DifferenceNodeSettings.eOperation.SymmetricDifference:
+			if a_shape != null and b_shape != null:
+				var ab := FlowCompositeShape.new(FlowSpatial.Op.Difference, a_shape, b_shape, fn)
+				var ba := FlowCompositeShape.new(FlowSpatial.Op.Difference, b_shape, a_shape, fn)
+				set_output(0, _shape_output(FlowCompositeShape.new(FlowSpatial.Op.Union, ab, ba, fn), in_dataA))
+			elif a_shape != null:
+				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Difference, fn))
+			else:
+				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Difference, fn))
+
+## keep minus cut, where at least one side carries a shape.
+func _spatial_difference(keep : FlowData.Data, cut : FlowData.Data, fn : int) -> void:
+	if keep.shape == null:
+		set_output(0, points_vs_shape(keep, cut.shape, FlowSpatial.Op.Difference, fn))
+		return
+	var cutter := _as_shape(cut)
+	if cutter == null:
+		# Nothing to cut away: the kept shape passes through.
+		set_output(0, keep.duplicate())
+		return
+	set_output(0, _shape_output(FlowCompositeShape.new(FlowSpatial.Op.Difference, keep.shape, cutter, fn), keep))
+
+## Points of `points` combined with `shape` by `op` (see the table above).
+## Returns a new Data (the input is never modified); metadata comes from `points`.
+static func points_vs_shape(points : FlowData.Data, shape : FlowSpatial, op : int, fn : int) -> FlowData.Data:
+	var n := points.size()
+	var positions := points.getVector3Container(FlowData.AttrPosition)
+	if n == 0 or positions.size() != n:
+		return points.duplicate()
+	var dens := PackedFloat32Array()
+	dens.resize(n)
+	var dsrc = points.getContainerChecked(FlowData.AttrDensity, FlowData.DataType.Float)
+	for i in range(n):
+		dens[i] = dsrc[FlowData.bcast_idx(dsrc.size(), i)] if dsrc != null and dsrc.size() > 0 else 1.0
+	if fn == FlowSpatial.DENSITY_BINARY and op != FlowSpatial.Op.Union:
+		var keep := PackedInt32Array()
+		for i in range(n):
+			var inside := shape.sample_density(positions[i]) > 0.0
+			if inside == (op == FlowSpatial.Op.Intersection):
+				keep.append(i)
+		return points.filter(keep)
+	var out := points.duplicate()
+	for i in range(n):
+		dens[i] = FlowSpatial.combine_density(op, fn, dens[i], shape.sample_density(positions[i]))
+	out.registerStream(FlowData.AttrDensity, dens, FlowData.DataType.Float)
+	return out

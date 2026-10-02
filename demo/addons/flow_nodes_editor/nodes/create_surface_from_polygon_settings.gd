@@ -29,6 +29,25 @@ enum ePlane {
 ## the node before the size->bounds change. Off = UE-correct unit scale + bounds.
 @export var legacy_scale_from_extent : bool = false
 
+enum eOutputMode {
+	## Bounds-style surface points (today's output).
+	Points,
+	## Surface spatial data: a FlowPolygonSurface per outline (zero points, with
+	## @data area / perimeter attributes). Sample it with Surface Sampler or To
+	## Point, intersect a landscape with it, or use it as a Difference cutter.
+	Shape,
+}
+
+## Points (default, unchanged output) or surface spatial data.
+@export var output_mode : eOutputMode = eOutputMode.Points
+## Shape mode: one Data holding the union of every surface instead of one Data per surface.
+@export var merge_shapes : bool = false
+
 func _init():
 	super._init()
 	resource_name = "Create Surface From Polygon Settings"
+
+func exposeParam(name : String) -> bool:
+	if name == "merge_shapes":
+		return output_mode == eOutputMode.Shape
+	return true

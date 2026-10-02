@@ -4,9 +4,12 @@ class_name FlowDataMetaTest extends GdUnitTestSuite
 
 const FlowDataScript = preload("res://addons/flow_nodes_editor/flow_data.gd")
 
+# Data.shape is typed FlowSpatial; a minimal surface shape with a mutable hash.
 class FakeShape:
-	extends RefCounted
+	extends FlowSpatial
 	var tag : int = 1
+	func get_kind() -> int:
+		return FlowData.Kind.Surface
 	func content_hash() -> int:
 		return tag
 

@@ -11,10 +11,31 @@ func _init():
 		"outs" : [{ "label" : "Out" }],
 		"aliases" : ["Volume Sampler"],
 		"category" : "Sampler",
-		"tooltip" : "Samples points inside incoming point volumes (Volume Sampler alias).",
+		"tooltip" : "Samples points inside incoming point volumes (Volume Sampler alias).\nVolume data (Get Volume Data, composites, splines) is sampled on a voxel grid of 'voxel_size'.",
 	}
 
+## Spatial data input: voxel centres inside the shape (UE Volume Sampler), on a
+## world-anchored grid of voxel_size, kept where the shape's density is > 0.
+func _execute_shape( ctx : FlowData.EvaluationContext, in_data : FlowData.Data ) -> void:
+	var opts := {
+		"voxel_size": getSettingValue( ctx, "voxel_size", Vector3.ONE ),
+		"apply_density": bool( getSettingValue( ctx, "apply_density_to_points", true ) ),
+		"max_candidates": int( getSettingValue( ctx, "max_candidates", FlowSpatial.DEFAULT_MAX_CANDIDATES ) ),
+		"seed": effective_seed(),
+	}
+	var errors : Array = []
+	var out := FlowSpatial.sample_volume( in_data.shape, opts, errors )
+	if errors.size() > 0:
+		setError( errors[0] )
+	out.tags = in_data.tags.duplicate()
+	out.data_attrs = in_data.data_attrs.duplicate( true )
+	set_output( 0, out )
+
 func execute( ctx : FlowData.EvaluationContext ):
+	var shaped = inputs[0] if inputs.size() > 0 else null
+	if shaped is FlowData.Data and shaped.shape != null:
+		_execute_shape( ctx, shaped )
+		return
 	var bulks_before := num_generated_bulks
 	super.execute( ctx )
 	if num_generated_bulks <= bulks_before:

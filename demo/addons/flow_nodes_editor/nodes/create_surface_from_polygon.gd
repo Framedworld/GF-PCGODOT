@@ -9,7 +9,7 @@ func _init():
 		"settings" : CreateSurfaceFromPolygonSettings,
 		"ins" : [{ "label" : "Polygon Points" }],
 		"outs" : [{ "label" : "Surfaces" }],
-		"tooltip" : "Creates bounds-style surface points from ordered polygon point streams.\nOutput is an axis-aligned bounding-box point (rotation is always zero).\nArea uses the shoelace formula: points must be ordered, planar and non-self-intersecting.",
+		"tooltip" : "Creates bounds-style surface points from ordered polygon point streams.\nShape mode outputs real surface data (a polygon surface per group) instead.\nOutput is an axis-aligned bounding-box point (rotation is always zero).\nArea uses the shoelace formula: points must be ordered, planar and non-self-intersecting.",
 		"category" : "Spatial",
 	}
 
@@ -78,6 +78,33 @@ func _group_points(in_data : FlowData.Data, positions : PackedVector3Array):
 		out.append(groups[key])
 	return out
 
+## Shape mode: one Data per surface (or one union Data with merge_shapes), each
+## with @data area / perimeter attributes named like the Points mode streams.
+func _emit_shapes(surfaces : Array, areas : PackedFloat32Array, perimeters : PackedFloat32Array) -> void:
+	if surfaces.is_empty():
+		var empty := FlowData.Data.new()
+		empty.kind = FlowData.Kind.Surface
+		set_output(0, empty)
+		return
+	var area_attr : String = settings.out_area_attribute.strip_edges()
+	var perimeter_attr : String = settings.out_perimeter_attribute.strip_edges()
+	if settings.merge_shapes:
+		var merged := FlowData.Data.from_shape(FlowCompositeShape.union_of(surfaces))
+		if area_attr != "":
+			var total := 0.0
+			for a in areas:
+				total += a
+			merged.set_data_attr(area_attr, total, FlowData.DataType.Float)
+		set_output(0, merged)
+		return
+	for i in range(surfaces.size()):
+		var d := FlowData.Data.from_shape(surfaces[i])
+		if area_attr != "":
+			d.set_data_attr(area_attr, areas[i], FlowData.DataType.Float)
+		if perimeter_attr != "":
+			d.set_data_attr(perimeter_attr, perimeters[i], FlowData.DataType.Float)
+		set_output(0, d)
+
 func execute(_ctx : FlowData.EvaluationContext):
 	var in_data : FlowData.Data = require_input(0, _ctx, "Polygon Points input")
 	if in_data == null:
@@ -96,6 +123,19 @@ func execute(_ctx : FlowData.EvaluationContext):
 
 	var groups = _group_points(in_data, positions)
 	if groups == null:
+		return
+	if settings.output_mode == CreateSurfaceFromPolygonSettings.eOutputMode.Shape:
+		var surfaces : Array = []
+		var shape_areas := PackedFloat32Array()
+		var shape_perimeters := PackedFloat32Array()
+		for group in groups:
+			var pts : PackedVector3Array = group
+			if pts.size() < 3:
+				continue
+			surfaces.append(FlowPolygonSurface.from_world_points(pts, settings.plane))
+			shape_areas.append(_area(pts))
+			shape_perimeters.append(_perimeter(pts))
+		_emit_shapes(surfaces, shape_areas, shape_perimeters)
 		return
 	var dropped_groups := 0
 	for group in groups:

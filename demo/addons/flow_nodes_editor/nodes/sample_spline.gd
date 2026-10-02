@@ -7,11 +7,11 @@ func _init():
 	meta_node = {
 		"title" : "Sample Spline",
 		"settings" : SampleSplineNodeSettings,
-		"ins" : [{ "label": "Splines", "data_type": FlowData.DataType.NodePath }],
+		"ins" : [{ "label": "Splines", "data_type": FlowData.DataType.NodePath }],	# Path3D 'node' stream or spline spatial data
 		"outs" : [{ "label" : "Out" }],
 		"aliases" : ["Spline Sampler"],
 		"category" : "Sampler",
-		"tooltip" : "Samples points along Path3D curves (uniform or random), or fills the\nclosed XZ polygon of the curve (grid/random/Poisson).",
+		"tooltip" : "Samples points along Path3D curves or spline data (uniform or random), or fills the\nclosed XZ polygon of the curve (grid/random/Poisson).",
 	}
 
 func get_polygon_bounds(polygon: PackedVector2Array) -> Rect2:
@@ -231,6 +231,33 @@ func _valid_path_nodes( in_data : FlowData.Data ):
 		push_warning( "Sample Spline '%s': skipped %d 'node' entr%s that %s not a live Path3D with a Curve3D" % [ name, skipped, "y" if skipped == 1 else "ies", "is" if skipped == 1 else "are" ] )
 	return valid
 
+## A spline to sample from spline spatial data: the same `curve` / `transform`
+## members the sampling code reads from a Path3D. `curve` is a private copy
+## (the sampler temporarily changes its bake interval; the shape stays immutable).
+class SplineSource:
+	var curve : Curve3D
+	var transform : Transform3D
+	func _init( shape : FlowSplineShape ) -> void:
+		curve = shape.curve.duplicate( true )
+		transform = shape.transform
+
+## What to sample: SplineSource entries for spline spatial data (Data.shape: a
+## FlowSplineShape or a union of them), nothing for empty spline data, otherwise
+## the live Path3D nodes of the `node` stream (legacy path, unchanged).
+## Returns null after setError() when the input cannot be sampled.
+func _spline_sources( in_data : FlowData.Data ):
+	if in_data.shape != null:
+		var sources : Array = []
+		for leaf in in_data.shape.union_leaves():
+			if not ( leaf is FlowSplineShape ):
+				setError( "Sample Spline needs spline data; input shape is %s" % in_data.shape.get_type_name() )
+				return null
+			sources.append( SplineSource.new( leaf ) )
+		return sources
+	if in_data.kind == FlowData.Kind.Spline and not in_data.streams.has( "node" ):
+		return []
+	return _valid_path_nodes( in_data )
+
 func execute( ctx : FlowData.EvaluationContext ):
 
 	var trace := settings.trace
@@ -238,7 +265,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input(0, ctx, "Input 'Splines'")
 	if in_data == null:
 		return
-	var path3d_nodes = _valid_path_nodes( in_data )
+	var path3d_nodes = _spline_sources( in_data )
 	if path3d_nodes == null:
 		return
 
