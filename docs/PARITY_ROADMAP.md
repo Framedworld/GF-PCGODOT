@@ -8,27 +8,30 @@ If a tutorial step depends on one of these, the node dictionary marks it **roadm
 
 ## Implementation status (2026-10)
 
-Two passes have landed. The first (2026-06) added groundwork for every item below. Parity round 2 ([PARITY_ROUND2.md](PARITY_ROUND2.md), package notes in [`_round2/`](_round2/)) rebuilt the executor and added spatial data, the spawner family, extended attribute types and the missing point nodes. Everything new ships behind optional streams, opt-in flags or new nodes: the golden and seed-zero baselines did not change in round 2, so existing `.tres` graphs and demos produce the same output. Per-item notes from the first pass live in [`_roadmap_notes/`](_roadmap_notes/).
+Two passes have landed. The first (2026-06) added groundwork for every item below. Parity round 2 ([PARITY_ROUND2.md](PARITY_ROUND2.md), package notes in [`_round2/`](_round2/)) rebuilt the executor and added spatial data, the spawner family, extended attribute types and the missing point nodes (wave A), then hierarchical and runtime generation, terrain adapters, loop modes, editor support for the new types and shapes, a node conformance harness and a stabilization pass (wave B). Everything new ships behind optional streams, opt-in flags or new nodes. No existing golden or seed-zero baseline entry changed in round 2 (wave B only added entries for the new hierarchical demo), so existing `.tres` graphs and demos produce the same output; the intended output changes of wave B (set-operation broadphase extents, imported scene transforms, the bounds-box default for points against shapes) change no baselined output and are listed in [DEPRECATIONS.md](DEPRECATIONS.md). Per-item notes from the first pass live in [`_roadmap_notes/`](_roadmap_notes/).
 
 | Roadmap item | Status | What landed |
 |---|---|---|
 | Executor architecture (stateless elements, compiled graph) | **Implemented** (round 2) | `FlowNodeBase` is a `RefCounted` element and `FlowNodeWidget` is its editor `GraphNode`; `FlowCompiledGraph` parses a graph once; `FlowExecutor` runs synchronous, time-sliced and threaded modes |
 | Threaded execution | **Implemented, opt-in** (round 2) | `FlowGraphNode3D.threaded`; pure elements run on `WorkerThreadPool`, scene, physics, rendering and variable nodes stay on the main thread; output identical to sequential (`FlowNodeTraits`) |
 | Output caching (`FPCGGraphCache`) | **Implemented, opt-in** (round 2) | `FlowGraphNode3D.output_cache`; `FlowOutputCache` keyed by settings, seed and input content, LRU, returns copies |
+| Node conformance harness | **Implemented** (round 2) | `demo/tests/executor/conformance/`: every registered template checked for input mutation, determinism, worker-thread and cache-hit equivalence; 167 templates, 2244 fixture cases, no failure |
+| Hierarchical generation (Grid Size) | **Implemented** (round 2) | Compile-time levels from `grid_size` markers; `FlowWorld3D` cells (one `FlowGraphNode3D` each) with coarse-to-fine data flow; `get_execution_bounds`, `cull_points_outside_bounds`; `grid_fill_bounds.world_anchored` |
+| Async / proximity runtime generation | **Implemented** (round 2) | Time-sliced `generate_async()`; `FlowWorld3D` Runtime mode: generation sources, per-level radii, cleanup hysteresis, coarse-first then nearest priority, frame budget, concurrent cells, component pool; OnLoad and Manual modes |
+| Landscape data, paint layers, terrain plugins | **Implemented** (round 2; plugin adapters unverified) | `FlowTerrainAdapter` for HeightMapShape3D, heightmap Image with splat images, MeshInstance3D, and Terrain3D / HTerrain by duck typing (tested against fakes only); `get_surface_data` Terrain source with method-based auto-detection; layer weights written by Surface Sampler; `sample_terrain_layers` TerrainAdapter mode |
+| Loop and subgraph parity | **Implemented** (round 2) | `loop` iteration modes (Points, Entries, Partitions, Chunks), per-iteration runtime params, key-derived seeds, Merge / Collection output, feedback in every mode; `get_loop_index` LoopIteration source, `get_loop_key`; dynamic subgraphs (`graph_attribute`) on `loop` and `subgraph` |
+| Editor integration | **Implemented** (round 2; visual check pending) | Port colours, graph parameters and runtime inputs for every attribute type; Data Inspector columns for every type and shape summaries; viewport debug draw of shapes and point bounds; ports rebuilt when a mode setting changes. See [MANUAL_EDITOR_CHECK.md](MANUAL_EDITOR_CHECK.md) |
 | Spatial data type lattice | **Implemented** (round 2) | `FlowSpatial` shapes on `Data.shape` (spline, polygon / mesh / heightfield surfaces, box / sphere / mesh / points volumes, composites); Get Spline / Surface / Volume Data, To Point, Get Bounds; shape-aware samplers, set operations, Projection and Create Surface From *; `filter_data_by_type` by shape |
 | Attribute types | **Implemented** (round 2) | `DataType` Vector2, Vector4, Transform, Int64, Double; `$Position`-style selector aliases; 14 attribute-family nodes (`attribute_cast`, `compare_op`, `copy_attribute`, `merge_attributes`, `gather`, the op family, ...) |
 | Spawner parity | **Implemented** (round 2) | `FlowMeshSpawnEntry` descriptors (render settings, custom data, collision) and selectors on `spawn_meshes`; `spawn_spline_mesh`; `property_overrides`; `create_target_node` + `spawn_parent_attribute`; opt-in instance pooling (`reuse_instances`) |
 | Point and geometry node coverage | **Implemented** (round 2) | Apply Scale To Bounds, Split Points, Reset Point Center, Find Convex Hull 2D, Discard Points On Irregular Surface, Create Points, Filter Data By Index, Get Attribute From Point Index, Get Property From Object Path, Runtime Quality Branch / Select, Bounds From Mesh, `weighted_point_sampler` |
 | Per-point BoundsMin/Max + Steepness | **Implemented** | Optional `bounds_min`/`bounds_max`/`steepness` streams; `bounds_modifier` PerPointBounds mode; `Data.getEffectiveBounds()`/`getEffectiveSteepness()`; round 2 adds `apply_scale_to_bounds`, `reset_point_center`, `bounds_from_mesh` |
-| Density-aware Difference / Self-Pruning | **Implemented** | `density_function` setting (Binary default / Minimum / Multiply / Subtract) attenuates density instead of hard-removing; round 2 extends it to points against shapes and shape composites |
+| Density-aware Difference / Self-Pruning | **Implemented** | `density_function` setting (Binary default / Minimum / Multiply / Subtract) attenuates density instead of hard-removing; round 2 extends it to points against shapes (tested over each point's bounds box, `overlap_mode`) and shape composites |
 | Quaternion rotation model | **Implemented** | `DataType.Quaternion`, optional `rotation_quat` stream (wins over Euler), `rotator_op` node; round 2 adds Transform attributes and `make/break_transform_attribute`, `transform_op` |
 | Attribute domains (`@Data`) | **Implemented** | `Data.data_attrs` + `@data.<name>` selector; `add_attribute` domain toggle; `partition` stamps per-data key |
 | Subdivide Segment | **Implemented** | `subdivide_segment` node |
 | Shape grammar | **Implemented** | `grammar_expand` node (UE grammar subset) + `GrammarModuleResourceData` table |
-| Landscape paint-layer sampling | **Partial** | `sample_terrain_layers` (generic mask-texture path); `get_surface_data` gives height-field surfaces from meshes, `HeightMapShape3D` or a heightmap image; terrain-plugin adapters (Terrain3D, HTerrain) still deferred |
 | GPU execution | **Implemented (escape hatch)** | `compute_kernel` node wrapping a user GLSL compute shader via `RenderingDevice` |
-| Hierarchical generation (Grid Size) | **Foundation** | `grid_size` declaration node; `FlowExecutor` has the `node_filter` and `preseeded` hooks per-cell execution needs; per-cell partition *execution* still deferred |
-| Async / proximity runtime | **Partial** | Time-sliced generation (`FlowGraphNode3D.async_generation`, `begin_evaluation`) runs on `FlowExecutor`; proximity scheduling around generation sources still deferred |
 | Hardening: node-instance leak | **Done** | Elements are `RefCounted` and dropped after every run (round 2); before that, instances were pooled and freed after evaluation |
 | Hardening: editor/runtime topo sort | **Done** | Unified post-order sort with cycle detection; since round 2 the editor runs each node through the same `FlowExecutor.execute_element` as the runtime |
 | Hardening: primitive graph-input args | **Done** | `FlowData.Data.writeValue` typed-feed in `_coerce_input_data` |
@@ -38,28 +41,39 @@ Two passes have landed. The first (2026-06) added groundwork for every item belo
 
 ## Remaining gaps
 
-The honest list after round 2, collected from the package notes and the round plan. Items marked *wave B* are planned in [PARITY_ROUND2.md](PARITY_ROUND2.md#wave-b-wp1-to-wp4b-are-merged-this-is-the-next-round).
+The honest list after both waves of round 2, collected from the package notes ([`_round2/`](_round2/)) and checked against the code.
+
+**Hierarchical and runtime generation**
+- Cells are not saved or streamed as level data: there is no World Partition equivalent. `FlowWorld3D` creates its cell components at run time (or from the inspector's Generate All button) and never saves them.
+- No editor-viewport generation source: in the editor nothing generates on its own; use Generate All, or run the scene.
+- Grid sizes cannot be overridden at run time: levels come from the saved `cell_size` of each `grid_size` marker when the graph compiles, so overrides and `$param` bindings of `cell_size` are not seen.
+- Markers inside subgraphs are pass-throughs: a subgraph node runs on its own level and its inner graph runs whole within that cell.
+- A finer cell sees only the coarser cell that contains it (as in Unreal), so a fine point near a coarse cell's edge can miss a coarse point just across it.
+- `grid_fill_bounds` (unless `world_anchored`), `sample_points` and the count and point-input modes of `surface_sampler` are not world-aligned, so they give different points through cells than in one piece.
+- The scheduler was verified with an injected clock and fake sources plus a 1500-frame headless run of the demo. Frame times with heavy graphs, and cameras or players as sources in a real game loop, were not measured. Time slicing is per node, so one heavy node can overrun `frame_budget_ms`.
 
 **Execution and performance**
-- Hierarchical generation runs nothing per cell yet: `grid_size` only declares a cell size, and a `FlowGraphNode3D` evaluates its whole graph once (*wave B*: `FlowWorld3D`, cells, levels).
-- No proximity generation around players or cameras; time-sliced generation is the only runtime scheduling (*wave B*).
+- No GPU execution of the graph. `compute_kernel` is the escape hatch, as Custom HLSL is in UE; there was no GPU in the build container to verify a compute path.
+- Per-point hot loops are GDScript. The native extension covers the spatial queries (`GDKdTree`, `GDRTree`) and stream sorting (`GDStreamUtils`); moving `getTransformsStream`, `transform`, `filteredStream`, `merge` and `attribute_filter_range` loops into it is not done ([PCG_SYSTEM_REVIEW.md](PCG_SYSTEM_REVIEW.md), P3).
 - Time slicing is per node, not inside a node: one heavy node still costs one frame.
 - Threaded mode is limited by GDScript. Anything that touches the scene tree, physics or rendering, spawns, or reads graph variables or runtime params stays on the main thread. Graphs of many small nodes do not get faster (object allocation contends in the engine); compute-bound independent branches do (about 2.9 times on 4 cores in the round-2 benchmark). Group tasks are submitted at high priority, because low-priority `WorkerThreadPool` tasks get only about 30% of the pool's threads.
+- Threaded mode and script Loggers: errors printed outside `setError` reach every `OS.add_logger` Logger on the worker thread. The nodes known to log that way run one at a time (`FlowNodeTraits.LOGGING_TEMPLATES`), which is a mitigation, not a fix: an unforeseen engine error from another pure node still reaches Loggers concurrently.
 - Without the output cache, repeat evaluation is about 3.1 to 3.2 times faster than before round 2; the 5 times target was met only with `output_cache` on. The rest of the time is spent in node bodies (per-point GDScript loops, `Data` copies).
 - The output cache keys resources referenced from settings by identity: after editing a Curve or Mesh in place, call `FlowOutputCache.clear()`. Data fingerprints are 32-bit hashes plus sizes, so a collision is possible in principle (none was observed on the golden set).
-- The 34 nodes added in round 2 have traits from a central table and their own meta flags, but no generic conformance check yet (input mutation, determinism, thread and cache equivalence) (*wave B*).
-- No GPU execution of the graph. `compute_kernel` is the escape hatch, as Custom HLSL is in UE.
+- The conformance harness is evidence, not proof: a worker batch runs three copies of one element, not every interleaving or pairs of different templates; the static scan is a regular-expression heuristic that does not follow calls into helper classes; the executor prewarms Curves and Gradients but not Meshes before a threaded batch.
 
-**Spatial data**
-- A point tested against a shape (Difference, Intersection, Union, the surface sampler's bounding shape) uses the shape's density at the point's position, not the overlap of the point's bounds box with the shape as in Unreal (*wave B*: `overlap_mode`).
+**Spatial data and terrain**
+- Points against a shape use an axis-aligned bounds box (point rotation is ignored, Unreal tests the rotated box), and the overlap is exact only for axis-aligned boxes and spheres; other shapes are tested at 15 fixed samples and can miss a small shape inside a large point box.
 - Surfaces are sampled along the world vertical (heightfields along their local Y). Vertical walls (XY / YZ polygon surfaces) can be projected onto and density-tested, but the surface sampler finds no hits on them.
 - Convex collision shapes become the box of their points in `get_volume_data`; capsules and cylinders are meshed.
-- No terrain-plugin adapters: Terrain3D and HTerrain data must be fed as meshes, `HeightMapShape3D` or images (*wave B*).
-- No pin colour per spatial kind; spline and surface outputs reuse the NodePath and NodeMesh colours. The Data Inspector and debug draw do not show shapes: a shape-only Data shows zero rows (*wave B*).
+- The Terrain3D and HTerrain adapters were tested only against fakes of the plugin APIs, never against the real plugins, alone or with both installed in one project. Unchecked assumptions: where a Terrain3D region starts, the meaning of the control map's blend value, HTerrain's cell-space height argument and fallback transform, and its splat channel constant. Terrain3D without readable regions needs explicit `terrain_bounds`.
+- Terrain layer lookups take the nearest-lower texel (no filtering); Terrain3D layers are snapshotted at vertex spacing in `to_surface()`. A union composite exposes one operand's layers, not the layers of the operand that was hit. An HTerrain snapshot reads every cell (about 263 000 calls for a 513² terrain).
+- No pin colour per spatial kind; spline and surface outputs reuse the NodePath and NodeMesh colours.
 
 **Attribute types**
-- The editor does not know the new types yet: no port colours, typed setting ports or graph parameters of type Vector2, Vector4, Transform, Int64 or Double; raw `Vector2`/`Transform3D` runtime inputs are refused (wrap them in a `FlowData.Data`); the Data Inspector shows them through a generic `str()` column without per-component columns, sorting or filtering (*wave B*).
 - `math_op`, `sort`, `reduce`, `attribute_filter_range`, `attribute_noise`, `mutate_seed`, `point_neighborhood`, `texture_sampler`, `sample_terrain_layers` and `compute_kernel` reject the new types with an "unsupported type" error; cast first with `attribute_cast`, or use `vector_op` / `trig_op`.
+- `scan_nodes` and `get_property_from_object_path` still skip Vector2, Vector4, Quaternion and Transform3D metas and properties (kept for output compatibility).
+- Exposed node settings of type `int` or `float` are Int or Float ports, never Int64 or Double: GDScript properties carry no 64-bit distinction.
 - `partition` keys Double values by their string form, so values that differ only after about 14 significant digits share a partition.
 - Transform attributes compose as rotation times scale (`make_transform_attribute`, `transform_op`), while the point transform helpers use scale then rotation; the two agree for uniform scale only.
 - No `$Transform` virtual selector (use `make_transform_attribute` with its defaults), no `@LastCreated`, no swizzles (`$Position.ZYX`).
@@ -67,25 +81,30 @@ The honest list after round 2, collected from the package notes and the round pl
 
 **Spawners**
 - `FlowMeshSpawnEntry` has one material override (no per-slot overrides), no per-instance LOD or world-position-offset settings, and packs at most four custom-data floats.
-- `spawn_spline_mesh` has no per-point roll or scale interpolation from spline attributes, does not carry blend shapes, and takes one spline shape per Data: a merged spline union from `get_spline_data` (`output_mode = Merged`) is not accepted, use `PerSpline`.
+- `spawn_spline_mesh` has no per-point roll or scale interpolation from spline attributes and does not carry blend shapes. On composite spline data it spawns every spline part whole: the other operand of an intersection or difference does not clip the meshes.
 - Instance pooling reuses content across repeated `generate()` calls only; `regenerate()` and `cleanup()` free everything.
+- `cleanup()` no longer finds content stamped by hand with a `{component: id}` dictionary outside the component's subtree without `tagFlowContent` or `flowOwnerMeta` (no stock code does that).
 - Headless tests cannot read back per-instance MultiMesh transforms, colours or custom data (the dummy renderer keeps none).
 
-**Nodes**
+**Nodes and loops**
 - Discard Points On Irregular Surface measures the input point cloud (neighbours inside each point's X/Z footprint), not physics traces against the world.
 - Get Property From Object Path reads object paths from its settings, not from an input attribute, and does not extract structs or object references.
-- The `flow_nodes/quality_level` project setting is registered when a Runtime Quality node is first instantiated (the editor's add-node scan does this), not by the plugin at startup.
-- Proxy and Named Reroute Declaration have no node (`set_variable` / `get_variable` cover named reroutes).
-- `loop` runs its graph once per point of the input (once per point of each data entry): no per-entry, partition or chunk modes, no per-iteration key parameters, no graph chosen per iteration (*wave B*).
+- Proxy has no node. Named reroutes are `set_variable` / `get_variable`; the search popup does not find them by the Unreal names.
+- `loop` has one feedback parameter (Unreal allows several feedback pins). Points, Partitions and Chunks iterate per input entry; only Entries spans all entries of the pin. Index keys in Chunks and Entries mode shift when an earlier iteration is removed (use `key_attribute` in Entries mode for stable seeds). `subgraph` has no skip or stop policy for an unusable dynamic graph.
+- Choosing `Invalid` (999) as a `data_type` in an inspector drop-down still raises script errors in nodes that index `DataType.keys()` with it (`add_attribute.getTitle`, for instance).
 
-**Editor (not verified headless)**
-- The editor half of the element/widget split was tested through a headless harness. Mouse interaction, drawing (reroute ports, exec-time badges), the inspector and undo wiring, filesystem hot reload, the 3D debug draw and the data-inspector UI still need a manual check in the editor.
+**Authoring tools**
+- No Validate action (unconnected required inputs, unreachable nodes, output name collisions, stream-type conflicts, missing subgraph resources), no "Run with…" panel for seed, inputs and runtime params, and no public `FlowEditorPlugin.open_graph` ([PCG_SYSTEM_REVIEW.md](PCG_SYSTEM_REVIEW.md), P2).
+
+**Editor (not verified visually)**
+- Headless runs use the dummy renderer and no editor, so the dock's mouse interaction, drawing, inspector and undo wiring, hot reload, the 3D debug draw (point cubes, shape lines, bounds boxes), the Data Inspector table, port colours, the graph-parameter editor, the loop inspector options, `FlowWorld3D`'s inspector buttons and the hierarchical demo were tested through their data only. [MANUAL_EDITOR_CHECK.md](MANUAL_EDITOR_CHECK.md) is the 30-minute check list for a human with the editor.
+- A link dropped by a port rebuild (a mode setting turned off) is not restored by undoing the setting change.
 
 ---
 
 ## Executor architecture, threading and caching
 
-**Implemented in round 2.** Unreal splits a node into settings, a stateless element and a compiled task graph. Here: `NodeSettings` resources hold the settings; `FlowNodeBase` is the element, a `RefCounted` created fresh for every run (node scripts still `extends FlowNodeBase`); `FlowNodeWidget` is the `GraphNode` the editor shows, and nodes that build UI implement optional `widget_*` hooks. `FlowCompiledGraph.for_graph(graph)` parses a graph once and keeps the result on the graph until `graph.data` or the node registry changes. `FlowExecutor` is the only executor, with synchronous, time-sliced and threaded modes and two hooks for hierarchical generation (`node_filter`, `preseeded`). `FlowNodeTraits` marks each template main-thread and/or cacheable. Threaded mode (`FlowGraphNode3D.threaded`) and the output cache (`FlowGraphNode3D.output_cache`, `FlowOutputCache`) are off by default and produce the same output as the plain run.
+**Implemented in round 2.** Unreal splits a node into settings, a stateless element and a compiled task graph. Here: `NodeSettings` resources hold the settings; `FlowNodeBase` is the element, a `RefCounted` created fresh for every run (node scripts still `extends FlowNodeBase`); `FlowNodeWidget` is the `GraphNode` the editor shows, and nodes that build UI implement optional `widget_*` hooks. `FlowCompiledGraph.for_graph(graph)` parses a graph once and keeps the result on the graph until `graph.data` or the node registry changes. `FlowExecutor` is the only executor, with synchronous, time-sliced and threaded modes and two hooks for hierarchical generation (`node_filter`, `preseeded`). `FlowNodeTraits` marks each template main-thread and/or cacheable. Threaded mode (`FlowGraphNode3D.threaded`) and the output cache (`FlowGraphNode3D.output_cache`, `FlowOutputCache`) are off by default and produce the same output as the plain run. In threaded mode the templates known to print errors outside `setError` (`FlowNodeTraits.LOGGING_TEMPLATES`) run one at a time, and `FlowNodeTraits.resolve` warns once when a `meta_node` flag contradicts the template's table row. The node conformance harness (`demo/tests/executor/conformance/`) runs every registered template through `FlowExecutor.execute_node` and fails on input mutation, non-determinism, a worker-thread result that differs from the main-thread one, or a cache hit that differs from a fresh run.
 
 **Remaining gaps:** see *Execution and performance* above.
 
@@ -93,7 +112,7 @@ The honest list after round 2, collected from the package notes and the round pl
 
 **Implemented.** Optional `bounds_min` / `bounds_max` Vector streams and a `steepness` Float stream are canonical attributes. When they are absent, consumers derive bounds from `size` as before, so existing graphs are untouched. `bounds_modifier` has a PerPointBounds mode, `Data.getEffectiveBounds()` / `getEffectiveSteepness()` resolve them, and the size-to-bounds generators write unit scale plus explicit bounds (`legacy_scale_from_extent` restores the old output). Round 2 adds `apply_scale_to_bounds`, `reset_point_center`, `split_points` and `bounds_from_mesh`.
 
-**Remaining gaps:** points against spatial shapes use the point center, not the bounds box (see *Spatial data*).
+**Remaining gaps:** points against spatial shapes are tested with an axis-aligned bounds box, ignoring point rotation (see *Spatial data and terrain*).
 
 ## Per-point bounds in Difference / Self Pruning
 
@@ -107,15 +126,27 @@ The honest list after round 2, collected from the package notes and the round pl
 
 ## Hierarchical generation (Grid Size)
 
-**Gap.** UE's HiGen partitions the world into power-of-two grid cells, executes graph sections at different grid sizes (large grids first, results consumed by smaller ones), outputs into separately streamable actors, and dedupes across cells with Cull Points Outside Actor Bounds. Here the `grid_size` node only declares a cell size; a `FlowGraphNode3D` evaluates its whole graph over the whole scene, once.
+**Implemented in round 2.** `FlowWorld3D` generates a graph over a world in cells. Nodes downstream of a `grid_size` marker run once per cell of its size (the smallest marker wins), and the rest run once (Unbounded). `FlowCompiledGraph` computes the levels from the topology. Coarser cells are generated first, and their outputs are handed whole to the finer cells they contain. Each cell is its own `FlowGraphNode3D` (`FlowCell_L<size>_<x>_<z>`), so spawned content, cleanup and ownership work per cell; `cleanup()` is scoped to the component's own content, so cleaning one of many cells stays cheap. `get_execution_bounds` and `cull_points_outside_bounds` give graphs the cell bounds (half-open on X and Z). World-aligned samplers (Surface Sampler on surface data with a Bounding Shape, Volume Sampler and To Point on volumes, `grid_fill_bounds` with `world_anchored`) give the same points through cells as in one piece; the demo is `demos/demo_hierarchical.tscn`.
 
-**Design.** Planned as wave B of round 2 (WP5): levels computed from topology in `FlowCompiledGraph`, a `FlowWorld3D` node that generates cells as `FlowGraphNode3D` children through `FlowExecutor`'s `node_filter` and `preseeded` hooks, coarser levels computed once and passed in whole, `get_execution_bounds` and `cull_points_outside_bounds` nodes, and a runtime scheduler around generation sources. See [PARITY_ROUND2.md](PARITY_ROUND2.md#wp5-hierarchical-and-runtime-generation-agent-b1).
+**Remaining gaps:** see *Hierarchical and runtime generation* above.
 
 ## Async / proximity runtime generation
 
-**Partial.** Time-sliced generation is in: `FlowGraphNode3D.async_generation` with `frame_budget_ms`, or `FlowNodeIO.begin_evaluation` driven by `step(budget_ms)`, both on `FlowExecutor`. Instances are released after every run, primitive graph inputs are wrapped, and the recursion guard is active.
+**Implemented in round 2.** Time-sliced generation: `FlowGraphNode3D.async_generation` with `frame_budget_ms`, or `FlowNodeIO.begin_evaluation` driven by `step(budget_ms)`, both on `FlowExecutor`. Proximity generation: `FlowWorld3D.generation_mode = Runtime` queues the cells within each level's `generation_radius` of the generation sources (the group `flow_generation_source`, `FlowGenerationSource` nodes, `sources`), coarse levels first and then nearest, runs them time-sliced within `frame_budget_ms` and `max_concurrent_cells`, cleans up cells beyond radius × `cleanup_radius_multiplier` and pools their components. `OnLoad` queues every cell when the game starts; `Manual` is the synchronous API (`generate_all`, `generate_bounds`, `generate_cell`, `cleanup_cell`, `cleanup_all`).
 
-**Gap.** UE's runtime mode generates and cleans up in proximity to generation sources (players, cameras) with per-grid radii. Here generation runs when you call `generate()` / `generate_async()` (or on `_ready`). Proximity scheduling depends on the hierarchical cells above and is part of the same wave B package.
+**Remaining gaps:** see *Hierarchical and runtime generation* above.
+
+## Loops and dynamic subgraphs
+
+**Implemented in round 2.** `loop.iteration_mode` iterates per point (the default, as before), per data entry (Unreal's Loop), per attribute partition or per chunk of points. Every iteration gets `iteration_index`, `iteration_count` and `iteration_key` as runtime params (plus per-data attributes in Entries and Partitions mode), and its seed derives from the graph seed and the key, so removing a partition leaves the others unchanged. `output_mode = Collection` emits one entry per iteration. Feedback works in every mode. `get_loop_index` gains a LoopIteration source and `get_loop_key` returns the key. `loop` and `subgraph` take `graph_attribute` to pick the graph per iteration or per entry, resolved through the compiled-graph cache.
+
+**Remaining gaps:** see *Nodes and loops* above.
+
+## Editor integration
+
+**Implemented in round 2.** Port colours, slot types, graph parameter types and runtime input coercion cover Vector2, Vector4, Quaternion, Transform, Int64 and Double. The Data Inspector has columns, numeric sorting and a text filter for every type, and a summary table for shape-only Data. The viewport debug draw shows splines, box and sphere wireframes, surfaces as draped grids, composites with an operation marker and per-point bounds boxes. Node widgets rebuild their ports when a mode setting changes the layout, and drop the links into removed ports. Everything below the pixels is tested headless; the pixels need [MANUAL_EDITOR_CHECK.md](MANUAL_EDITOR_CHECK.md).
+
+**Remaining gaps:** see *Editor (not verified visually)* above.
 
 ## GPU execution
 
@@ -127,19 +158,19 @@ The honest list after round 2, collected from the package notes and the round pl
 
 **Implemented in round 2.** A Data carries point streams, a spatial shape (`Data.shape`, a `FlowSpatial`), or both. Shapes are splines (`FlowSplineShape`), surfaces (`FlowPolygonSurface`, `FlowMeshSurface`, `FlowHeightfieldSurface`), volumes (`FlowBoxVolume`, `FlowSphereVolume`, `FlowMeshVolume`, `FlowPointsVolume`) and composites (`FlowCompositeShape`: Union, Intersection, Difference with the Binary / Minimum / Multiply / Subtract density functions). Every shape answers `get_bounds`, `sample_density` (steepness-aware where it has a falloff), `project` (surfaces) and `to_points`. `Data.kind` follows the shape, so `filter_data_by_type` classifies by it.
 
-The algebra works before sampling, as in Unreal. Intersect a landscape with a volume or a closed-spline surface, subtract a road spline, then sample: `get_surface_data → intersection(get_volume_data) → surface_sampler`. Points still work everywhere: a point set against a shape is filtered or density-attenuated by the shape's density, and a shape minus points treats the points as box volumes. Shapes are immutable value objects that copy their source geometry when they are created, so cached results never change under scene edits and queries are thread-safe.
+The algebra works before sampling, as in Unreal. Intersect a landscape with a volume or a closed-spline surface, subtract a road spline, then sample: `get_surface_data → intersection(get_volume_data) → surface_sampler`. Points still work everywhere: a point set against a shape is filtered or density-attenuated by the shape's density over each point's bounds box (`overlap_mode = BoundsBox`, the default; exact for axis-aligned boxes and spheres, 15 fixed samples otherwise) or at its centre (`PointCenter`), and a shape minus points treats the points as box volumes. Shapes are immutable value objects that copy their source geometry when they are created, so cached results never change under scene edits and queries are thread-safe.
 
-**Remaining gaps:** see *Spatial data* above.
+**Remaining gaps:** see *Spatial data and terrain* above.
 
 ## Shape grammar nodes
 
 **Implemented.** `grammar_expand` expands a grammar string (the documented UE subset: sequences, `[symbol,behavior]` tuples, repetition `*` / `:N`, weighted choice `{}`) against a module table (`GrammarModuleResourceData`: symbol, size, weight) into one fitted point per module, ready for `match_and_set` / `spawn_meshes`. `subdivide_segment` provides the geometric substrate.
 
-## Landscape paint-layer sampling
+## Landscape data and paint layers
 
-**Partial.** `sample_terrain_layers` accepts N user-assigned mask textures with a world-to-UV mapping and writes one `layer_<name>` Float stream per layer (0..1); filter downstream with `density_filter` or `attribute_filter_range`. Since round 2, `get_surface_data` turns terrain meshes, `HeightMapShape3D` collision shapes or a heightmap image into a height-field surface.
+**Implemented in round 2 (plugin adapters unverified).** `FlowTerrainAdapter` (`terrain/`) reads heights, normals and paint-layer weights from a `HeightMapShape3D`, a heightmap image with optional splat images, a terrain `MeshInstance3D`, and, by duck typing, Terrain3D and HTerrain nodes, and builds an immutable surface shape that carries the layer weights. `get_surface_data` with `source = Terrain` uses it, with an explicit `terrain_node_path` or auto-detection of the one terrain plugin node in the scene by its methods. Surface Sampler and To Point write one `layer_<name>` weight per paint layer on terrain surfaces. `sample_terrain_layers` reads mask textures (the default) or, with `layer_source = TerrainAdapter`, a terrain's layers; filter downstream with `density_filter` or `attribute_filter_range`.
 
-**Gap.** Godot terrain is plugin territory (Terrain3D, HTerrain). Reading their height and splat/control maps directly needs adapters; they are planned as wave B (`FlowTerrainAdapter`, WP6).
+**Remaining gaps:** the Terrain3D and HTerrain adapters were tested against fakes only; see *Spatial data and terrain* above.
 
 ## Subdivide Segment
 
@@ -158,6 +189,6 @@ The algebra works before sampling, as in Unreal. Intersect a landscape with a vo
 **All four items below are resolved.**
 
 - ~~**Runtime evaluator leaks node instances per evaluation**~~ → **Fixed**, then made moot in round 2: elements are `RefCounted` and released after every run, including inside `loop` and `subgraph` evaluations.
-- ~~**Primitive graph-input args crash the runtime feed**~~ → **Fixed.** `_coerce_input_data` wraps supported primitives (float/int/bool/String/Vector3/Color) into a single-entry `FlowData.Data` before feeding the graph, so `FlowGraphNode3D.execute()` with raw scalar args no longer crashes.
+- ~~**Primitive graph-input args crash the runtime feed**~~ → **Fixed.** `_coerce_input_data` wraps supported primitives (float/int/bool/String/Vector3/Color, and since round 2 Vector2/Vector2i/Vector4/Quaternion/Transform3D, typed by the graph parameter for Int64 and Double) into a single-entry `FlowData.Data` before feeding the graph, so `FlowGraphNode3D.execute()` with raw scalar args no longer crashes.
 - ~~**Editor and runtime evaluators differ**~~ → **Fixed.** Both share `build_execution_order` — a unified post-order topological sort with cycle detection and `on_stack` recursion guard, plus `_stabilize_consumer_input_order` / `_stabilize_variable_execution_order` for diamond and set-variable edge cases. Since round 2 the editor also executes each node through `FlowExecutor.execute_element`, the runtime's code path.
 - ~~**Stream-length invariants are unchecked**~~ → **Fixed.** `registerStream` emits a `print_verbose` warning when a non-broadcast stream's length mismatches existing streams, making length corruption debuggable without breaking production graphs.

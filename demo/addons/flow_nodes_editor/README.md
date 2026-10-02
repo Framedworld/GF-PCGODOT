@@ -1,6 +1,6 @@
 # Flow Nodes Editor — developer notes
 
-The addon ships 164 node templates (`nodes/*.gd` without the `*_settings.gd`
+The addon ships 167 node templates (`nodes/*.gd` without the `*_settings.gd`
 resources); [doc/nodes_reference.md](doc/nodes_reference.md) lists them all and
 `node_templates.csv` at the repository root is the template/title index.
 
@@ -14,7 +14,10 @@ resources); [doc/nodes_reference.md](doc/nodes_reference.md) lists them all and
 | `executor/flow_executor.gd` (`FlowExecutor`) | The only executor: `SYNCHRONOUS`, `TIME_SLICED` (`step(budget_ms)`) and `THREADED` modes, plus the `node_filter` and `preseeded` hooks. `FlowNodeIO.evaluate_graph`, `begin_evaluation` and `evaluate_graph_snapshot` wrap it; the editor dock runs single nodes through `FlowExecutor.execute_element`. |
 | `executor/flow_node_traits.gd` (`FlowNodeTraits`) | `[main_thread, cacheable]` per stock template. `meta_node["pure"]` and `meta_node["main_thread"]` override the table; unknown templates are main-thread and not cacheable. `tests/executor/flow_node_traits_test.gd` fails when a stock template has no row. |
 | `executor/flow_output_cache.gd` (`FlowOutputCache`) | Process-wide LRU cache of pure-node outputs (`max_entries`, `clear()`, `hits`, `misses`). |
-| `spatial/` | `FlowSpatial` and the shapes carried on `FlowData.Data.shape` (splines, surfaces, volumes, composites), plus `FlowSpatialSources` for the Get * Data nodes. |
+| `spatial/` | `FlowSpatial` and the shapes carried on `FlowData.Data.shape` (splines, surfaces, volumes, composites), `FlowSurfaceLayers` (paint-layer weights on a surface), plus `FlowSpatialSources` for the Get * Data nodes. |
+| `terrain/` | `FlowTerrainAdapter` and its adapters: `HeightMapShape3D`, heightmap `Image` (with `FlowTerrainSplatLayer` splat images), `MeshInstance3D`, and Terrain3D / HTerrain by duck typing. The two plugin adapters call only methods they check with `has_method`, and were tested against fakes (`tests/terrain/support/fake_terrain_plugins.gd`), not the real plugins. |
+| `world/` | Hierarchical and runtime generation: `FlowWorld3D` (cells, scheduler, pool, manual API), `FlowGenerationSource`, `FlowWorldGrid` (cell math, half-open ownership), `FlowWorldCell` (one cell to evaluate) and `FlowCellRun` (a time-sliced cell run). Levels are computed by `FlowCompiledGraph` (`node_levels`, `level_plan`). |
+| `visualization/` | The Data Inspector's `TableView`, its pure model `FlowDataTableModel` (columns, cell text, sort keys, filter for every type, shape summaries), and `FlowDebugShapes`, the pure line builder behind the viewport debug draw of shapes and point bounds. |
 | `spawn/` | `FlowMeshSpawnEntry`, `FlowSpawnUtil`, `FlowSpawnPool`, `FlowSplineBend`, `FlowInstancedCollision3D`. |
 | `attributes/` | `FlowAttributeOps`, shared by the attribute-type nodes (kept outside `nodes/` so the editor does not list it as a template). |
 
@@ -24,7 +27,10 @@ both off by default. `FlowNodeIO.make_context` turns them into the context metas
 and loop evaluations inherit. In threaded mode, main-thread elements run on the calling
 thread in sequential order and never overlap pool tasks; errors are buffered per
 element and appended in sequential order, so `last_errors` matches a plain run. Both
-modes reproduce the plain run's output exactly.
+modes reproduce the plain run's output exactly. `FlowWorld3D` has the same two options
+and passes them to every cell component; its time-sliced scheduler keeps each cell's
+top level sequential, as `generate_async` does, so `threaded` applies to its synchronous
+manual API and to nested subgraph and loop evaluations.
 
 > **Warning: script Loggers and threaded mode.** Errors and warnings that do not go
 > through a node's `setError` (a `push_error` from a `FlowData` helper such as
@@ -55,6 +61,24 @@ godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreH
 godot --headless --path . --import 2>&1 | grep -E "SCRIPT ERROR|Parse Error"   # must print nothing
 godot --headless --path . -s res://tests/perf/executor_benchmark.gd             # benchmark script, not a test
 ```
+
+`tests/executor/conformance/` is the node conformance harness: it runs every registered
+template with default settings on synthetic inputs and fails on input mutation,
+non-determinism, a worker-thread result that differs from the main-thread one (threadable
+templates) or a cache hit that differs from a fresh run (cacheable templates). A new node
+is covered once it has its `FlowNodeTraits.TABLE` row; if its defaults only reach an error
+path, add a row with working settings or fixtures to
+`tests/executor/conformance/conformance_overrides.gd`. The per-template report:
+
+```bash
+godot --headless --path . -s res://tests/executor/conformance/tools/conformance_report.gd
+```
+
+`tests/world/` covers hierarchical generation (levels, cell math, partition invariance of
+the world-aligned samplers, the scheduler with an injected clock and fake sources),
+`tests/terrain/` the terrain adapters, and `tests/editor/` the editor through a headless
+dock. What none of them can see (drawing, mouse, the inspector, undo, the 3D viewport) is
+in [docs/MANUAL_EDITOR_CHECK.md](../../../docs/MANUAL_EDITOR_CHECK.md).
 
 The golden suite (`tests/golden`) and the seed-zero suite
 (`tests/runtime/seed_zero_backcompat_test.gd`) must pass without regenerating their
@@ -152,7 +176,7 @@ with `ResourceSaver`).
 		- [X] Change density based on the distance to the spline contour
 	- [X] Bridge
 - [X] Match & Set is not taking into account the weight attr
-- [ ] Integrate with HTerrain plugin
+- [ ] Verify the HTerrain and Terrain3D adapters (`terrain/`) against the real plugins (they were tested against fakes only)
 - [ ] Subgraphs / Loops?
 - [X] Sample spline along N random positions
 - [X] Discard points too close to hard edges of a mesh

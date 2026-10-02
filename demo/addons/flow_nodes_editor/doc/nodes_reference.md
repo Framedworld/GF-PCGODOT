@@ -1,6 +1,6 @@
 # PCGODOT Node Library Reference
 
-A complete reference of all 164 node templates in the PCGODOT framework (every script in `nodes/` except the `*_settings.gd` files), grouped by category. Clicking on a node name links directly to its implementation file.
+A complete reference of all 167 node templates in the PCGODOT framework (every script in `nodes/` except the `*_settings.gd` files), grouped by category. Clicking on a node name links directly to its implementation file.
 
 ## 📌 Table of Contents
 - [Assets](#-assets)
@@ -23,7 +23,7 @@ A complete reference of all 164 node templates in the PCGODOT framework (every s
 | **Create Target Node** | [create_target_node.gd](../nodes/create_target_node.gd) | Creates (or reuses) a named Node3D container with groups and an owner policy and outputs a reference to it (`@data.target` by default). Spawners parent their content under it through `spawn_parent_attribute`. Unreal's Create Target Actor. |
 | **Spawn Meshes** | [spawn_meshes.gd](../nodes/spawn_meshes.gd) | Spawns a Mesh Instance on each point, applying the translation, rotation and scale. The instanced mesh can be specified by point if a stream contains the mesh resource to be spawned. The generates meshes are MultiMeshInstance3D. `mesh_entries` (FlowMeshSpawnEntry descriptors) add per-entry weight, material override, shadows, visibility range, render layers, GI mode, per-instance custom data and collision, picked by weight, attribute index, attribute name or cycling. Optional `spawn_parent_attribute` and instance pooling (`reuse_instances`). |
 | **Spawn Scenes** | [spawn_scenes.gd](../nodes/spawn_scenes.gd) | Similar to spawn meshes but a full scene is instantiated on each node. A set of properties can be transfered from the nodes to each instanced scene. `property_overrides` maps point attributes to (nested) property paths of the instance (`light_energy`, `position:x`, `Child/Light:light_energy`, `%Unique:prop`), with type coercion. Optional `spawn_parent_attribute` and instance pooling (`reuse_instances`). |
-| **Spawn Spline Mesh** | [spawn_spline_mesh.gd](../nodes/spawn_spline_mesh.gd) | Deforms a mesh along each segment of the input splines (Path3D nodes or spline data). One MeshInstance3D per segment, with a bent ArrayMesh cached per mesh and segment. Forward axis, tangent and up handling, scale along/across, per-segment mesh entries. |
+| **Spawn Spline Mesh** | [spawn_spline_mesh.gd](../nodes/spawn_spline_mesh.gd) | Deforms a mesh along each segment of the input splines (Path3D nodes or spline data). One MeshInstance3D per segment, with a bent ArrayMesh cached per mesh and segment. Forward axis, tangent and up handling, scale along/across, per-segment mesh entries. Accepts composite spline data (Get Spline Data, Merged): every spline part is spawned whole, in merge order. |
 
 ## 📂 Attributes
 
@@ -74,7 +74,7 @@ A complete reference of all 164 node templates in the PCGODOT framework (every s
 | **Grid** | [grid.gd](../nodes/grid.gd) | Generates a set of points in a grid spatial distribution, where the separation is step |
 | **Grid Boundary** | [grid_boundary.gd](../nodes/grid_boundary.gd) | Extracts exposed edge and corner points from filled grid cells. |
 | **Grid Connect Points** | [grid_connect_points.gd](../nodes/grid_connect_points.gd) | Connects ordered points with orthogonal grid-cell paths on the XZ plane. |
-| **Grid Fill Bounds** | [grid_fill_bounds.gd](../nodes/grid_fill_bounds.gd) | Creates one point per grid cell inside input bounds, or inside configured bounds when no input is connected. |
+| **Grid Fill Bounds** | [grid_fill_bounds.gd](../nodes/grid_fill_bounds.gd) | Creates one point per grid cell inside input bounds, or inside configured bounds when no input is connected. World Anchored places the cells on world multiples of cell_size instead of centring them on each box (partition-invariant). |
 | **Noise** | [noise.gd](../nodes/noise.gd) | Outputs an attribute with Noise values |
 | **Relax** | [relax.gd](../nodes/relax.gd) | Relax distance between points |
 | **Self Pruning** | [self_pruning.gd](../nodes/self_pruning.gd) | Rejects points that overlap previous points, or removes duplicate grid-cell points. |
@@ -96,9 +96,9 @@ A complete reference of all 164 node templates in the PCGODOT framework (every s
 | --- | --- | --- |
 | **Load Alembic File** | [load_alembic_file.gd](../nodes/load_alembic_file.gd) | UE naming alias for loading Alembic/imported scene resources as mesh points. |
 | **Point From Mesh** | [point_from_mesh.gd](../nodes/point_from_mesh.gd) | Creates one point per mesh node, using mesh bounds for size and node transform for position/rotation. |
-| **Points From Imported Scene** | [points_from_imported_scene.gd](../nodes/points_from_imported_scene.gd) | Loads imported scene/mesh resources and emits one point per mesh instance or mesh asset. |
+| **Points From Imported Scene** | [points_from_imported_scene.gd](../nodes/points_from_imported_scene.gd) | Loads imported scene/mesh resources and emits one point per mesh instance or mesh asset, placed by each mesh's transform accumulated from the scene root. |
 | **Sample Mesh** | [sample_mesh.gd](../nodes/sample_mesh.gd) | Samples points on mesh surfaces: random area-weighted, one per vertex, or one per triangle center. Writes density, seed and normal streams. |
-| **Sample Terrain Layers** | [sample_terrain_layers.gd](../nodes/sample_terrain_layers.gd) | Samples user-assigned mask textures at each point's world-XZ (or UV) position and writes one Float stream per layer (0..1). |
+| **Sample Terrain Layers** | [sample_terrain_layers.gd](../nodes/sample_terrain_layers.gd) | Writes one weight stream per paint layer (0..1) at each point: from user-assigned mask textures (world-XZ or UV, the default) or from a terrain adapter (Terrain3D control map, HTerrain splat maps, splat images). |
 | **Scan Meshes** | [scan_meshes.gd](../nodes/scan_meshes.gd) | Collects MeshInstance3D nodes from the scene and outputs a `node` stream plus a `mesh` Resource stream. Filter by group and/or a boolean metadata flag. |
 | **Texture Sampler** | [texture_sampler.gd](../nodes/texture_sampler.gd) | Samples a texture using UV or position-derived coordinates and writes sampled attributes. |
 
@@ -107,13 +107,14 @@ A complete reference of all 164 node templates in the PCGODOT framework (every s
 | Node | Script File | Description |
 | --- | --- | --- |
 | **Apply Scale To Bounds** | [apply_scale_to_bounds.gd](../nodes/apply_scale_to_bounds.gd) | Multiplies each point's bounds by its scale and resets the scale to one. |
-| **Bounds From Mesh** | [bounds_from_mesh.gd](../nodes/bounds_from_mesh.gd) | Sets point bounds from a mesh's local AABB (settings mesh or per-point Mesh attribute). |
-| **Difference** | [difference.gd](../nodes/difference.gd) | Set operations between point sets (position/size overlap) or spatial shapes: shape with shape gives a composite that is sampled later, points with a shape are filtered (Binary) or density-attenuated (Minimum / Multiply / Subtract) by the shape's density at each point position. |
+| **Bounds From Mesh** | [bounds_from_mesh.gd](../nodes/bounds_from_mesh.gd) | Sets point bounds from a mesh's local AABB (settings mesh or per-point Mesh attribute). Runs on the main thread and is not cached. |
+| **Difference** | [difference.gd](../nodes/difference.gd) | Set operations between point sets (position/size overlap) or spatial shapes: shape with shape gives a composite that is sampled later; points with a shape are filtered (Binary) or density-attenuated (Minimum / Multiply / Subtract) by the shape's density over each point's bounds box (`overlap_mode = BoundsBox`, the default) or at its centre (`PointCenter`). |
 | **Find Convex Hull 2D** | [find_convex_hull_2d.gd](../nodes/find_convex_hull_2d.gd) | Keeps the points on the X/Z convex hull of each input, in counter-clockwise order, with a hull index attribute. |
 | **Get Bounds** | [get_bounds.gd](../nodes/get_bounds.gd) | World bounds of a spatial shape or of a point set, as one bounds point or a box volume shape. |
-| **Get Surface Data** | [get_surface_data.gd](../nodes/get_surface_data.gd) | Surface data from MeshInstance3D nodes, HeightMapShape3D collision shapes or a heightmap image (Get Landscape Data). |
+| **Get Execution Bounds** | [get_execution_bounds.gd](../nodes/get_execution_bounds.gd) | Bounds of the current FlowWorld3D cell (the world bounds on the Unbounded level, `fallback_bounds` outside world generation) as a box volume or a bounds point, with cell `@data` attributes. The optional Dependency pin only orders execution: `grid_size → get_execution_bounds` runs per cell. |
+| **Get Surface Data** | [get_surface_data.gd](../nodes/get_surface_data.gd) | Surface data from MeshInstance3D nodes, HeightMapShape3D collision shapes, a heightmap image, or a terrain (Terrain3D / HTerrain auto-detected by their methods, or by path) with its paint-layer weights (Get Landscape Data). The plugin adapters were tested against fakes only. |
 | **Get Volume Data** | [get_volume_data.gd](../nodes/get_volume_data.gd) | Volume data from collision shapes (also inside Area3D / bodies), CSG roots or mesh bounds. |
-| **Intersection** | [intersection.gd](../nodes/intersection.gd) | Returns points in A that overlap points in B (Intersection alias). With spatial data, shape with shape gives an intersection composite and points with a shape keep the points inside it. |
+| **Intersection** | [intersection.gd](../nodes/intersection.gd) | Returns points in A that overlap points in B (Intersection alias). With spatial data, shape with shape gives an intersection composite and points with a shape keep the points whose bounds box (or centre, `overlap_mode`) overlaps it. |
 | **Navigation Region Sampler** | [navigation_region_sampler.gd](../nodes/navigation_region_sampler.gd) | Samples Godot NavigationRegion3D meshes into points. |
 | **Physics Overlap Query** | [physics_overlap_query.gd](../nodes/physics_overlap_query.gd) | Runs shape-overlap checks per point against the 3D physics world (Godot-specific query node). |
 | **Physics Shape Sweep** | [physics_shape_sweep.gd](../nodes/physics_shape_sweep.gd) | Sweeps a sphere or box from each point through the Godot physics world. |
@@ -125,7 +126,7 @@ A complete reference of all 164 node templates in the PCGODOT framework (every s
 | **Split Points** | [split_points.gd](../nodes/split_points.gd) | Splits every point in two along a bounds axis at a ratio (Before Split / After Split), keeping the transform or recentering each half. |
 | **Substract** | [substract.gd](../nodes/substract.gd) | Applies the boolean logic |
 | **To Point** | [to_point.gd](../nodes/to_point.gd) | Converts spatial data (spline, surface, volume, composite) to points with its default sampling; point data passes through. |
-| **Union** | [union.gd](../nodes/union.gd) | Union alias. Merges all incoming point sets. With spatial data, shape with shape gives a union composite. |
+| **Union** | [union.gd](../nodes/union.gd) | Union alias. Merges all incoming point sets. With spatial data, shape with shape gives a union composite, and points with a shape fold the density (same `overlap_mode` as Difference). |
 
 ## 📂 Splines
 
@@ -149,7 +150,7 @@ A complete reference of all 164 node templates in the PCGODOT framework (every s
 | Node | Script File | Description |
 | --- | --- | --- |
 | **Attribute Random** | [attribute_random.gd](../nodes/attribute_random.gd) | Sets an attribute on points to random values or sequential indices. |
-| **Bounds Modifier** | [bounds_modifier.gd](../nodes/bounds_modifier.gd) | Modifies the size/bounds property on points in the provided point data. |
+| **Bounds Modifier** | [bounds_modifier.gd](../nodes/bounds_modifier.gd) | Sets, adds or multiplies a box into the points' bounds: Per Point Bounds (default) writes `bounds_min`/`bounds_max`, keeping an off-centre box's centre as in UE; Symmetric Size (legacy) writes the extent to `size`. |
 | **Branch** | [branch.gd](../nodes/branch.gd) | Selects one of two outputs based on a Boolean attribute or value. |
 | **Build Rotation From Up Vector** | [build_rotation_from_up.gd](../nodes/build_rotation_from_up.gd) | Computes rotation from an up vector stream or constant and applies it to the points. |
 | **Combine Points** | [combine_points.gd](../nodes/combine_points.gd) | For each input Point Data, outputs a new Point Data containing a single point that encompasses all points in its respective Point Data. |
@@ -157,6 +158,7 @@ A complete reference of all 164 node templates in the PCGODOT framework (every s
 | **Compute Kernel** | [compute_kernel.gd](../nodes/compute_kernel.gd) | Runs a user-supplied GLSL compute shader over point streams through RenderingDevice, with declared stream bindings; the input passes through unchanged when the GPU or shader is unavailable. |
 | **Copy** | [copy.gd](../nodes/copy.gd) | Copies points using linear repeat offsets or source-to-target placement mode. In SourceToTargets mode `attribute_inheritance` (UE Copy Points parity) picks which input's attributes the copies carry: `SourceOnly` (default; the historical output), `SourceFirst` (source attributes plus target attributes the source lacks), `TargetFirst` (target wins name collisions) or `TargetOnly`. Transform/extent streams (position, rotation, rotation_quat, size, bounds_min/max) are always composed from source and target and are not inherited. |
 | **Copy Points** | [copy_points.gd](../nodes/copy_points.gd) | Godot-facing alias of Copy for point data. |
+| **Cull Points Outside Bounds** | [cull_points_outside_bounds.gd](../nodes/cull_points_outside_bounds.gd) | Keeps the points inside the current FlowWorld3D cell (half-open on X and Z, optional point-bounds overlap and margin); pass-through outside world generation (Cull Points Outside Actor Bounds). |
 | **Curve Remap Density** | [curve_remap_density.gd](../nodes/curve_remap_density.gd) | Remaps the density of each point in the point data to another density value according to the provided curve. |
 | **Debug** | [debug.gd](../nodes/debug.gd) | Forces the visualization of the debug node. Used when some specific values are required in the debug options. |
 | **Decompose Vector** | [decompose_vector.gd](../nodes/decompose_vector.gd) | Decomposes a Vector3 attribute into three float attributes. Vector2, Vector4, Quaternion and Color inputs also work (the fourth component goes to `w_attribute`). |
@@ -173,12 +175,13 @@ A complete reference of all 164 node templates in the PCGODOT framework (every s
 | **Gather** | [gather.gd](../nodes/gather.gd) | Forwards every data wired into In unchanged and in order on one pin (no concatenation); the Dependency Only pin only orders execution. |
 | **Get Data Count** | [get_data_count.gd](../nodes/get_data_count.gd) | Returns the number of entries in the input data. |
 | **Get Entries Count** | [get_entries_count.gd](../nodes/get_entries_count.gd) | Returns the number of entries in the input data. |
-| **Get Loop Index** | [get_loop_index.gd](../nodes/get_loop_index.gd) | Writes a sequential loop/index attribute for each incoming point. |
+| **Get Loop Index** | [get_loop_index.gd](../nodes/get_loop_index.gd) | Source Points (default): a sequential index per incoming point. Source Loop Iteration: the enclosing Loop's iteration index, in every iteration mode. |
+| **Get Loop Key** | [get_loop_key.gd](../nodes/get_loop_key.gd) | Writes the enclosing Loop iteration's key (point, entry or chunk index, the entry's key attribute, or the partition value) to every incoming point, or as a one-value Data. |
 | **Get Points Count** | [get_points_count.gd](../nodes/get_points_count.gd) | UE naming alias of Size. Outputs total points as a single integer stream. |
 | **Get Variable** | [get_variable.gd](../nodes/get_variable.gd) | Reads data from a named graph variable declared by a Set Variable node. |
-| **Grid Size** | [grid_size.gd](../nodes/grid_size.gd) | Declares a power-of-two cell size for this section of the graph (Hierarchical Generation). Data passes through unchanged; per-cell execution is not implemented yet. |
+| **Grid Size** | [grid_size.gd](../nodes/grid_size.gd) | Hierarchical generation marker: the nodes downstream run once per cell of this power-of-two size when a FlowWorld3D generates the graph (the smallest size wins under several markers). Data passes through unchanged; outside FlowWorld3D it has no effect. |
 | **Input** | [input.gd](../nodes/input.gd) | Exposes an input of the Flow Graph Node into the Graph |
-| **Loop** | [loop.gd](../nodes/loop.gd) | Loops over each element in Stream and runs a graph for each |
+| **Loop** | [loop.gd](../nodes/loop.gd) | Runs a graph once per iteration of Stream: per point (default), per data entry, per attribute partition or per chunk of points; merged or one output entry per iteration, with an optional feedback parameter and a graph chosen per iteration (`graph_attribute`). |
 | **Make Bounds** | [make_bounds.gd](../nodes/make_bounds.gd) | Generates a single bounding point at center with size, or (Shape mode) a box volume shape. |
 | **Make Vector** | [make_vector.gd](../nodes/make_vector.gd) | Creates a single Vector value from 3 inmediate float values |
 | **Match And Set** | [match_and_set.gd](../nodes/match_and_set.gd) | Copies attributes into input data set based on a match_attr. **Numeric keys:** values are matched by their string form first; when a value has no exact match and both it and a key are numeric (int/float, or a string that parses as one), they are compared as floats with `is_equal_approx`, so a JSON-loaded `3.0` matches key `"3"` and an int `3` matches `"3.0"`. |
@@ -210,8 +213,8 @@ A complete reference of all 164 node templates in the PCGODOT framework (every s
 | **Snap to Grid** | [snap_to_grid.gd](../nodes/snap_to_grid.gd) | Snaps point positions, rotations, or scale sizes to grid values. |
 | **Sort** | [sort.gd](../nodes/sort.gd) | Reorders the points based on the values of stream |
 | **Spawn Nodes** | [spawn_nodes.gd](../nodes/spawn_nodes.gd) | Dynamically instantiates a raw Godot class or custom script node on each point. Properties can be transferred from point attributes to node properties. `property_overrides` maps point attributes to (nested) property paths of the node. Optional `spawn_parent_attribute` and instance pooling (`reuse_instances`). |
-| **Subgraph** | [subgraph.gd](../nodes/subgraph.gd) | Evaluates a nested graph inside this node |
-| **Surface Sampler** | [surface_sampler.gd](../nodes/surface_sampler.gd) | Samples points randomly inside the bounds of the input points, or on surface data (Get Surface Data, composites) with points per square meter, looseness, point extents, density and an optional Bounding Shape input. |
+| **Subgraph** | [subgraph.gd](../nodes/subgraph.gd) | Evaluates a nested graph inside this node; with `graph_attribute`, the graph named by an attribute of its extra Graph pin, per input entry. |
+| **Surface Sampler** | [surface_sampler.gd](../nodes/surface_sampler.gd) | Samples points randomly inside the bounds of the input points, or on surface data (Get Surface Data, composites) with points per square meter, looseness, point extents, density and an optional Bounding Shape input; on terrain surfaces it writes one `layer_<name>` weight per paint layer. |
 | **Switch** | [switch.gd](../nodes/switch.gd) | Routes the input to one of multiple outputs based on an index attribute or value. |
 | **Tags** | [tags_mutate.gd](../nodes/tags_mutate.gd) | Adds, removes, or replaces FlowData tags. |
 | **Transform** | [transform.gd](../nodes/transform.gd) | Applies the random translation/rotation/scale to each point |
