@@ -11,6 +11,12 @@ enum eTargetType {
 	SplineData,
 	## Retains only raw attribute set containers.
 	AttributeSet,
+	## Retains only surface data (Get Surface Data, polygon surfaces, surface composites).
+	SurfaceData,
+	## Retains only volume data (Get Volume Data, volume composites).
+	VolumeData,
+	## Retains any spatial data: spline, surface or volume (UE "Spatial").
+	SpatialData,
 }
 ## Selects the data container type to preserve.
 @export var target_type: eTargetType = eTargetType.PointData

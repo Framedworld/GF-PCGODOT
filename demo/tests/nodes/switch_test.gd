@@ -44,7 +44,6 @@ func test_static_index_0_routes_to_out0() -> void:
 	assert_int(_get_output(node, 1).size()).is_equal(0)
 	assert_int(_get_output(node, 2).size()).is_equal(0)
 	assert_int(_get_output(node, 3).size()).is_equal(0)
-	node.free()
 
 func test_static_index_1_routes_to_out1() -> void:
 	var s = SwitchSettings.new()
@@ -57,7 +56,6 @@ func test_static_index_1_routes_to_out1() -> void:
 	assert_object(_get_output(node, 1)).is_equal(in_data)
 	assert_int(_get_output(node, 2).size()).is_equal(0)
 	assert_int(_get_output(node, 3).size()).is_equal(0)
-	node.free()
 
 func test_static_index_2_routes_to_out2() -> void:
 	var s = SwitchSettings.new()
@@ -70,7 +68,6 @@ func test_static_index_2_routes_to_out2() -> void:
 	assert_int(_get_output(node, 1).size()).is_equal(0)
 	assert_object(_get_output(node, 2)).is_equal(in_data)
 	assert_int(_get_output(node, 3).size()).is_equal(0)
-	node.free()
 
 func test_static_index_3_routes_to_out3() -> void:
 	var s = SwitchSettings.new()
@@ -83,7 +80,6 @@ func test_static_index_3_routes_to_out3() -> void:
 	assert_int(_get_output(node, 1).size()).is_equal(0)
 	assert_int(_get_output(node, 2).size()).is_equal(0)
 	assert_object(_get_output(node, 3)).is_equal(in_data)
-	node.free()
 
 func test_index_clamped_below_zero() -> void:
 	var s = SwitchSettings.new()
@@ -94,7 +90,6 @@ func test_index_clamped_below_zero() -> void:
 	assert_str(node.err).is_empty()
 	assert_object(_get_output(node, 0)).is_equal(in_data)
 	assert_int(_get_output(node, 1).size()).is_equal(0)
-	node.free()
 
 func test_index_clamped_above_three() -> void:
 	var s = SwitchSettings.new()
@@ -105,7 +100,6 @@ func test_index_clamped_above_three() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(_get_output(node, 2).size()).is_equal(0)
 	assert_object(_get_output(node, 3)).is_equal(in_data)
-	node.free()
 
 func test_attribute_mode_reads_index_from_stream() -> void:
 	var s = SwitchSettings.new()
@@ -121,7 +115,6 @@ func test_attribute_mode_reads_index_from_stream() -> void:
 	assert_int(_get_output(node, 1).size()).is_equal(0)
 	assert_object(_get_output(node, 2)).is_equal(in_data)
 	assert_int(_get_output(node, 3).size()).is_equal(0)
-	node.free()
 
 func test_attribute_mode_uses_static_index_when_name_empty() -> void:
 	var s = SwitchSettings.new()
@@ -135,7 +128,6 @@ func test_attribute_mode_uses_static_index_when_name_empty() -> void:
 	assert_object(_get_output(node, 1)).is_equal(in_data)
 	assert_int(_get_output(node, 2).size()).is_equal(0)
 	assert_int(_get_output(node, 3).size()).is_equal(0)
-	node.free()
 
 func test_attribute_mode_missing_stream_falls_back_to_static_index() -> void:
 	var s = SwitchSettings.new()
@@ -145,14 +137,12 @@ func test_attribute_mode_missing_stream_falls_back_to_static_index() -> void:
 	var in_data = _make_data("val", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run(in_data, s)
 	assert_int(_get_output(node, 3).size()).is_equal(0) if not node.err.is_empty() else assert_object(_get_output(node, 3)).is_equal(in_data)
-	node.free()
 
 func test_missing_input_produces_empty_outputs() -> void:
 	var s = SwitchSettings.new()
 	s.index = 0
 	s.use_attribute = false
 	var node = _run(null, s)
-	node.free()
 
 func test_non_selected_outputs_are_independent_data_objects() -> void:
 	var s = SwitchSettings.new()
@@ -169,4 +159,3 @@ func test_non_selected_outputs_are_independent_data_objects() -> void:
 	assert_object(out3).is_not_null()
 	assert_bool(out1 == out2).is_false()
 	assert_bool(out2 == out3).is_false()
-	node.free()

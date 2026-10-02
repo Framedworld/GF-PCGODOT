@@ -55,6 +55,10 @@ func execute(_ctx : FlowData.EvaluationContext):
 
 	var allow_default = settings.use_defaults_when_missing
 
+	if settings.transform_attribute_name != "":
+		_from_transform(in_data, num_points)
+		return
+
 	var pos_result = _resolve_vector_stream(
 		in_data,
 		settings.position_attribute_name,
@@ -89,6 +93,9 @@ func execute(_ctx : FlowData.EvaluationContext):
 		return
 
 	var out_data = in_data.duplicate()
+	# The Euler rotation written below is the new orientation: an inherited
+	# rotation_quat stream would still win over it (getTransformsStream prefers it).
+	out_data.streams.erase(FlowData.AttrRotationQuat)
 	var err = out_data.registerStream(FlowData.AttrPosition, pos_result.container, FlowData.DataType.Vector)
 	if err:
 		setError(err)
@@ -104,4 +111,39 @@ func execute(_ctx : FlowData.EvaluationContext):
 		setError(err)
 		return
 
+	set_output(0, out_data)
+
+# Point streams from a Transform attribute (transform_attribute_name).
+func _from_transform(in_data : FlowData.Data, num_points : int) -> void:
+	var stream = in_data.findStream(settings.transform_attribute_name)
+	if stream == null or stream.data_type != FlowData.DataType.Transform:
+		setError("Transform attribute '%s' not found or not a Transform" % settings.transform_attribute_name)
+		return
+	var container = stream.container
+	if container.size() != num_points and container.size() != 1:
+		setError("Attribute '%s' must have %d values or 1 value (got %d)" % [settings.transform_attribute_name, num_points, container.size()])
+		return
+	var positions := PackedVector3Array()
+	var rotations := PackedVector3Array()
+	var sizes := PackedVector3Array()
+	positions.resize(num_points)
+	rotations.resize(num_points)
+	sizes.resize(num_points)
+	for i in range(num_points):
+		var xf : Transform3D = container[FlowData.bcast_idx(container.size(), i)]
+		positions[i] = xf.origin
+		rotations[i] = FlowData.quatToEuler(xf.basis.get_rotation_quaternion())
+		sizes[i] = xf.basis.get_scale()
+	var out_data = in_data.duplicate()
+	# An inherited rotation_quat stream wins over the Euler rotation, so it would
+	# keep the old orientation: drop it, the Euler stream carries the transform's.
+	out_data.streams.erase(FlowData.AttrRotationQuat)
+	var err = out_data.registerStream(FlowData.AttrPosition, positions, FlowData.DataType.Vector)
+	if not err:
+		err = out_data.registerStream(FlowData.AttrRotation, rotations, FlowData.DataType.Vector)
+	if not err:
+		err = out_data.registerStream(FlowData.AttrSize, sizes, FlowData.DataType.Vector)
+	if err:
+		setError(err)
+		return
 	set_output(0, out_data)

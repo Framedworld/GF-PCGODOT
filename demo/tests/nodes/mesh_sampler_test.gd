@@ -59,7 +59,6 @@ func test_null_input_sets_error() -> void:
 	node.execute(ctx)
 	dummy.free()
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 ## UseNumSamples mode with null input also errors.
 func test_use_num_samples_null_input_sets_error() -> void:
@@ -77,7 +76,6 @@ func test_use_num_samples_null_input_sets_error() -> void:
 	node.execute(ctx)
 	dummy.free()
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 ## OnePerVertex mode with null input errors.
 func test_one_per_vertex_null_input_sets_error() -> void:
@@ -94,7 +92,6 @@ func test_one_per_vertex_null_input_sets_error() -> void:
 	node.execute(ctx)
 	dummy.free()
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # OnePerVertex — BoxMesh has exactly 8 unique corners
@@ -123,7 +120,6 @@ func test_one_per_vertex_produces_8_points_for_box() -> void:
 	assert_object(out.findStream(FlowDataScript.AttrDensity)).is_not_null()
 	assert_object(out.findStream(FlowDataScript.AttrSeed)).is_not_null()
 
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -153,7 +149,6 @@ func test_face_centers_produces_12_points_for_box() -> void:
 		var n: Vector3 = normals[i]
 		assert_float(n.length()).is_equal_approx(1.0, 0.001)
 
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -183,7 +178,6 @@ func test_use_num_samples_exact_count() -> void:
 	assert_int(normals.size()).is_equal(20)
 	assert_int(rotations.size()).is_equal(20)
 
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -211,7 +205,6 @@ func test_use_density_correct_point_count() -> void:
 	# round(6.0 * 2.5) = 15
 	assert_int(positions.size()).is_equal(15)
 
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -239,7 +232,6 @@ func test_density_stream_is_filled_with_ones() -> void:
 	for i in range(dc.size()):
 		assert_float(float(dc[i])).is_equal_approx(1.0, 0.0001)
 
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -270,7 +262,6 @@ func test_size_stream_matches_point_size_setting() -> void:
 		var v: Vector3 = sc[i]
 		assert_bool(v.is_equal_approx(expected_size)).is_true()
 
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -298,7 +289,6 @@ func test_discard_hard_edges_reduces_count() -> void:
 	# Points near the hard edges of the box are discarded — fewer than 50.
 	assert_bool(positions.size() < 50).is_true()
 
-	node.free()
 	remove_child(mi)
 	mi.free()
 
@@ -333,6 +323,5 @@ func test_all_stream_lengths_consistent() -> void:
 	assert_int(density_stream.container.size()).is_equal(n)
 	assert_int(seed_stream.container.size()).is_equal(n)
 
-	node.free()
 	remove_child(mi)
 	mi.free()

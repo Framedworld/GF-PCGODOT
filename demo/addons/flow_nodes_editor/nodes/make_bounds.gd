@@ -11,10 +11,16 @@ func _init():
 		"outs" : [{ "label" : "Out" }],
 		"aliases" : ["Get Bounds"],
 		"category" : "Spatial",
-		"tooltip" : "Generates a single bounding point at center with size.\nUse as the bounds input of nodes like Grid Fill Bounds or Difference.",
+		"tooltip" : "Generates a single bounding point at center with size.\nUse as the bounds input of nodes like Grid Fill Bounds or Difference.\nShape mode outputs the box as volume data instead.",
 	}
 
 func execute( ctx : FlowData.EvaluationContext ):
+	if settings.output_mode == MakeBoundsNodeSettings.eOutputMode.Shape:
+		var box_size : Vector3 = getSettingValue(ctx, "size", Vector3(48.0, 1.0, 48.0))
+		var box_center : Vector3 = getSettingValue(ctx, "center", Vector3.ZERO)
+		var box := FlowBoxVolume.new(Transform3D(Basis.IDENTITY, box_center), box_size.abs() * 0.5, getSettingValue(ctx, "steepness", 1.0))
+		set_output(0, FlowData.Data.from_shape(box))
+		return
 	var out_data := FlowData.Data.new()
 	out_data.addCommonStreams(1)
 	

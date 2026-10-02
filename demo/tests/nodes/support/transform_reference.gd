@@ -1,0 +1,75 @@
+## Verbatim copy of nodes/transform.gd before the WP13-P1 performance rewrite
+## (base d5bd9b6). Reference implementation for transform_inline_test.gd;
+## not a registered node. Do not edit.
+@tool
+extends FlowNodeBase
+
+func _init():
+	meta_node = {
+		"title" : "Transform",
+		"category" : "Spatial",
+		"settings" : TransformNodeSettings,
+		"ins" : [{ "label": "In" }], 
+		"outs" : [{ "label" : "Out" }],
+		"tooltip" : "Applies the random translation/rotation/scale to each point",
+	}
+
+func execute( ctx : FlowData.EvaluationContext ):
+	var in_data : FlowData.Data = get_input(0)
+	if in_data == null:
+		if is_ownerless_preview(ctx):
+			set_output(0, FlowData.Data.new())
+			return
+		setError("Input 'In' is not connected")
+		return null
+	var out_data : FlowData.Data = in_data.duplicate()
+	if not out_data.hasStream(FlowData.AttrPosition) or not out_data.hasStream(FlowData.AttrRotation) or not out_data.hasStream(FlowData.AttrSize):
+		if is_ownerless_preview(ctx):
+			set_output(0, FlowData.Data.new())
+			return
+		setError("Input must provide position, rotation, and size streams")
+		return
+	var spos = out_data.cloneStream( FlowData.AttrPosition )
+	var srot = out_data.cloneStream( FlowData.AttrRotation )
+	var ssizes = out_data.cloneStream( FlowData.AttrSize )
+	if spos == null or srot == null or ssizes == null:
+		if is_ownerless_preview(ctx):
+			set_output(0, FlowData.Data.new())
+			return
+		setError("Input must provide position, rotation, and size streams")
+		return
+	var offset_min : Vector3 = getSettingValue( ctx, "offset_min" )
+	var offset_max : Vector3 = getSettingValue( ctx, "offset_max" )
+	var rotation_min : Vector3 = getSettingValue( ctx, "rotation_min" )
+	var rotation_max : Vector3 = getSettingValue( ctx, "rotation_max" )
+	var scale_min : Vector3 = getSettingValue( ctx, "scale_min" )
+	var scale_max : Vector3 = getSettingValue( ctx, "scale_max" )
+	var uniform_scale : bool = getSettingValue( ctx, "uniform_scale" )
+	var rotation_local_space : bool = getSettingValue( ctx, "rotation_local_space" )
+	# Per-point seeded randomness (UE parity): each point's random TRS is derived
+	# from its own seed/position, so the result is stable under reordering and
+	# upstream count changes instead of depending on the node-global RNG draw order.
+	var point_seeds = out_data.getContainerChecked( FlowData.AttrSeed, FlowData.DataType.Int )
+	if point_seeds != null and point_seeds.size() != spos.size() and point_seeds.size() != 1:
+		point_seeds = null
+	var node_seed : int = effective_seed()
+	var prng := RandomNumberGenerator.new()
+	for i in spos.size():
+		# Seed from the point's input position (before we move it) so the draw is deterministic.
+		prng.seed = FlowData.resolve_seed( point_seeds, spos, i, node_seed )
+		var amount_pos = Vector3( prng.randf(), prng.randf(), prng.randf() )
+		var basis := FlowData.eulerToBasis( srot[i] )
+		spos[i] += basis * (offset_min + ( offset_max - offset_min ) * amount_pos)
+		var amount_rot = Vector3( prng.randf(), prng.randf(), prng.randf() )
+		if rotation_local_space:
+			var delta_rot = rotation_min + ( rotation_max - rotation_min ) * amount_rot
+			srot[i] = FlowData.basisToEuler( basis * FlowData.eulerToBasis( delta_rot ) )
+		else:
+			srot[i] += rotation_min + ( rotation_max - rotation_min ) * amount_rot
+		if uniform_scale:
+			var amount_scale = prng.randf()
+			ssizes[i] *= scale_min.x + ( scale_max.x - scale_min.x ) * amount_scale
+		else:
+			var amount_scale = Vector3( prng.randf(), prng.randf(), prng.randf() )
+			ssizes[i] *= scale_min + ( scale_max - scale_min ) * amount_scale
+	set_output( 0, out_data )

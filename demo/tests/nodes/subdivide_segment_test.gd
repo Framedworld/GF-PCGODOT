@@ -73,7 +73,6 @@ func test_segments_mode_target_count() -> void:
 	assert_object(t_end_stream).is_not_null()
 	assert_float(t_end_stream.container[3]).is_equal_approx(1.0, 0.001)
 
-	node.free()
 
 func test_segments_mode_module_lengths_stretch() -> void:
 	var s = SubdivideSegmentSettings.new()
@@ -105,7 +104,6 @@ func test_segments_mode_module_lengths_stretch() -> void:
 		total_len += l
 	assert_float(total_len).is_equal_approx(9.0, 0.01)
 
-	node.free()
 
 func test_segments_mode_module_lengths_clip() -> void:
 	var s = SubdivideSegmentSettings.new()
@@ -136,7 +134,6 @@ func test_segments_mode_module_lengths_clip() -> void:
 	assert_object(out.findStream("t_start")).is_null()
 	assert_object(out.findStream("t_end")).is_null()
 
-	node.free()
 
 func test_segments_mode_module_lengths_pad_ends() -> void:
 	var s = SubdivideSegmentSettings.new()
@@ -165,7 +162,6 @@ func test_segments_mode_module_lengths_pad_ends() -> void:
 	assert_float(len_stream.container[2]).is_equal_approx(3.0, 0.001)
 	assert_float(len_stream.container[3]).is_equal_approx(1.0, 0.001)
 
-	node.free()
 
 func test_multiple_spans_produce_cumulative_points() -> void:
 	var s = SubdivideSegmentSettings.new()
@@ -196,7 +192,6 @@ func test_multiple_spans_produce_cumulative_points() -> void:
 	assert_int(idx_stream.container[2]).is_equal(0)
 	assert_int(idx_stream.container[3]).is_equal(1)
 
-	node.free()
 
 func test_point_centers_are_correct() -> void:
 	var s = SubdivideSegmentSettings.new()
@@ -222,7 +217,6 @@ func test_point_centers_are_correct() -> void:
 	assert_float(pos_stream.container[0].x).is_equal_approx(2.5, 0.001)
 	assert_float(pos_stream.container[1].x).is_equal_approx(7.5, 0.001)
 
-	node.free()
 
 func test_missing_input_errors() -> void:
 	var s = SubdivideSegmentSettings.new()
@@ -236,7 +230,6 @@ func test_missing_input_errors() -> void:
 
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_vector_streams_errors() -> void:
 	var s = SubdivideSegmentSettings.new()
@@ -255,7 +248,6 @@ func test_missing_vector_streams_errors() -> void:
 
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_module_lengths_errors() -> void:
 	var s = SubdivideSegmentSettings.new()
@@ -272,7 +264,6 @@ func test_empty_module_lengths_errors() -> void:
 	var ends := PackedVector3Array([Vector3(10, 0, 0)])
 	var node = _run([_make_segments_data(starts, ends)], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_cross_section_size_written_to_output() -> void:
 	var s = SubdivideSegmentSettings.new()
@@ -310,7 +301,6 @@ func test_cross_section_size_written_to_output() -> void:
 	assert_float(ext.y).is_equal_approx(5.0, 0.001)
 	assert_float(ext.z).is_equal_approx(6.0, 0.001)
 
-	node.free()
 
 func test_density_and_seed_streams_present() -> void:
 	var s = SubdivideSegmentSettings.new()
@@ -340,7 +330,6 @@ func test_density_and_seed_streams_present() -> void:
 	assert_object(seed_stream).is_not_null()
 	assert_int(seed_stream.container.size()).is_equal(3)
 
-	node.free()
 
 func test_degenerate_zero_length_span_produces_no_points() -> void:
 	var s = SubdivideSegmentSettings.new()
@@ -364,4 +353,3 @@ func test_degenerate_zero_length_span_produces_no_points() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(0)
 
-	node.free()

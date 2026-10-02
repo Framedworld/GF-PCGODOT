@@ -7,11 +7,11 @@ func _init():
 	meta_node = {
 		"title" : "Sample Spline",
 		"settings" : SampleSplineNodeSettings,
-		"ins" : [{ "label": "Splines", "data_type": FlowData.DataType.NodePath }],
+		"ins" : [{ "label": "Splines", "data_type": FlowData.DataType.NodePath }],	# Path3D 'node' stream or spline spatial data
 		"outs" : [{ "label" : "Out" }],
 		"aliases" : ["Spline Sampler"],
 		"category" : "Sampler",
-		"tooltip" : "Samples points along Path3D curves (uniform or random), or fills the\nclosed XZ polygon of the curve (grid/random/Poisson).",
+		"tooltip" : "Samples points along Path3D curves or spline data (uniform or random), or fills the\nclosed XZ polygon of the curve (grid/random/Poisson).",
 	}
 
 func get_polygon_bounds(polygon: PackedVector2Array) -> Rect2:
@@ -207,6 +207,57 @@ func rasterizeCurveInXZ( curve : Curve3D, uniform_interval : float, base : int )
 	if settings.trace: print( "spline.grid: %f" % [ Time.get_ticks_usec() - time_start_grid ])
 	return new_points
 
+## The live Path3D nodes (with a Curve3D) of the input's `node` stream, in stream
+## order, or null after setError() when the stream is missing or not NodePath
+## typed. An empty stream is valid (nothing to sample). Entries that are null,
+## freed, not a Path3D, or have no curve are skipped with one warning.
+func _valid_path_nodes( in_data : FlowData.Data ):
+	var stream = in_data.streams.get( "node", null )
+	if stream == null:
+		setError( "Input has no 'node' stream" )
+		return null
+	if stream.data_type != FlowData.DataType.NodePath:
+		var type_name = FlowData.DataType.find_key( stream.data_type )
+		setError( "'node' stream must be NodePath/Node typed (got %s)" % [ type_name if type_name != null else str( stream.data_type ) ] )
+		return null
+	var valid : Array[Path3D] = []
+	var skipped := 0
+	for entry in stream.container:
+		if is_instance_valid( entry ) and entry is Path3D and entry.curve != null:
+			valid.append( entry )
+		else:
+			skipped += 1
+	if skipped > 0:
+		push_warning( "Sample Spline '%s': skipped %d 'node' entr%s that %s not a live Path3D with a Curve3D" % [ name, skipped, "y" if skipped == 1 else "ies", "is" if skipped == 1 else "are" ] )
+	return valid
+
+## A spline to sample from spline spatial data: the same `curve` / `transform`
+## members the sampling code reads from a Path3D. `curve` is a private copy
+## (the sampler temporarily changes its bake interval; the shape stays immutable).
+class SplineSource:
+	var curve : Curve3D
+	var transform : Transform3D
+	func _init( shape : FlowSplineShape ) -> void:
+		curve = shape.curve.duplicate( true )
+		transform = shape.transform
+
+## What to sample: SplineSource entries for spline spatial data (Data.shape: a
+## FlowSplineShape or a union of them), nothing for empty spline data, otherwise
+## the live Path3D nodes of the `node` stream (legacy path, unchanged).
+## Returns null after setError() when the input cannot be sampled.
+func _spline_sources( in_data : FlowData.Data ):
+	if in_data.shape != null:
+		var sources : Array = []
+		for leaf in in_data.shape.union_leaves():
+			if not ( leaf is FlowSplineShape ):
+				setError( "Sample Spline needs spline data; input shape is %s" % in_data.shape.get_type_name() )
+				return null
+			sources.append( SplineSource.new( leaf ) )
+		return sources
+	if in_data.kind == FlowData.Kind.Spline and not in_data.streams.has( "node" ):
+		return []
+	return _valid_path_nodes( in_data )
+
 func execute( ctx : FlowData.EvaluationContext ):
 
 	var trace := settings.trace
@@ -214,11 +265,9 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input(0, ctx, "Input 'Splines'")
 	if in_data == null:
 		return
-	var path3d_nodes = in_data.getContainerChecked( "node", FlowData.DataType.NodePath )
+	var path3d_nodes = _spline_sources( in_data )
 	if path3d_nodes == null:
-		setError( "Input are not splines")
 		return
-	#print( "path3d_nodes", path3d_nodes)
 
 	var output := FlowData.Data.new()
 	output.addCommonStreams( 0 )
@@ -243,13 +292,13 @@ func execute( ctx : FlowData.EvaluationContext ):
 			if fill_mode == 1: # Random
 				var fill_count: int = getSettingValue( ctx, "num_random_samples" )
 				var rng := RandomNumberGenerator.new()
-				rng.seed = settings.random_seed
+				rng.seed = effective_seed()
 				var poly2d := points3d_to_polygon2d(curve.tessellate(2, 5))
 				var bounds := get_polygon_bounds(poly2d)
 				new_points = randomFillCurveInXZ(poly2d, bounds, fill_count, rng)
 			elif fill_mode == 2: # Poisson
 				var rng := RandomNumberGenerator.new()
-				rng.seed = settings.random_seed
+				rng.seed = effective_seed()
 				var poly2d := points3d_to_polygon2d(curve.tessellate(2, 5))
 				var bounds := get_polygon_bounds(poly2d)
 				new_points = poissonFillCurveInXZ(poly2d, bounds, uniform_interval, rng)
@@ -280,7 +329,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			var num_random_samples: int = getSettingValue( ctx, "num_random_samples" )
 			if num_random_samples > 0:
 				var rng := RandomNumberGenerator.new()
-				rng.seed = settings.random_seed
+				rng.seed = effective_seed()
 				for path_3d in path3d_nodes:
 					var curve : Curve3D = path_3d.curve
 					var curve_length := curve.get_baked_length()
@@ -366,15 +415,19 @@ func execute( ctx : FlowData.EvaluationContext ):
 	# length / cross-section) belongs in the point BOUNDS, not in scale. Record it
 	# as bounds, then reset scale to unit so spawned meshes are placed at their
 	# natural size instead of being stretched to the sampling interval.
-	output.setSymmetricBounds( ssize )
-	# Opt-in legacy bridge: keep size = extent (old size-as-scale) when requested.
-	if not getSettingValue( ctx, "legacy_scale_from_extent" ):
+	# Opt-in legacy bridge: keep size = extent (old size-as-scale) and write NO
+	# bounds streams, so the output is byte-identical to the pre-bounds node
+	# (downstream point_offsets/difference must not see extents they never had).
+	if getSettingValue( ctx, "legacy_scale_from_extent" ):
+		pass
+	else:
+		output.setSymmetricBounds( ssize )
 		for i in range( ssize.size() ):
 			ssize[i] = Vector3.ONE
 
 	# Density + per-point seed streams (UE parity)
 	var num_points := spos.size()
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var sdensity := PackedFloat32Array()
 	sdensity.resize( num_points )
 	sdensity.fill( 1.0 )

@@ -50,7 +50,6 @@ func test_float_passthrough_with_named_output() -> void:
 	var named_stream = out.findStream("my_output")
 	assert_object(named_stream).is_not_null()
 	assert_array(named_stream.container).is_equal(PackedFloat32Array([1.0, 2.0, 3.0]))
-	node.free()
 
 func test_vector_passthrough_with_named_output() -> void:
 	var s = _make_settings("my_vectors", FlowDataScript.DataType.Vector)
@@ -65,7 +64,6 @@ func test_vector_passthrough_with_named_output() -> void:
 	var named_stream = out.findStream("my_vectors")
 	assert_object(named_stream).is_not_null()
 	assert_array(named_stream.container).is_equal(PackedVector3Array([Vector3(1, 2, 3), Vector3(4, 5, 6)]))
-	node.free()
 
 func test_int_passthrough_with_named_output() -> void:
 	var s = _make_settings("int_result", FlowDataScript.DataType.Int)
@@ -80,7 +78,6 @@ func test_int_passthrough_with_named_output() -> void:
 	var named_stream = out.findStream("int_result")
 	assert_object(named_stream).is_not_null()
 	assert_array(named_stream.container).is_equal(PackedInt32Array([10, 20, 30]))
-	node.free()
 
 func test_color_passthrough_with_named_output() -> void:
 	var s = _make_settings("colors_out", FlowDataScript.DataType.Color)
@@ -95,7 +92,6 @@ func test_color_passthrough_with_named_output() -> void:
 	var named_stream = out.findStream("colors_out")
 	assert_object(named_stream).is_not_null()
 	assert_array(named_stream.container).is_equal(PackedColorArray([Color(1, 0, 0, 1), Color(0, 1, 0, 1)]))
-	node.free()
 
 func test_named_output_not_duplicated_when_stream_name_matches_settings_name() -> void:
 	var s = _make_settings("out_stream", FlowDataScript.DataType.Float)
@@ -107,7 +103,6 @@ func test_named_output_not_duplicated_when_stream_name_matches_settings_name() -
 	var named_stream = out.findStream("out_stream")
 	assert_object(named_stream).is_not_null()
 	assert_array(named_stream.container).is_equal(PackedFloat32Array([5.0, 6.0]))
-	node.free()
 
 func test_multiple_streams_all_copied() -> void:
 	var s = _make_settings("result", FlowDataScript.DataType.Float)
@@ -124,14 +119,12 @@ func test_multiple_streams_all_copied() -> void:
 	var int_stream = out.findStream("ints")
 	assert_object(int_stream).is_not_null()
 	assert_array(int_stream.container).is_equal(PackedInt32Array([3, 4]))
-	node.free()
 
 func test_no_input_connected_produces_no_output() -> void:
 	var s = _make_settings("out_val", FlowDataScript.DataType.Float)
 	var node = _run([null], s)
 	var out = _output(node)
 	assert_object(out).is_null()
-	node.free()
 
 func test_single_element_array_passthrough() -> void:
 	var s = _make_settings("single_out", FlowDataScript.DataType.Float)
@@ -143,4 +136,3 @@ func test_single_element_array_passthrough() -> void:
 	var named_stream = out.findStream("single_out")
 	assert_object(named_stream).is_not_null()
 	assert_array(named_stream.container).is_equal(PackedFloat32Array([42.0]))
-	node.free()

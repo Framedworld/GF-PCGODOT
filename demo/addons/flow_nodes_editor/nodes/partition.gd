@@ -32,11 +32,25 @@ func execute( ctx : FlowData.EvaluationContext ):
 	# Do a quick and dirty partition by string representation of the value
 	# Preserves the indices
 	var parts : Dictionary = {} 
-	for idx in range( container.size() ):
-		var val = "%s" % container[ idx ]
-		if not parts.has( val ):
-			parts[ val ] = PackedInt32Array()
-		parts[ val ].append( idx )
+	var exact_keys : bool = stream.data_type == FlowData.DataType.Int or stream.data_type == FlowData.DataType.Int64 \
+		or stream.data_type == FlowData.DataType.Bool or stream.data_type == FlowData.DataType.String
+	if exact_keys and not settings.trace and not ( container is Array ):
+		# Integers, bools (bytes) and strings have exactly one string form per
+		# value, so grouping by the value itself gives the same groups in the
+		# same first-seen order without formatting a string per point.
+		for idx in range( container.size() ):
+			var val = container[ idx ]
+			var group = parts.get( val )
+			if group == null:
+				group = PackedInt32Array()
+				parts[ val ] = group
+			group.append( idx )
+	else:
+		for idx in range( container.size() ):
+			var val = "%s" % container[ idx ]
+			if not parts.has( val ):
+				parts[ val ] = PackedInt32Array()
+			parts[ val ].append( idx )
 		
 	if settings.trace:
 		print( parts )

@@ -49,7 +49,6 @@ func test_collects_mesh_instances() -> void:
 	for m in mesh_stream.container:
 		assert_object(m).is_instanceof(BoxMesh)
 	owner_node.free()
-	node.free()
 
 func test_skips_mesh_instances_without_mesh() -> void:
 	var owner_node = _make_owner_with_meshes(2)
@@ -62,7 +61,6 @@ func test_skips_mesh_instances_without_mesh() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(_output(node).findStream("node").container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_group_filter() -> void:
 	var owner_node = _make_owner_with_meshes(2, "scan_group")
@@ -77,7 +75,6 @@ func test_group_filter() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(_output(node).findStream("node").container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_non_recursive_only_direct_children() -> void:
 	var owner_node = FlowGraphNode3D.new()
@@ -97,9 +94,8 @@ func test_non_recursive_only_direct_children() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(_output(node).findStream("node").container.size()).is_equal(1)
 	owner_node.free()
-	node.free()
 
-func test_null_owner_no_crash() -> void:
+func test_null_owner_reports_owner_error_without_crash() -> void:
 	var s = ScanMeshesSettings.new()
 	var node = ScanMeshesNode.new()
 	node.name = "test_node"
@@ -109,6 +105,5 @@ func test_null_owner_no_crash() -> void:
 	ctx.owner = null
 	node.preExecute(ctx)
 	node.execute(ctx)
-	assert_str(node.err).is_empty()
+	assert_str(node.err).contains("needs an owner node")
 	assert_int(_output(node).findStream("node").container.size()).is_equal(0)
-	node.free()

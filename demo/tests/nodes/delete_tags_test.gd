@@ -47,7 +47,6 @@ func test_delete_single_tag() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["forest", "rock"]))
-	node.free()
 
 func test_delete_multiple_tags() -> void:
 	var s := _make_settings("grass, rock")
@@ -57,7 +56,6 @@ func test_delete_multiple_tags() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["forest", "snow"]))
-	node.free()
 
 func test_delete_all_tags() -> void:
 	var s := _make_settings("grass, forest, rock")
@@ -67,7 +65,6 @@ func test_delete_all_tags() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray())
-	node.free()
 
 func test_delete_tag_not_present_leaves_tags_unchanged() -> void:
 	var s := _make_settings("snow")
@@ -77,7 +74,6 @@ func test_delete_tag_not_present_leaves_tags_unchanged() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["grass", "forest"]))
-	node.free()
 
 func test_empty_tags_csv_leaves_all_tags() -> void:
 	var s := _make_settings("")
@@ -87,7 +83,6 @@ func test_empty_tags_csv_leaves_all_tags() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["grass", "forest", "rock"]))
-	node.free()
 
 func test_delete_from_empty_tags_produces_empty() -> void:
 	var s := _make_settings("grass")
@@ -96,7 +91,6 @@ func test_delete_from_empty_tags_produces_empty() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray())
-	node.free()
 
 func test_case_insensitive_delete_matches_different_case() -> void:
 	var s := _make_settings("GRASS, ROCK", false)
@@ -106,7 +100,6 @@ func test_case_insensitive_delete_matches_different_case() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["forest"]))
-	node.free()
 
 func test_case_sensitive_does_not_delete_different_case() -> void:
 	var s := _make_settings("GRASS, ROCK", true)
@@ -116,7 +109,6 @@ func test_case_sensitive_does_not_delete_different_case() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_array(out.tags).is_equal(PackedStringArray(["grass", "forest", "rock"]))
-	node.free()
 
 func test_input_not_connected_sets_error() -> void:
 	var node := DeleteTagsNode.new()
@@ -130,7 +122,6 @@ func test_input_not_connected_sets_error() -> void:
 	node.execute(ctx)
 	dummy.free()
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_does_not_mutate_original_input() -> void:
 	var s := _make_settings("grass")
@@ -139,4 +130,3 @@ func test_does_not_mutate_original_input() -> void:
 	var node := _run(input, s)
 	assert_str(node.err).is_empty()
 	assert_array(input.tags).is_equal(PackedStringArray(["grass", "forest"]))
-	node.free()

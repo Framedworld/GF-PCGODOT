@@ -57,7 +57,6 @@ func test_float_binary_ops() -> void:
 	var stream = out.findStream("Result")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([4.0, 4.5, 7.5, 5.0]))
-	node.free()
 	
 	# Subtract
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Substract)
@@ -65,7 +64,6 @@ func test_float_binary_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([1.0, 1.5, 3.5, -1.0]))
-	node.free()
 
 	# Multiply
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Multiply)
@@ -73,7 +71,6 @@ func test_float_binary_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([3.75, 4.5, 11.0, 6.0]))
-	node.free()
 
 	# Divide
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Divide)
@@ -81,7 +78,6 @@ func test_float_binary_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([2.5/1.5, 2.0, 2.75, 2.0/3.0]))
-	node.free()
 
 	# Modulo
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Modulo)
@@ -89,7 +85,6 @@ func test_float_binary_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([1.0, 0.0, 1.5, 2.0]))
-	node.free()
 
 	# ModuloInt
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.ModuloInt)
@@ -97,7 +92,6 @@ func test_float_binary_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedInt32Array([2 % 1, 3 % 1, 5 % 2, 2 % 3]))
-	node.free()
 
 	# Pow
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Pow)
@@ -105,7 +99,6 @@ func test_float_binary_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([pow(2.5, 1.5), pow(3.0, 1.5), pow(5.5, 2.0), pow(2.0, 3.0)]))
-	node.free()
 
 	# Min
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Min)
@@ -113,7 +106,6 @@ func test_float_binary_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([1.5, 1.5, 2.0, 2.0]))
-	node.free()
 
 	# Max
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Max)
@@ -121,7 +113,6 @@ func test_float_binary_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([2.5, 3.0, 5.5, 3.0]))
-	node.free()
 
 func test_float_single_argument_ops() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedFloat32Array([-2.5, 2.5, -0.5, 4.0]), FlowDataScript.DataType.Float)
@@ -132,7 +123,6 @@ func test_float_single_argument_ops() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([2.5, -2.5, 0.5, -4.0]))
-	node.free()
 
 	# Absolute
 	node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Absolute)
@@ -140,7 +130,6 @@ func test_float_single_argument_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([2.5, 2.5, 0.5, 4.0]))
-	node.free()
 
 	# Saturate
 	node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Saturate)
@@ -148,7 +137,6 @@ func test_float_single_argument_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([0.0, 1.0, 0.0, 1.0]))
-	node.free()
 
 	# Floor
 	node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Floor)
@@ -156,7 +144,6 @@ func test_float_single_argument_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([-3.0, 2.0, -1.0, 4.0]))
-	node.free()
 
 	# FloorAsInt
 	node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.FloorAsInt)
@@ -164,7 +151,6 @@ func test_float_single_argument_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedInt32Array([-3, 2, -1, 4]))
-	node.free()
 
 	# Round
 	node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Round)
@@ -172,7 +158,6 @@ func test_float_single_argument_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([-3.0, 3.0, -1.0, 4.0]))
-	node.free()
 
 	# Frac
 	node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Frac)
@@ -180,7 +165,6 @@ func test_float_single_argument_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([0.5, 0.5, 0.5, 0.0]))
-	node.free()
 
 	# OneMinus
 	node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.OneMinus)
@@ -188,7 +172,6 @@ func test_float_single_argument_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([3.5, -1.5, 1.5, -3.0]))
-	node.free()
 
 	# Sign
 	node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Sign)
@@ -196,7 +179,6 @@ func test_float_single_argument_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([-1.0, 1.0, -1.0, 1.0]))
-	node.free()
 
 	# Sqrt
 	node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Sqrt)
@@ -204,7 +186,6 @@ func test_float_single_argument_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([0.0, sqrt(2.5), 0.0, 2.0]))
-	node.free()
 
 func test_vector_ops() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedVector3Array([Vector3(1, 2, 3), Vector3(-1, 0, 1)]), FlowDataScript.DataType.Vector)
@@ -217,7 +198,6 @@ func test_vector_ops() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(5, 7, 9), Vector3(1, 2, 3)]))
-	node.free()
 
 	# Vector vs Vector Subtract
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Substract)
@@ -225,7 +205,6 @@ func test_vector_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(-3, -3, -3), Vector3(-3, -2, -1)]))
-	node.free()
 
 	# Vector vs Vector Multiply
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Multiply)
@@ -233,7 +212,6 @@ func test_vector_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(4, 10, 18), Vector3(-2, 0, 2)]))
-	node.free()
 
 	# Vector vs Vector Divide
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Divide)
@@ -241,7 +219,6 @@ func test_vector_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(0.25, 0.4, 0.5), Vector3(-0.5, 0.0, 0.5)]))
-	node.free()
 
 	# Vector vs Float Multiply
 	node = _run_math_op(in_dataA, in_dataB_float, MathOpSettings.eOperation.Multiply)
@@ -249,7 +226,6 @@ func test_vector_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(2, 4, 6), Vector3(-3, 0, 3)]))
-	node.free()
 
 	# Vector vs Float Divide
 	node = _run_math_op(in_dataA, in_dataB_float, MathOpSettings.eOperation.Divide)
@@ -257,7 +233,6 @@ func test_vector_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(0.5, 1.0, 1.5), Vector3(-1.0/3.0, 0.0, 1.0/3.0)]))
-	node.free()
 
 func test_vector_single_argument_ops() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedVector3Array([Vector3(1, -2, 3), Vector3(-0.5, 0.5, 1.5)]), FlowDataScript.DataType.Vector)
@@ -268,7 +243,6 @@ func test_vector_single_argument_ops() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(-1, 2, -3), Vector3(0.5, -0.5, -1.5)]))
-	node.free()
 
 	# Absolute
 	node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Absolute)
@@ -276,7 +250,6 @@ func test_vector_single_argument_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(1, 2, 3), Vector3(0.5, 0.5, 1.5)]))
-	node.free()
 
 	# Saturate
 	node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Saturate)
@@ -284,7 +257,6 @@ func test_vector_single_argument_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(1, 0, 1), Vector3(0, 0.5, 1)]))
-	node.free()
 
 func test_color_ops() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedColorArray([Color(0.75, 0.75, 0.75, 0.75)]), FlowDataScript.DataType.Color)
@@ -297,7 +269,6 @@ func test_color_ops() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedColorArray([Color(1.0, 1.0, 1.0, 1.0)]))
-	node.free()
 
 	# Color vs Color Subtract
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Substract)
@@ -305,7 +276,6 @@ func test_color_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedColorArray([Color(0.5, 0.5, 0.5, 0.5)]))
-	node.free()
 
 	# Color vs Color Multiply
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Multiply)
@@ -313,7 +283,6 @@ func test_color_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedColorArray([Color(0.1875, 0.1875, 0.1875, 0.1875)]))
-	node.free()
 
 	# Color vs Color Divide
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Divide)
@@ -321,7 +290,6 @@ func test_color_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedColorArray([Color(3.0, 3.0, 3.0, 3.0)]))
-	node.free()
 
 	# Color vs Float Add
 	node = _run_math_op(in_dataA, in_dataB_float, MathOpSettings.eOperation.Add)
@@ -329,7 +297,6 @@ func test_color_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedColorArray([Color(2.75, 2.75, 2.75, 2.75)]))
-	node.free()
 
 	# Color vs Float Multiply
 	node = _run_math_op(in_dataA, in_dataB_float, MathOpSettings.eOperation.Multiply)
@@ -337,7 +304,6 @@ func test_color_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedColorArray([Color(1.5, 1.5, 1.5, 1.5)]))
-	node.free()
 
 func test_int_ops() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedInt32Array([10, -5]), FlowDataScript.DataType.Int)
@@ -349,7 +315,6 @@ func test_int_ops() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedInt32Array([13, -3]))
-	node.free()
 
 	# Int Subtract
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Substract)
@@ -357,7 +322,6 @@ func test_int_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedInt32Array([7, -7]))
-	node.free()
 
 	# Int Multiply
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Multiply)
@@ -365,7 +329,6 @@ func test_int_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedInt32Array([30, -10]))
-	node.free()
 
 	# Int Divide
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Divide)
@@ -373,7 +336,6 @@ func test_int_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedInt32Array([3, -2]))
-	node.free()
 
 	# Int ModuloInt
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.ModuloInt)
@@ -381,7 +343,6 @@ func test_int_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedInt32Array([1, -1]))
-	node.free()
 
 	# Int Min
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Min)
@@ -389,7 +350,6 @@ func test_int_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedInt32Array([3, -5]))
-	node.free()
 
 	# Int Max
 	node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Max)
@@ -397,7 +357,6 @@ func test_int_ops() -> void:
 	out = _get_output_data(node)
 	stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedInt32Array([10, 2]))
-	node.free()
 
 func test_constant_b_fallback() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedFloat32Array([2.5, 3.0]), FlowDataScript.DataType.Float)
@@ -408,7 +367,6 @@ func test_constant_b_fallback() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([7.5, 8.0]))
-	node.free()
 
 func test_broadcast_b() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedFloat32Array([2.5, 3.0, 4.0]), FlowDataScript.DataType.Float)
@@ -420,7 +378,6 @@ func test_broadcast_b() -> void:
 	var out = _get_output_data(node)
 	var stream = out.findStream("Result")
 	assert_array(stream.container).is_equal(PackedFloat32Array([5.0, 6.0, 8.0]))
-	node.free()
 
 func test_zero_division_modulo_errors() -> void:
 	var in_dataA_float = _create_data_with_stream("A", PackedFloat32Array([2.5]), FlowDataScript.DataType.Float)
@@ -429,26 +386,22 @@ func test_zero_division_modulo_errors() -> void:
 	# Float divide by zero
 	var node = _run_math_op(in_dataA_float, in_dataB_float_zero, MathOpSettings.eOperation.Divide)
 	assert_str(node.err).is_equal("Division by zero")
-	node.free()
 
 	# Float modulo by zero
 	node = _run_math_op(in_dataA_float, in_dataB_float_zero, MathOpSettings.eOperation.Modulo)
 	assert_str(node.err).is_equal("Modulo by zero")
-	node.free()
 
 	# Int modulo by zero
 	var in_dataA_int = _create_data_with_stream("A", PackedInt32Array([5]), FlowDataScript.DataType.Int)
 	var in_dataB_int_zero = _create_data_with_stream("B", PackedInt32Array([0]), FlowDataScript.DataType.Int)
 	node = _run_math_op(in_dataA_int, in_dataB_int_zero, MathOpSettings.eOperation.ModuloInt)
 	assert_str(node.err).is_equal("Modulo by zero")
-	node.free()
 
 	# Vector divide by zero
 	var in_dataA_vec = _create_data_with_stream("A", PackedVector3Array([Vector3(1, 2, 3)]), FlowDataScript.DataType.Vector)
 	var in_dataB_vec_zero = _create_data_with_stream("B", PackedVector3Array([Vector3(1, 0, 1)]), FlowDataScript.DataType.Vector)
 	node = _run_math_op(in_dataA_vec, in_dataB_vec_zero, MathOpSettings.eOperation.Divide)
 	assert_str(node.err).is_equal("Division by zero")
-	node.free()
 
 func test_incompatible_types_error() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedFloat32Array([2.5]), FlowDataScript.DataType.Float)
@@ -456,19 +409,16 @@ func test_incompatible_types_error() -> void:
 
 	var node = _run_math_op(in_dataA, in_dataB, MathOpSettings.eOperation.Add)
 	assert_str(node.err).contains("incompatible/unsupported data types")
-	node.free()
 
 func test_single_argument_unsupported_type() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedStringArray(["hello"]), FlowDataScript.DataType.String)
 	var node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Negate)
 	assert_str(node.err).contains("unsupported data type for single-argument operation")
-	node.free()
 
 func test_vector_single_arg_unsupported() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedVector3Array([Vector3(1, 2, 3)]), FlowDataScript.DataType.Vector)
 	var node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Floor)
 	assert_str(node.err).contains("not supported as single-argument yet")
-	node.free()
 
 func test_input_a_missing() -> void:
 	var node = MathOpNode.new()
@@ -484,10 +434,8 @@ func test_input_a_missing() -> void:
 	node.execute(ctx)
 	assert_str(node.err).contains("Input A not connected")
 	dummy_owner.free()
-	node.free()
 
 func test_stream_a_not_found() -> void:
 	var in_dataA = _create_data_with_stream("A", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run_math_op(in_dataA, null, MathOpSettings.eOperation.Negate, "NonExistent")
 	assert_str(node.err).contains("Input A NonExistent not found")
-	node.free()

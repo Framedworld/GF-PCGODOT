@@ -59,7 +59,6 @@ func test_static_bounds_2d_grid() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(9)
-	node.free()
 
 # bounds_size=(2,2,2), cell_size=(1,1,1), fill_y=true
 # x: roundi(2/1)=2, y: roundi(2/1)=2, z: roundi(2/1)=2 -> 2*2*2 = 8 cells
@@ -76,7 +75,6 @@ func test_static_bounds_3d_grid_fill_y() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(8)
-	node.free()
 
 # Output must always contain position, size, rotation, density, and seed streams
 func test_output_has_required_streams() -> void:
@@ -92,7 +90,6 @@ func test_output_has_required_streams() -> void:
 	assert_object(out.findStream(FlowData.AttrRotation)).is_not_null()
 	assert_object(out.findStream(FlowData.AttrDensity)).is_not_null()
 	assert_object(out.findStream(FlowData.AttrSeed)).is_not_null()
-	node.free()
 
 # Each output size stream entry should equal cell_size
 # bounds_size=(1,1,1), cell_size=(0.5,0.5,0.5), fill_y=false
@@ -113,7 +110,6 @@ func test_cell_size_used_for_out_size_stream() -> void:
 	for i in range(sizes.size()):
 		assert_float(sizes[i].x).is_equal_approx(0.5, 0.0001)
 		assert_float(sizes[i].z).is_equal_approx(0.5, 0.0001)
-	node.free()
 
 # max_points cap is enforced
 func test_max_points_limit() -> void:
@@ -130,7 +126,6 @@ func test_max_points_limit() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(5)
-	node.free()
 
 # When source_index_attribute is set, all points should have index 0 (single static bounds)
 func test_source_index_attribute_written() -> void:
@@ -147,7 +142,6 @@ func test_source_index_attribute_written() -> void:
 	var indices = idx_stream.container
 	for i in range(indices.size()):
 		assert_int(indices[i]).is_equal(0)
-	node.free()
 
 # Input bounds mode with a single bound of size (3,1,3) -> 9 output cells
 func test_use_input_bounds_single_bound() -> void:
@@ -166,7 +160,6 @@ func test_use_input_bounds_single_bound() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(9)
-	node.free()
 
 # Empty input data with use_input_bounds -> empty output, no error
 func test_use_input_bounds_empty_input_returns_empty() -> void:
@@ -179,7 +172,6 @@ func test_use_input_bounds_empty_input_returns_empty() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 # Input data with size stream but NO position stream -> error set
 func test_use_input_bounds_missing_position_sets_error() -> void:
@@ -191,7 +183,6 @@ func test_use_input_bounds_missing_position_sets_error() -> void:
 	bad_data.registerStream(FlowData.AttrSize, dummy_sizes, FlowDataScript.DataType.Vector)
 	var node = _run([bad_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # copy_input_attributes copies custom streams into output, one value per cell
 func test_copy_input_attributes_propagated() -> void:
@@ -215,7 +206,6 @@ func test_copy_input_attributes_propagated() -> void:
 	var custom_out = custom_stream.container
 	for i in range(custom_out.size()):
 		assert_float(custom_out[i]).is_equal_approx(42.0, 0.0001)
-	node.free()
 
 # Two input bounds produce cells from both, source indices distinguish them
 func test_use_input_bounds_two_bounds_source_indices() -> void:
@@ -244,7 +234,6 @@ func test_use_input_bounds_two_bounds_source_indices() -> void:
 		assert_int(indices[i]).is_equal(0)
 	for i in range(4, 8):
 		assert_int(indices[i]).is_equal(1)
-	node.free()
 
 # Density stream defaults to 1.0 for all cells
 func test_density_stream_defaults_to_one() -> void:
@@ -261,4 +250,3 @@ func test_density_stream_defaults_to_one() -> void:
 	var densities = density_stream.container
 	for i in range(densities.size()):
 		assert_float(densities[i]).is_equal_approx(1.0, 0.0001)
-	node.free()

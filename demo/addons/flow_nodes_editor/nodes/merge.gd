@@ -27,14 +27,13 @@ func run( ctx : FlowData.EvaluationContext ):
 		if settings.trace:
 			print( "Processing input data with size %d: (Offset:%d)" % [ in_data.size(), offset ] )
 
-		# For each stream
+		# First register every stream this bulk introduces, sized to the current
+		# offset (just before us adding our content). Doing this before any
+		# append keeps every out stream at the same length while registering,
+		# so registerStream's point-count invariant does not warn.
 		for stream_name in in_data.streams:
-			var stream = in_data.streams[ stream_name ]
-			# print( "  Checking stream %s" % [ stream_name ] )
-
-			# Check if already exists
 			if not out_data.hasStream( stream_name ):
-				# Create an empty container with the current offset (just before us adding our content)
+				var stream = in_data.streams[ stream_name ]
 				var container = in_data.newContainerOfType( stream.data_type )
 				container.resize( offset )
 				var err = out_data.registerStream( stream_name, container, stream.data_type )
@@ -42,7 +41,9 @@ func run( ctx : FlowData.EvaluationContext ):
 					setError( err )
 					return
 
-			# Now... access it
+		# Then append this bulk's values to each stream
+		for stream_name in in_data.streams:
+			var stream = in_data.streams[ stream_name ]
 			var out_stream = out_data.findStream( stream_name )
 
 			if out_stream == null:
@@ -55,9 +56,7 @@ func run( ctx : FlowData.EvaluationContext ):
 				push_warning( "Merge '%s': stream %s is already defined with type %s, but input bulk %d provides it with type %s — skipping its values" % [ name, stream_name, out_stream.data_type, bulk_index, stream.data_type ] )
 			else:
 				# copy elements of stream in target stream at the end
-				# print( "   Appending %d elems from input container" % [ stream.container.size() ] )
 				out_stream.container.append_array( stream.container )
-
 
 		offset += in_data.size()
 		

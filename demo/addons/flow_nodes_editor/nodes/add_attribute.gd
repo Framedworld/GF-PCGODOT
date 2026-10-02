@@ -7,7 +7,7 @@ func _init():
 		"settings" : AddAttributeNodeSettings,
 		"ins" : [{ "label": "In" }], 
 		"outs" : [{ "label" : "Out" }],
-		"tooltip" : "Add a new constant stream to the input set\nIf the input is not given a single entry with the constant value is created.",
+		"tooltip" : "Add a new constant stream to the input set\nIf the input is not given a single entry with the constant value is created.\nThis is intentional (schema-row idiom): with nothing connected the output is a 1-point Data holding only this attribute,\nso chained Add Attribute nodes build a one-row attribute set. A connected but empty input stays empty.",
 		"aliases" : ["Add Attribute", "Create Attribute"],
 		"category" : "Metadata",
 	}
@@ -56,6 +56,18 @@ func execute( ctx : FlowData.EvaluationContext ):
 			new_val = getSettingValue( ctx, "cte_string" )
 		FlowData.DataType.Resource:
 			new_val = getSettingValue( ctx, "cte_resource" )
+		FlowData.DataType.Quaternion:
+			new_val = FlowData.quatToVec4( getSettingValue( ctx, "cte_quaternion" ) )
+		FlowData.DataType.Vector2:
+			new_val = getSettingValue( ctx, "cte_vector2" )
+		FlowData.DataType.Vector4:
+			new_val = getSettingValue( ctx, "cte_vector4" )
+		FlowData.DataType.Transform:
+			new_val = getSettingValue( ctx, "cte_transform" )
+		FlowData.DataType.Int64:
+			new_val = int( getSettingValue( ctx, "cte_int64" ) )
+		FlowData.DataType.Double:
+			new_val = float( getSettingValue( ctx, "cte_double" ) )
 		_:
 			setError( "Data type %s is not supported by Add Attribute" % FlowData.DataType.keys()[settings.data_type] )
 			return

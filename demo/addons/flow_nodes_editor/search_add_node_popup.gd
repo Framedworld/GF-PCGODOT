@@ -15,8 +15,9 @@ const IDM_OUTPUT_BASE: int = 300000
 var _id_to_item: Dictionary = {}
 var _submenus: Dictionary = {}
 
+## Fallback only: a node's category comes from its meta_node "category". This table
+## is consulted for nodes that do not declare one.
 const _CATEGORY_MAP := {
-	"Black Lantern": ["bl_style_lab_source", "bl_building_mass", "bl_zone_carver", "bl_room_splitter", "bl_decorator_master", "bl_tactical_decorator", "bl_floor_data_to_points", "bl_floor_data_contract_points", "bl_validate_floor_data", "bl_room_style_template", "bl_style_context_source", "bl_style_context_points", "bl_style_anchor_points", "bl_sync_grid_cell", "bl_points_to_style_spec", "bl_style_spec_to_points", "bl_style_spec_merge", "bl_style_metadata_spec", "bl_smart_prop_scatter", "bl_points_to_floor_data_props"],
 	"Control Flow": ["input", "output", "subgraph", "loop", "branch", "select", "select_multi", "switch", "get_loop_index"],
 	"Debug": ["debug", "print_string", "sanity_check"],
 	"Density": ["curve_remap_density", "density_remap", "distance_to_density"],
@@ -89,7 +90,7 @@ func setup(p_node_types: Dictionary, p_inputs: Array, p_outputs: Array, p_has_se
 		}
 		if meta.has("tooltip"):
 			item_data.tooltip = str(meta.tooltip)
-		var category = _get_category_for_template(String(key))
+		var category = _get_category_for_template(String(key), meta)
 		if not items_by_category.has(category):
 			items_by_category[category] = []
 		items_by_category[category].append({
@@ -126,7 +127,10 @@ func _clear_submenus() -> void:
 			submenu.queue_free()
 	_submenus.clear()
 
-func _get_category_for_template(template_name: String) -> String:
+func _get_category_for_template(template_name: String, meta: Dictionary = {}) -> String:
+	var meta_category := String(meta.get("category", "")).strip_edges()
+	if not meta_category.is_empty():
+		return meta_category
 	for category in _CATEGORY_MAP.keys():
 		if template_name in _CATEGORY_MAP[category]:
 			return String(category)

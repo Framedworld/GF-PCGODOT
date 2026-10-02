@@ -9,7 +9,8 @@ static func is_relay_template(node_template: String) -> bool:
 	return node_template == "set_variable" or node_template == "get_variable"
 
 
-static func should_refresh_debug_draw(node: FlowNodeBase) -> bool:
+## `node` is a FlowNodeBase element or a FlowNodeWidget showing one.
+static func should_refresh_debug_draw(node) -> bool:
 	if not is_relay_template(node.node_template):
 		return true
 	if node.settings == null:
@@ -17,7 +18,8 @@ static func should_refresh_debug_draw(node: FlowNodeBase) -> bool:
 	return bool(node.settings.inspect_enabled) or bool(node.settings.debug_enabled)
 
 
-static func variable_name_from_node(node: FlowNodeBase) -> String:
+## `node` is a FlowNodeBase element or a FlowNodeWidget showing one.
+static func variable_name_from_node(node) -> String:
 	if node.settings == null or not ("variable_name" in node.settings):
 		return ""
 	return String(node.settings.variable_name).strip_edges()

@@ -202,7 +202,8 @@ func execute(ctx : FlowData.EvaluationContext):
 		op[i] = positions[i]
 		orot[i] = rotations[i]
 		osize[i] = sizes[i] if legacy else Vector3.ONE
-	out.setSymmetricBounds(sizes)
+	if not legacy:
+		out.setSymmetricBounds(sizes)
 
 	if settings.out_length_attribute.strip_edges() != "":
 		out.registerStream(settings.out_length_attribute, lengths, FlowData.DataType.Float)
@@ -214,7 +215,7 @@ func execute(ctx : FlowData.EvaluationContext):
 		out.registerStream(settings.out_t_end_attribute, t_ends, FlowData.DataType.Float)
 
 	# Density + per-point seed (sampler convention / UE parity).
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var sdensity := PackedFloat32Array()
 	sdensity.resize(num_points)
 	sdensity.fill(1.0)

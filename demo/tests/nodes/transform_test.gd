@@ -77,7 +77,6 @@ func test_no_offset_no_rotation_no_scale_passthrough() -> void:
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_object(size_stream).is_not_null()
 	assert_float(size_stream.container[0].x).is_equal_approx(2.0, 0.001)
-	node.free()
 
 func test_translation_offset_within_range() -> void:
 	var s = TransformSettings.new()
@@ -111,7 +110,6 @@ func test_translation_offset_within_range() -> void:
 		assert_float(moved.y).is_less_equal(orig.y + 1.0)
 		assert_float(moved.z).is_greater_equal(orig.z - 1.0)
 		assert_float(moved.z).is_less_equal(orig.z + 1.0)
-	node.free()
 
 func test_rotation_world_space_within_range() -> void:
 	var s = TransformSettings.new()
@@ -140,7 +138,6 @@ func test_rotation_world_space_within_range() -> void:
 		var ry = rot_stream.container[i].y
 		assert_float(ry).is_greater_equal(-30.0)
 		assert_float(ry).is_less_equal(30.0)
-	node.free()
 
 func test_rotation_local_space() -> void:
 	var s = TransformSettings.new()
@@ -174,8 +171,6 @@ func test_rotation_local_space() -> void:
 
 	assert_float(rot_stream_world.container[0].y).is_equal_approx(55.0, 0.001)
 
-	node_local.free()
-	node_world.free()
 
 func test_uniform_scale_within_range() -> void:
 	var s = TransformSettings.new()
@@ -207,7 +202,6 @@ func test_uniform_scale_within_range() -> void:
 		assert_float(sz.y).is_equal_approx(sz.z, 0.001)
 		assert_float(sz.x).is_greater_equal(0.5)
 		assert_float(sz.x).is_less_equal(2.0)
-	node.free()
 
 func test_non_uniform_scale_within_range() -> void:
 	var s = TransformSettings.new()
@@ -240,7 +234,6 @@ func test_non_uniform_scale_within_range() -> void:
 		assert_float(sz.y).is_less_equal(2.0)
 		assert_float(sz.z).is_greater_equal(2.0)
 		assert_float(sz.z).is_less_equal(4.0)
-	node.free()
 
 func test_single_point_transforms() -> void:
 	var s = TransformSettings.new()
@@ -274,13 +267,11 @@ func test_single_point_transforms() -> void:
 	assert_float(size_stream.container[0].x).is_equal_approx(2.0, 0.001)
 	assert_float(size_stream.container[0].y).is_equal_approx(2.0, 0.001)
 	assert_float(size_stream.container[0].z).is_equal_approx(2.0, 0.001)
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s = TransformSettings.new()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_position_stream_error() -> void:
 	var s = TransformSettings.new()
@@ -290,7 +281,6 @@ func test_missing_position_stream_error() -> void:
 
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_extra_streams_preserved() -> void:
 	var s = TransformSettings.new()
@@ -317,4 +307,3 @@ func test_extra_streams_preserved() -> void:
 	assert_int(density_stream.container.size()).is_equal(2)
 	assert_float(density_stream.container[0]).is_equal_approx(0.5, 0.001)
 	assert_float(density_stream.container[1]).is_equal_approx(0.8, 0.001)
-	node.free()

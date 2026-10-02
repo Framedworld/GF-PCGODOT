@@ -1,0 +1,282 @@
+[gd_resource type="Resource" script_class="FlowGraphResource" format=3]
+
+[ext_resource type="Script" path="res://addons/flow_nodes_editor/graph_input_parameter.gd" id="1_nbrmj"]
+[ext_resource type="Script" path="res://addons/flow_nodes_editor/flow_graph_resource.gd" id="2_lfvyj"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4o7ne"]
+albedo_color = Color(0.16, 0.36, 0.12, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_vj7tp"]
+material = SubResource("StandardMaterial3D_4o7ne")
+top_radius = 0.0
+bottom_radius = 1.4
+height = 6.0
+radial_segments = 8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6148o"]
+albedo_color = Color(0.55, 0.53, 0.5, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_rql2o"]
+material = SubResource("StandardMaterial3D_6148o")
+height = 0.7
+radial_segments = 8
+rings = 4
+
+[resource]
+script = ExtResource("2_lfvyj")
+data = {
+"frames": [],
+"links": [{
+"from_node": &"m64",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"b64",
+"to_port": 0
+}, {
+"from_node": &"ground",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"trees_sampler",
+"to_port": 0
+}, {
+"from_node": &"b64",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"trees_sampler",
+"to_port": 1
+}, {
+"from_node": &"trees_sampler",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"trees_cull",
+"to_port": 0
+}, {
+"from_node": &"trees_cull",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"trees_xform",
+"to_port": 0
+}, {
+"from_node": &"trees_xform",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"trees_spawn",
+"to_port": 0
+}, {
+"from_node": &"trees_spawn",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"out_trees",
+"to_port": 0
+}, {
+"from_node": &"m16",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"b16",
+"to_port": 0
+}, {
+"from_node": &"ground",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"rocks_sampler",
+"to_port": 0
+}, {
+"from_node": &"b16",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"rocks_sampler",
+"to_port": 1
+}, {
+"from_node": &"rocks_sampler",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"rocks_cull",
+"to_port": 0
+}, {
+"from_node": &"rocks_cull",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"rocks_clear",
+"to_port": 0
+}, {
+"from_node": &"trees_cull",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"rocks_clear",
+"to_port": 1
+}, {
+"from_node": &"rocks_clear",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"rocks_xform",
+"to_port": 0
+}, {
+"from_node": &"rocks_xform",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"rocks_spawn",
+"to_port": 0
+}, {
+"from_node": &"rocks_spawn",
+"from_port": 0,
+"keep_alive": false,
+"to_node": &"out_rocks",
+"to_port": 0
+}],
+"min_pos": Vector2(0, 0),
+"nodes": [{
+"args_port": {},
+"name": &"ground",
+"position": Vector2(0, 220),
+"settings": {
+"group_name": "hier_ground"
+},
+"show_disconnected_inputs": false,
+"template": "get_surface_data"
+}, {
+"args_port": {},
+"name": &"m64",
+"position": Vector2(0, 0),
+"settings": {
+"cell_size": 64.0,
+"label": "Trees 64"
+},
+"show_disconnected_inputs": false,
+"template": "grid_size"
+}, {
+"args_port": {},
+"name": &"b64",
+"position": Vector2(220, 0),
+"settings": {},
+"show_disconnected_inputs": false,
+"template": "get_execution_bounds"
+}, {
+"args_port": {},
+"name": &"trees_sampler",
+"position": Vector2(460, 60),
+"settings": {
+"point_extents": Vector3(2, 2, 2),
+"points_per_square_meter": 0.006,
+"random_seed": 11,
+"use_bounding_shape": true
+},
+"show_disconnected_inputs": false,
+"template": "surface_sampler"
+}, {
+"args_port": {},
+"name": &"trees_cull",
+"position": Vector2(700, 60),
+"settings": {},
+"show_disconnected_inputs": false,
+"template": "cull_points_outside_bounds"
+}, {
+"args_port": {},
+"name": &"trees_xform",
+"position": Vector2(940, 60),
+"settings": {
+"offset_max": Vector3(0, 2.5, 0),
+"offset_min": Vector3(0, 2.5, 0),
+"random_seed": 3,
+"rotation_max": Vector3(0, 360, 0),
+"scale_max": Vector3(1.5, 1.5, 1.5),
+"scale_min": Vector3(0.7, 0.7, 0.7)
+},
+"show_disconnected_inputs": false,
+"template": "transform_points"
+}, {
+"args_port": {},
+"name": &"trees_spawn",
+"position": Vector2(1180, 60),
+"settings": {
+"mesh": SubResource("CylinderMesh_vj7tp"),
+"use_vertex_colors": false
+},
+"show_disconnected_inputs": false,
+"template": "spawn_meshes"
+}, {
+"args_port": {},
+"name": &"out_trees",
+"position": Vector2(1420, 60),
+"settings": {
+"name": "trees"
+},
+"show_disconnected_inputs": false,
+"template": "output"
+}, {
+"args_port": {},
+"name": &"m16",
+"position": Vector2(0, 440),
+"settings": {
+"cell_size": 16.0,
+"label": "Rocks 16"
+},
+"show_disconnected_inputs": false,
+"template": "grid_size"
+}, {
+"args_port": {},
+"name": &"b16",
+"position": Vector2(220, 440),
+"settings": {},
+"show_disconnected_inputs": false,
+"template": "get_execution_bounds"
+}, {
+"args_port": {},
+"name": &"rocks_sampler",
+"position": Vector2(460, 380),
+"settings": {
+"point_extents": Vector3(0.6, 0.6, 0.6),
+"points_per_square_meter": 0.08,
+"random_seed": 29,
+"use_bounding_shape": true
+},
+"show_disconnected_inputs": false,
+"template": "surface_sampler"
+}, {
+"args_port": {},
+"name": &"rocks_cull",
+"position": Vector2(700, 380),
+"settings": {},
+"show_disconnected_inputs": false,
+"template": "cull_points_outside_bounds"
+}, {
+"args_port": {},
+"name": &"rocks_clear",
+"position": Vector2(940, 380),
+"settings": {},
+"show_disconnected_inputs": false,
+"template": "difference"
+}, {
+"args_port": {},
+"name": &"rocks_xform",
+"position": Vector2(1180, 380),
+"settings": {
+"random_seed": 5,
+"rotation_max": Vector3(0, 360, 0),
+"scale_max": Vector3(1.2, 1.2, 1.2),
+"scale_min": Vector3(0.4, 0.4, 0.4)
+},
+"show_disconnected_inputs": false,
+"template": "transform_points"
+}, {
+"args_port": {},
+"name": &"rocks_spawn",
+"position": Vector2(1420, 380),
+"settings": {
+"mesh": SubResource("SphereMesh_rql2o"),
+"use_vertex_colors": false
+},
+"show_disconnected_inputs": false,
+"template": "spawn_meshes"
+}, {
+"args_port": {},
+"name": &"out_rocks",
+"position": Vector2(1660, 380),
+"settings": {
+"name": "rocks"
+},
+"show_disconnected_inputs": false,
+"template": "output"
+}],
+"type": "flow_graph_nodes",
+"version": 1
+}

@@ -11,6 +11,21 @@ enum eMode {
 	SourceToTargets,
 }
 
+## Which input's attribute streams the SourceToTargets output carries (UE Copy
+## Points "Attribute Inheritance"). Point transforms/extents (position,
+## rotation, rotation_quat, size, bounds_min, bounds_max) are always computed
+## from source + target as before and are not affected by this setting.
+enum eAttributeInheritance {
+	## Source attributes, plus every target attribute the source does not have.
+	SourceFirst,
+	## Target attributes, plus every source attribute the target does not have (target wins on name collisions).
+	TargetFirst,
+	## Only the source attributes (the historical behaviour, and the default).
+	SourceOnly,
+	## Only the target attributes.
+	TargetOnly,
+}
+
 enum eSourceSelection {
 	## Matches source points to target points by cycling through them sequentially.
 	Cycle,
@@ -46,6 +61,13 @@ enum eSourceSelection {
 @export var combine_source_with_target_transform : bool = true
 ## If enabled, target point scale is combined with source point scale.
 @export var inherit_target_scale : bool = true
+## Which input's attributes the output carries (SourceToTargets mode). Defaults to
+## SourceOnly so existing graphs keep exactly the streams they produced before.
+@export var attribute_inheritance : eAttributeInheritance = eAttributeInheritance.SourceOnly:
+	set(value):
+		value = clampi(value, 0, eAttributeInheritance.size() - 1)
+		attribute_inheritance = value
+		emit_changed()
 ## Optional attribute stream name in which to write the index of the target point that spawned each copy.
 @export var write_target_index_attribute : String = ""
 
@@ -58,7 +80,7 @@ func _init():
 
 func exposeParam(name : String) -> bool:
 	if mode == eMode.LinearCopies:
-		if name == "source_selection" or name == "combine_source_with_target_transform" or name == "inherit_target_scale" or name == "write_target_index_attribute":
+		if name == "source_selection" or name == "combine_source_with_target_transform" or name == "inherit_target_scale" or name == "write_target_index_attribute" or name == "attribute_inheritance":
 			return false
 		return true
 

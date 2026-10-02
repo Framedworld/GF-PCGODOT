@@ -65,7 +65,6 @@ func test_samples_known_pixels_by_uv() -> void:
 	assert_array(colors.container).is_equal(PackedColorArray([
 		Color(1, 0, 0, 1), Color(0, 1, 0, 1), Color(0, 0, 1, 1), Color(1, 1, 1, 1)
 	]))
-	node.free()
 
 func test_value_channel_red() -> void:
 	var s = _settings()
@@ -77,14 +76,12 @@ func test_value_channel_red() -> void:
 	assert_object(values).is_not_null()
 	# R channel of red,green,blue,white = 1,0,0,1
 	assert_array(values.container).is_equal(PackedFloat32Array([1.0, 0.0, 0.0, 1.0]))
-	node.free()
 
 func test_unassigned_texture_errors() -> void:
 	var s = _settings()
 	s.texture = null
 	var node = _run(_make_input(PackedVector3Array([Vector3(0, 0, 0)])), s)
 	assert_str(node.err).is_equal("Texture is not assigned")
-	node.free()
 
 func test_missing_uv_without_fallback_errors() -> void:
 	var s = _settings()
@@ -93,7 +90,6 @@ func test_missing_uv_without_fallback_errors() -> void:
 	d.registerStream("other", PackedVector3Array([Vector3(0, 0, 0)]), FlowDataScript.DataType.Vector)
 	var node = _run(d, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_passthrough_when_no_outputs() -> void:
 	var s = _settings()
@@ -105,4 +101,3 @@ func test_passthrough_when_no_outputs() -> void:
 	assert_object(out).is_not_null()
 	# Passthrough still guarantees a density stream (sampler parity)
 	assert_bool(out.hasStream("density")).is_true()
-	node.free()

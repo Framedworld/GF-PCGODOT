@@ -92,7 +92,6 @@ func test_null_input_sets_error() -> void:
 	var s = _default_settings()
 	var node = _run_no_scene([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_no_scene_root_sets_error() -> void:
 	var s = _default_settings()
@@ -106,7 +105,6 @@ func test_no_scene_root_sets_error() -> void:
 	node.preExecute(ctx)
 	node.execute(ctx)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_non_node3d_owner_sets_error() -> void:
 	# ctx.owner is typed FlowGraphNode3D (a Node3D); assigning a plain Node is invalid.
@@ -122,7 +120,6 @@ func test_non_node3d_owner_sets_error() -> void:
 	node.preExecute(ctx)
 	node.execute(ctx)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_position_stream_sets_error() -> void:
 	var s = _default_settings()
@@ -131,17 +128,16 @@ func test_missing_position_stream_sets_error() -> void:
 	d.registerStream("other", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run_no_scene([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_wrong_stream_type_sets_error() -> void:
-	# Register "position" as Float instead of Vector — should fail type check.
+	# A Float position attribute instead of a Vector — should fail type check.
+	# (Not "position" itself: that canonical name only registers as Vector.)
 	var s = _default_settings()
-	s.position_attribute = "position"
+	s.position_attribute = "pos_f"
 	var d = FlowDataScript.Data.new()
-	d.registerStream("position", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
+	d.registerStream("pos_f", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
 	var node = _run_no_scene([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_position_size_mismatch_sets_error() -> void:
 	# in_data has 3 elements but the position stream has 2 — mismatch (not 1 either).
@@ -153,7 +149,6 @@ func test_position_size_mismatch_sets_error() -> void:
 	d.registerStream("position", PackedVector3Array([Vector3.ZERO, Vector3.ONE]), FlowDataScript.DataType.Vector)
 	var node = _run_no_scene([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Empty input passthrough (synchronous with a valid Node3D owner in tree)
@@ -186,7 +181,6 @@ func test_empty_input_passthrough() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Physics-sim tests (require two physics frames)
@@ -212,7 +206,6 @@ func test_sphere_hits_floor() -> void:
 	assert_object(count_stream).is_not_null()
 	assert_int(count_stream.container[0]).is_greater_equal(1)
 
-	node.free()
 
 func test_sphere_misses_far_away() -> void:
 	# A sphere far from the floor should produce hit=0, count=0.
@@ -234,7 +227,6 @@ func test_sphere_misses_far_away() -> void:
 	assert_object(count_stream).is_not_null()
 	assert_int(count_stream.container[0]).is_equal(0)
 
-	node.free()
 
 func test_box_shape_hits_floor() -> void:
 	# Box half-extents (1,1,1) → full size 2x2x2 centred at origin overlaps the floor.
@@ -252,7 +244,6 @@ func test_box_shape_hits_floor() -> void:
 	assert_object(hit_stream).is_not_null()
 	assert_int(int(hit_stream.container[0])).is_equal(1)
 
-	node.free()
 
 func test_multi_point_mixed_hits() -> void:
 	# Two points: one overlapping (y=0), one far away (y=500). Expect [1,0] hits.
@@ -276,7 +267,6 @@ func test_multi_point_mixed_hits() -> void:
 	assert_int(count_stream.container[0]).is_greater_equal(1)
 	assert_int(count_stream.container[1]).is_equal(0)
 
-	node.free()
 
 func test_broadcast_single_position() -> void:
 	# position stream has 1 entry but in_data has 2 points (via another stream).
@@ -318,7 +308,6 @@ func test_broadcast_single_position() -> void:
 	assert_int(int(hit_stream.container[0])).is_equal(1)
 	assert_int(int(hit_stream.container[1])).is_equal(1)
 
-	node.free()
 
 func test_blank_output_attribute_suppresses_stream() -> void:
 	# When out_hit_attribute and out_count_attribute are blank, those streams must
@@ -336,7 +325,6 @@ func test_blank_output_attribute_suppresses_stream() -> void:
 	assert_object(out.findStream("overlap_hit")).is_null()
 	assert_object(out.findStream("overlap_count")).is_null()
 
-	node.free()
 
 func test_output_preserves_input_streams() -> void:
 	# The output data is a duplicate of in_data, so existing streams must survive.
@@ -353,4 +341,3 @@ func test_output_preserves_input_streams() -> void:
 	var color_stream = out.findStream("my_color")
 	assert_object(color_stream).is_not_null()
 
-	node.free()

@@ -58,7 +58,6 @@ func test_basic_filter_splits_inside_and_outside() -> void:
 	assert_object(out_stream).is_not_null()
 	assert_array(in_stream.container).is_equal(PackedFloat32Array([0.6, 0.9, 1.0]))
 	assert_array(out_stream.container).is_equal(PackedFloat32Array([0.2, 0.4]))
-	node.free()
 
 func test_missing_density_stream_defaults_to_one() -> void:
 	var s = DensityFilterSettings.new()
@@ -72,7 +71,6 @@ func test_missing_density_stream_defaults_to_one() -> void:
 	var inside = _in_filter(node)
 	assert_object(inside).is_not_null()
 	assert_int(inside.size()).is_equal(2)
-	node.free()
 
 func test_invert_filter_swaps_outputs() -> void:
 	var s = DensityFilterSettings.new()
@@ -91,7 +89,6 @@ func test_invert_filter_swaps_outputs() -> void:
 	var out_stream = outside.findStream("density")
 	assert_array(in_stream.container).is_equal(PackedFloat32Array([0.2, 0.4]))
 	assert_array(out_stream.container).is_equal(PackedFloat32Array([0.6, 0.9, 1.0]))
-	node.free()
 
 func test_empty_input_produces_empty_outputs() -> void:
 	var s = DensityFilterSettings.new()
@@ -106,13 +103,11 @@ func test_empty_input_produces_empty_outputs() -> void:
 	assert_object(outside).is_not_null()
 	assert_int(inside.size()).is_equal(0)
 	assert_int(outside.size()).is_equal(0)
-	node.free()
 
 func test_missing_input_produces_error() -> void:
 	var s = DensityFilterSettings.new()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_all_points_inside_range() -> void:
 	var s = DensityFilterSettings.new()
@@ -126,7 +121,6 @@ func test_all_points_inside_range() -> void:
 	var outside = _outside_filter(node)
 	assert_int(inside.size()).is_equal(5)
 	assert_int(outside.size()).is_equal(0)
-	node.free()
 
 func test_all_points_outside_range() -> void:
 	var s = DensityFilterSettings.new()
@@ -140,7 +134,6 @@ func test_all_points_outside_range() -> void:
 	var outside = _outside_filter(node)
 	assert_int(inside.size()).is_equal(0)
 	assert_int(outside.size()).is_equal(4)
-	node.free()
 
 func test_single_point_inside() -> void:
 	var s = DensityFilterSettings.new()
@@ -154,7 +147,6 @@ func test_single_point_inside() -> void:
 	var outside = _outside_filter(node)
 	assert_int(inside.size()).is_equal(1)
 	assert_int(outside.size()).is_equal(0)
-	node.free()
 
 func test_single_point_outside() -> void:
 	var s = DensityFilterSettings.new()
@@ -168,7 +160,6 @@ func test_single_point_outside() -> void:
 	var outside = _outside_filter(node)
 	assert_int(inside.size()).is_equal(0)
 	assert_int(outside.size()).is_equal(1)
-	node.free()
 
 func test_boundary_values_inclusive() -> void:
 	var s = DensityFilterSettings.new()
@@ -180,7 +171,6 @@ func test_boundary_values_inclusive() -> void:
 	assert_str(node.err).is_empty()
 	var inside = _in_filter(node)
 	assert_int(inside.size()).is_equal(1)
-	node.free()
 
 func test_additional_streams_preserved_on_filtered_output() -> void:
 	var s = DensityFilterSettings.new()
@@ -197,4 +187,3 @@ func test_additional_streams_preserved_on_filtered_output() -> void:
 	var pos_stream = inside.findStream("position")
 	assert_object(pos_stream).is_not_null()
 	assert_array(pos_stream.container).is_equal(PackedVector3Array([Vector3(1,0,0), Vector3(2,0,0)]))
-	node.free()

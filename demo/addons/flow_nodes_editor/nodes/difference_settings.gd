@@ -38,6 +38,16 @@ enum eDensityFunction {
 	Subtract,
 }
 
+enum eOverlapMode {
+	## A point is its position: the shape's density at the point centre decides.
+	PointCenter,
+	## A point is its bounds box (UE point-versus-volume): the shape is evaluated
+	## over the box (exactly for axis-aligned boxes and spheres, else at the
+	## centre, 8 corners and 6 face centres), so a large point whose centre is
+	## outside a shape but whose bounds overlap it is removed or attenuated.
+	BoundsBox,
+}
+
 
 ## Chooses the set difference or boolean operation to perform between Input A and Input B.
 @export var operation : eOperation = eOperation.A_Minus_B:
@@ -67,11 +77,22 @@ enum eDensityFunction {
 		intersection_overlap_source = value
 		notify_property_list_changed()
 
-## How overlapped points are resolved. Binary (default) hard-removes them (legacy behavior). Minimum/Multiply/Subtract instead keep them with reduced density computed from box interpenetration (shaped by steepness when present), leaving culling to a downstream density_filter.
+## How overlapped points are resolved. Binary (default) hard-removes them (legacy behavior). Minimum/Multiply/Subtract instead keep them with reduced density computed from box interpenetration (shaped by steepness when present), leaving culling to a downstream density_filter.[br]
+## With spatial data (shapes) it also sets how densities combine for every operation: shape with shape builds a composite using it, points with a shape are filtered (Binary) or density-attenuated by the shape's density.
 @export var density_function : eDensityFunction = eDensityFunction.Binary:
 	set(value):
 		value = clampi(value, 0, eDensityFunction.size() - 1)
 		density_function = value
+		emit_changed()
+
+## Points against spatial data (a shape on the other input): test each point as
+## its centre, or as its bounds box (bounds_min/bounds_max when present, else
+## size) with the point's steepness shaping partial overlaps, as point-versus-point
+## overlaps already do. Two point inputs ignore this setting.
+@export var overlap_mode : eOverlapMode = eOverlapMode.BoundsBox:
+	set(value):
+		value = clampi(value, 0, eOverlapMode.size() - 1)
+		overlap_mode = value
 		emit_changed()
 
 func _init():
@@ -85,7 +106,7 @@ func exposeParam(name : String) -> bool:
 		return operation == eOperation.Union
 	if name == "intersection_overlap_source":
 		return operation == eOperation.Intersection
-	# Density-function attenuation only applies to the subtractive operations.
-	if name == "density_function":
-		return operation == eOperation.A_Minus_B or operation == eOperation.B_Minus_A
+	# density_function stays visible for every operation: once spatial data is
+	# involved (composites, points against a shape) all operations use it; for two
+	# point inputs only the subtractive operations do.
 	return true

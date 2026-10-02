@@ -35,7 +35,8 @@ func _output(node: GetPointsCountNode) -> FlowData.Data:
 	return bulk[0]
 
 func test_float_stream_returns_correct_count() -> void:
-	var input = _make_data("position", PackedFloat32Array([1.0, 2.0, 3.0, 4.0, 5.0]), FlowDataScript.DataType.Float)
+	# Not "position": canonical attributes only register with their own type.
+	var input = _make_data("value", PackedFloat32Array([1.0, 2.0, 3.0, 4.0, 5.0]), FlowDataScript.DataType.Float)
 	var node = _run(input)
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -44,7 +45,6 @@ func test_float_stream_returns_correct_count() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.data_type).is_equal(FlowDataScript.DataType.Int)
 	assert_array(stream.container).is_equal(PackedInt32Array([5]))
-	node.free()
 
 func test_vector_stream_returns_correct_count() -> void:
 	var input = _make_data("position", PackedVector3Array([Vector3(1, 2, 3), Vector3(4, 5, 6), Vector3(7, 8, 9)]), FlowDataScript.DataType.Vector)
@@ -55,7 +55,6 @@ func test_vector_stream_returns_correct_count() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([3]))
-	node.free()
 
 func test_int_stream_returns_correct_count() -> void:
 	var input = _make_data("value", PackedInt32Array([10, 20, 30]), FlowDataScript.DataType.Int)
@@ -66,7 +65,6 @@ func test_int_stream_returns_correct_count() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([3]))
-	node.free()
 
 func test_color_stream_returns_correct_count() -> void:
 	var input = _make_data("color", PackedColorArray([Color(1, 0, 0), Color(0, 1, 0)]), FlowDataScript.DataType.Color)
@@ -77,10 +75,9 @@ func test_color_stream_returns_correct_count() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([2]))
-	node.free()
 
 func test_single_element_input() -> void:
-	var input = _make_data("position", PackedFloat32Array([42.0]), FlowDataScript.DataType.Float)
+	var input = _make_data("value", PackedFloat32Array([42.0]), FlowDataScript.DataType.Float)
 	var node = _run(input)
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -88,12 +85,11 @@ func test_single_element_input() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([1]))
-	node.free()
 
 func test_large_array_count() -> void:
 	var values = PackedFloat32Array()
 	values.resize(1000)
-	var input = _make_data("position", values, FlowDataScript.DataType.Float)
+	var input = _make_data("value", values, FlowDataScript.DataType.Float)
 	var node = _run(input)
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -101,10 +97,9 @@ func test_large_array_count() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([1000]))
-	node.free()
 
 func test_custom_output_stream_name() -> void:
-	var input = _make_data("position", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
+	var input = _make_data("value", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
 	var node = _run(input, "my_count")
 	assert_str(node.err).is_empty()
 	var out = _output(node)
@@ -112,7 +107,6 @@ func test_custom_output_stream_name() -> void:
 	var stream = out.findStream("my_count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([3]))
-	node.free()
 
 func test_missing_input_sets_error() -> void:
 	var node = GetPointsCountNode.new()
@@ -127,4 +121,3 @@ func test_missing_input_sets_error() -> void:
 	node.execute(ctx)
 	assert_str(node.err).is_not_empty()
 	dummy.free()
-	node.free()

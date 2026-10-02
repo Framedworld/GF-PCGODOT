@@ -50,8 +50,8 @@ func _run_with_owner(owner_node, settings) -> PointsFromGridmapNode:
 # Tests
 # ---------------------------------------------------------------------------
 
-# null owner → no crash, no error, empty output
-func test_null_owner_produces_empty_output() -> void:
+# null owner → no crash, documented owner error, empty output
+func test_null_owner_reports_owner_error_and_empty_output() -> void:
 	var s = PointsFromGridmapSettings.new()
 	var node = PointsFromGridmapNode.new()
 	node.name = "test_node"
@@ -61,8 +61,7 @@ func test_null_owner_produces_empty_output() -> void:
 	ctx.owner = null
 	node.preExecute(ctx)
 	node.execute(ctx)
-	assert_str(node.err).is_empty()
-	node.free()
+	assert_str(node.err).contains("needs an owner node")
 
 # owner with no GridMap child → no error, output is empty
 func test_no_gridmap_in_scene_produces_empty_output() -> void:
@@ -79,7 +78,6 @@ func test_no_gridmap_in_scene_produces_empty_output() -> void:
 		var pos = out.getVector3Container(FlowData.AttrPosition)
 		assert_int(pos.size()).is_equal(0)
 	owner_node.free()
-	node.free()
 
 # GridMap with 3 cells → output has exactly 3 points
 func test_three_cells_produce_three_points() -> void:
@@ -92,7 +90,6 @@ func test_three_cells_produce_three_points() -> void:
 	var pos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(pos.size()).is_equal(3)
 	owner_node.free()
-	node.free()
 
 # size stream matches cell_size of the GridMap
 func test_size_stream_matches_gridmap_cell_size() -> void:
@@ -110,7 +107,6 @@ func test_size_stream_matches_gridmap_cell_size() -> void:
 	for i in range(sizes.size()):
 		assert_bool(sizes[i].is_equal_approx(expected_size)).is_true()
 	owner_node.free()
-	node.free()
 
 # cell attribute stream is written by default (out_cell_attribute = "grid_cell")
 func test_cell_attribute_stream_is_present() -> void:
@@ -125,7 +121,6 @@ func test_cell_attribute_stream_is_present() -> void:
 	assert_object(cell_stream).is_not_null()
 	assert_int(cell_stream.container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 # item_id stream is written when include_item_id = true
 func test_item_id_stream_present_when_enabled() -> void:
@@ -144,7 +139,6 @@ func test_item_id_stream_present_when_enabled() -> void:
 	for i in range(id_stream.container.size()):
 		assert_int(id_stream.container[i]).is_equal(0)
 	owner_node.free()
-	node.free()
 
 # item_id stream is absent when include_item_id = false
 func test_item_id_stream_absent_when_disabled() -> void:
@@ -158,7 +152,6 @@ func test_item_id_stream_absent_when_disabled() -> void:
 	var id_stream = out.findStream("grid_item_id")
 	assert_object(id_stream).is_null()
 	owner_node.free()
-	node.free()
 
 # gridmap_ref stream present when include_gridmap_ref = true
 func test_gridmap_ref_stream_present_when_enabled() -> void:
@@ -177,7 +170,6 @@ func test_gridmap_ref_stream_present_when_enabled() -> void:
 	for i in range(ref_stream.container.size()):
 		assert_object(ref_stream.container[i]).is_equal(gm)
 	owner_node.free()
-	node.free()
 
 # item_id_filter = 0 keeps only item-0 cells; item_id_filter = 1 keeps none
 func test_item_id_filter_excludes_non_matching_cells() -> void:
@@ -204,7 +196,6 @@ func test_item_id_filter_excludes_non_matching_cells() -> void:
 	var pos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(pos.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 # item_id_filter = -1 means no filter; all cells are kept
 func test_item_id_filter_minus_one_keeps_all_cells() -> void:
@@ -229,7 +220,6 @@ func test_item_id_filter_minus_one_keeps_all_cells() -> void:
 	var pos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(pos.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 # y_offset shifts all generated positions upward by the given amount
 func test_y_offset_shifts_positions() -> void:
@@ -244,7 +234,6 @@ func test_y_offset_shifts_positions() -> void:
 	var out_base = _output(node_base)
 	var pos_base = out_base.getVector3Container(FlowData.AttrPosition)
 	var base_y : float = pos_base[0].y
-	node_base.free()
 
 	# Run again with offset
 	var s_off = PointsFromGridmapSettings.new()
@@ -255,7 +244,6 @@ func test_y_offset_shifts_positions() -> void:
 	var pos_off = out_off.getVector3Container(FlowData.AttrPosition)
 	assert_float(pos_off[0].y).is_equal_approx(base_y + 5.0, 0.001)
 	owner_node.free()
-	node_off.free()
 
 # gridmap_path set to a valid GridMap node → only that GridMap is used
 func test_gridmap_path_targets_specific_gridmap() -> void:
@@ -285,7 +273,6 @@ func test_gridmap_path_targets_specific_gridmap() -> void:
 	# Only GridA's 2 cells, not GridB's 1 cell
 	assert_int(pos.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 # gridmap_path pointing to a non-existent node → error is set
 func test_gridmap_path_invalid_sets_error() -> void:
@@ -296,7 +283,6 @@ func test_gridmap_path_invalid_sets_error() -> void:
 	var node = _run_with_owner(owner_node, s)
 	assert_str(node.err).is_not_empty()
 	owner_node.free()
-	node.free()
 
 # empty out_cell_attribute → cell stream is NOT written
 func test_empty_cell_attribute_name_skips_stream() -> void:
@@ -311,7 +297,6 @@ func test_empty_cell_attribute_name_skips_stream() -> void:
 	var cell_stream = out.findStream("grid_cell")
 	assert_object(cell_stream).is_null()
 	owner_node.free()
-	node.free()
 
 # output position/rotation/size streams have equal sizes
 func test_common_streams_have_consistent_sizes() -> void:
@@ -328,4 +313,3 @@ func test_common_streams_have_consistent_sizes() -> void:
 	assert_int(rot.size()).is_equal(4)
 	assert_int(sz.size()).is_equal(4)
 	owner_node.free()
-	node.free()

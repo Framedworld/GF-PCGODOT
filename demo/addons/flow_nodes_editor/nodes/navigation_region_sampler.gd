@@ -17,7 +17,7 @@ func _init():
 
 func _scene_root(ctx : FlowData.EvaluationContext) -> Node:
 	if Engine.is_editor_hint():
-		return EditorInterface.get_edited_scene_root()
+		return editor_edited_scene_root()
 	if ctx.owner and ctx.owner.get_tree():
 		return ctx.owner.get_tree().current_scene
 	return null
@@ -76,6 +76,8 @@ func computeSceneFingerprint(ctx : FlowData.EvaluationContext) -> Variant:
 	return hashSceneNodesForFingerprint(ctx, regions, extra)
 
 func execute(ctx : FlowData.EvaluationContext):
+	# Owner-less runtime evaluation: report it, still emit the empty schema.
+	reportMissingOwner(ctx)
 	var regions := _collect_regions(_scene_root(ctx))
 	var positions := PackedVector3Array()
 	var rotations := PackedVector3Array()
@@ -142,7 +144,7 @@ func execute(ctx : FlowData.EvaluationContext):
 	var seeds := PackedInt32Array()
 	seeds.resize(positions.size())
 	for i in range(positions.size()):
-		seeds[i] = FlowData.point_seed(positions[i], settings.random_seed)
+		seeds[i] = FlowData.point_seed(positions[i], effective_seed())
 	out.registerStream(FlowData.AttrSeed, seeds, FlowData.DataType.Int)
 	if settings.sample_mode == NavigationRegionSamplerSettings.eSampleMode.Polygons and normals.size() == positions.size():
 		out.registerStream(FlowData.AttrNormal, normals, FlowData.DataType.Vector)

@@ -6,6 +6,10 @@ class_name FlowGraphResource
 
 var _in_params_changed_queued := false
 
+## Runtime only (never saved): this graph's FlowCompiledGraph, owned by the
+## graph so it lives and dies with it. See FlowCompiledGraph.for_graph().
+var _flow_compiled = null
+
 @export_category("Flow Graph Resource")
 
 # Where we store the graph_nodes + custom settings as a dict

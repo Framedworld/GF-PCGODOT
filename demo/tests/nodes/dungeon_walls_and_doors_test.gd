@@ -39,7 +39,6 @@ func test_missing_input_sets_error() -> void:
 	var s = DungeonWallsAndDoorsSettings.new()
 	var node = _run(null, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_cell_type_stream_sets_error() -> void:
 	var d := FlowDataScript.Data.new()
@@ -49,7 +48,6 @@ func test_missing_cell_type_stream_sets_error() -> void:
 	var s = DungeonWallsAndDoorsSettings.new()
 	var node = _run(d, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_input_produces_empty_outputs() -> void:
 	var d := FlowDataScript.Data.new()
@@ -66,7 +64,6 @@ func test_empty_input_produces_empty_outputs() -> void:
 	assert_int(doors.size() if doors != null else 0).is_equal(0)
 	assert_int(torches.size() if torches != null else 0).is_equal(0)
 	assert_int(pillars.size() if pillars != null else 0).is_equal(0)
-	node.free()
 
 func test_single_room_cell_generates_walls_and_pillars() -> void:
 	var positions = PackedVector3Array([Vector3(0, 0, 0)])
@@ -82,7 +79,6 @@ func test_single_room_cell_generates_walls_and_pillars() -> void:
 	var pillars = _get_output(node, 3)
 	assert_object(pillars).is_not_null()
 	assert_int(pillars.size()).is_greater(0)
-	node.free()
 
 func test_room_adjacent_to_corridor_generates_door() -> void:
 	# Room at (0,0,0) and Corridor at (2,0,0) with cell_size=2 — East neighbor is Corridor
@@ -96,7 +92,6 @@ func test_room_adjacent_to_corridor_generates_door() -> void:
 	var doors = _get_output(node, 1)
 	assert_object(doors).is_not_null()
 	assert_int(doors.size()).is_greater(0)
-	node.free()
 
 func test_corridor_to_corridor_no_doors() -> void:
 	var positions = PackedVector3Array([Vector3(0, 0, 0), Vector3(2, 0, 0)])
@@ -109,7 +104,6 @@ func test_corridor_to_corridor_no_doors() -> void:
 	var doors = _get_output(node, 1)
 	assert_object(doors).is_not_null()
 	assert_int(doors.size()).is_equal(0)
-	node.free()
 
 func test_output_scale_is_applied() -> void:
 	var positions = PackedVector3Array([Vector3(0, 0, 0)])
@@ -126,7 +120,6 @@ func test_output_scale_is_applied() -> void:
 	var ssize = walls.getVector3Container(FlowData.AttrSize)
 	assert_object(ssize).is_not_null()
 	assert_bool(ssize[0].is_equal_approx(Vector3(2.0, 3.0, 4.0))).is_true()
-	node.free()
 
 func test_include_concave_pillars_toggle() -> void:
 	# L-shaped layout creates a concave corner
@@ -154,8 +147,6 @@ func test_include_concave_pillars_toggle() -> void:
 	var count_without = pillars_without.size() if pillars_without != null else 0
 
 	assert_int(count_with).is_greater_equal(count_without)
-	node_with.free()
-	node_without.free()
 
 func test_wall_output_has_type_stream() -> void:
 	var positions = PackedVector3Array([Vector3(0, 0, 0)])
@@ -170,7 +161,6 @@ func test_wall_output_has_type_stream() -> void:
 	var type_stream = walls.findStream("type")
 	assert_object(type_stream).is_not_null()
 	assert_int(type_stream.container.size()).is_equal(walls.size())
-	node.free()
 
 func test_torch_probability_zero_no_torches() -> void:
 	var positions = PackedVector3Array([Vector3(0, 0, 0)])
@@ -184,7 +174,6 @@ func test_torch_probability_zero_no_torches() -> void:
 	var torches = _get_output(node, 2)
 	assert_object(torches).is_not_null()
 	assert_int(torches.size()).is_equal(0)
-	node.free()
 
 func test_large_room_layout_no_errors() -> void:
 	var positions = PackedVector3Array()
@@ -206,4 +195,3 @@ func test_large_room_layout_no_errors() -> void:
 	var pillars = _get_output(node, 3)
 	assert_object(pillars).is_not_null()
 	assert_int(pillars.size()).is_greater(0)
-	node.free()

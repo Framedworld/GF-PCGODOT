@@ -9,6 +9,14 @@ const LoadPcgDataAssetSettings = preload("res://addons/flow_nodes_editor/nodes/l
 # Helpers
 # ---------------------------------------------------------------------------
 
+func before_test() -> void:
+	# The parsed-JSON cache is static (shared by every node instance); start
+	# each test from a cold cache so tests stay independent.
+	LoadPcgDataAssetNode.clear_cache()
+
+func after() -> void:
+	LoadPcgDataAssetNode.clear_cache()
+
 func _make_settings() -> LoadPcgDataAssetSettings:
 	var s = LoadPcgDataAssetSettings.new()
 	s.asset_path = ""
@@ -57,14 +65,12 @@ func test_empty_path_produces_no_error_and_empty_output() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_missing_file_sets_error() -> void:
 	var s = _make_settings()
 	s.asset_path = "res://nonexistent_file_that_does_not_exist.json"
 	var node = _run(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_file_with_explicit_json_format_sets_error() -> void:
 	var s = _make_settings()
@@ -72,7 +78,6 @@ func test_missing_file_with_explicit_json_format_sets_error() -> void:
 	s.asset_format = LoadPcgDataAssetSettings.eAssetFormat.Json
 	var node = _run(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_file_with_explicit_resource_format_sets_error() -> void:
 	var s = _make_settings()
@@ -80,7 +85,6 @@ func test_missing_file_with_explicit_resource_format_sets_error() -> void:
 	s.asset_format = LoadPcgDataAssetSettings.eAssetFormat.Resource
 	var node = _run(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # JSON parsing tests (write temp file to user://)
@@ -108,7 +112,6 @@ func test_json_array_of_rows_float_column() -> void:
 	assert_int(sx.data_type).is_equal(FlowData.DataType.Float)
 	assert_float(float(sx.container[0])).is_equal_approx(1.0, 0.001)
 	assert_float(float(sx.container[1])).is_equal_approx(3.0, 0.001)
-	node.free()
 
 func test_json_array_of_rows_string_column() -> void:
 	var json := '[{"name": "alpha"}, {"name": "beta"}]'
@@ -126,7 +129,6 @@ func test_json_array_of_rows_string_column() -> void:
 	assert_int(stream.container.size()).is_equal(2)
 	assert_str(stream.container[0]).is_equal("alpha")
 	assert_str(stream.container[1]).is_equal("beta")
-	node.free()
 
 func test_json_object_with_rows_property() -> void:
 	var json := '{"rows": [{"val": 10.0}, {"val": 20.0}]}'
@@ -142,7 +144,6 @@ func test_json_object_with_rows_property() -> void:
 	var stream = out.findStream("val")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(2)
-	node.free()
 
 func test_json_object_with_streams_property() -> void:
 	# streams format: {"streams": {"x": [1.0, 2.0, 3.0], "y": [4.0, 5.0, 6.0]}}
@@ -162,7 +163,6 @@ func test_json_object_with_streams_property() -> void:
 	assert_object(sy).is_not_null()
 	assert_int(sx.container.size()).is_equal(2)
 	assert_int(sy.container.size()).is_equal(2)
-	node.free()
 
 func test_json_object_with_points_property() -> void:
 	var json := '{"points": [{"z": 5.0}, {"z": 7.0}]}'
@@ -177,7 +177,6 @@ func test_json_object_with_points_property() -> void:
 	var stream = out.findStream("z")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(2)
-	node.free()
 
 func test_json_single_object_becomes_one_row() -> void:
 	# A plain dict with no known "rows"/"streams"/"points" key -> treated as one row
@@ -195,7 +194,6 @@ func test_json_single_object_becomes_one_row() -> void:
 	assert_object(color_stream).is_not_null()
 	assert_int(color_stream.container.size()).is_equal(1)
 	assert_str(color_stream.container[0]).is_equal("red")
-	node.free()
 
 func test_invalid_json_sets_error() -> void:
 	var path = _write_temp_json("test_bad.json", "{ not valid json !!!")
@@ -204,7 +202,6 @@ func test_invalid_json_sets_error() -> void:
 	s.asset_format = LoadPcgDataAssetSettings.eAssetFormat.Json
 	var node = _run(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_json_number_always_float_not_int() -> void:
 	# GDScript JSON always gives floats for numbers, never int
@@ -221,7 +218,6 @@ func test_json_number_always_float_not_int() -> void:
 	assert_object(stream).is_not_null()
 	# JSON numbers parse as float in Godot JSON (per node tooltip)
 	assert_int(stream.data_type).is_equal(FlowData.DataType.Float)
-	node.free()
 
 func test_source_path_attribute_added_when_enabled() -> void:
 	var json := '[{"v": 1.0}]'
@@ -241,7 +237,6 @@ func test_source_path_attribute_added_when_enabled() -> void:
 	assert_int(sp_stream.container.size()).is_equal(1)
 	# The recorded path is the filesystem path we passed in
 	assert_str(sp_stream.container[0]).is_equal(path)
-	node.free()
 
 func test_source_path_attribute_absent_when_disabled() -> void:
 	var json := '[{"v": 1.0}]'
@@ -255,7 +250,6 @@ func test_source_path_attribute_absent_when_disabled() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream("source_path")).is_false()
-	node.free()
 
 func test_auto_format_detects_json_by_extension() -> void:
 	var json := '[{"n": 1.0}]'
@@ -269,7 +263,6 @@ func test_auto_format_detects_json_by_extension() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream("n")).is_true()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Pure helper method tests (no file I/O, direct calls on node instance)
@@ -281,7 +274,6 @@ func test_as_vector3_from_vector3() -> void:
 	var result = node._as_vector3(Vector3(1.0, 2.0, 3.0))
 	assert_bool(result.ok).is_true()
 	assert_bool(result.value.is_equal_approx(Vector3(1.0, 2.0, 3.0))).is_true()
-	node.free()
 
 func test_as_vector3_from_array() -> void:
 	var node = LoadPcgDataAssetNode.new()
@@ -289,7 +281,6 @@ func test_as_vector3_from_array() -> void:
 	var result = node._as_vector3([1.0, 2.0, 3.0])
 	assert_bool(result.ok).is_true()
 	assert_bool(result.value.is_equal_approx(Vector3(1.0, 2.0, 3.0))).is_true()
-	node.free()
 
 func test_as_vector3_from_dict() -> void:
 	var node = LoadPcgDataAssetNode.new()
@@ -297,7 +288,6 @@ func test_as_vector3_from_dict() -> void:
 	var result = node._as_vector3({"x": 4.0, "y": 5.0, "z": 6.0})
 	assert_bool(result.ok).is_true()
 	assert_bool(result.value.is_equal_approx(Vector3(4.0, 5.0, 6.0))).is_true()
-	node.free()
 
 func test_as_vector3_from_string_space_separated() -> void:
 	var node = LoadPcgDataAssetNode.new()
@@ -305,7 +295,6 @@ func test_as_vector3_from_string_space_separated() -> void:
 	var result = node._as_vector3("1.0 2.0 3.0")
 	assert_bool(result.ok).is_true()
 	assert_bool(result.value.is_equal_approx(Vector3(1.0, 2.0, 3.0))).is_true()
-	node.free()
 
 func test_as_vector3_from_string_parentheses() -> void:
 	var node = LoadPcgDataAssetNode.new()
@@ -313,56 +302,48 @@ func test_as_vector3_from_string_parentheses() -> void:
 	var result = node._as_vector3("(1.0, 2.0, 3.0)")
 	assert_bool(result.ok).is_true()
 	assert_bool(result.value.is_equal_approx(Vector3(1.0, 2.0, 3.0))).is_true()
-	node.free()
 
 func test_as_vector3_from_invalid_returns_not_ok() -> void:
 	var node = LoadPcgDataAssetNode.new()
 	node.name = "helper_test"
 	var result = node._as_vector3("not_a_vector")
 	assert_bool(result.ok).is_false()
-	node.free()
 
 func test_as_vector3_from_short_array_returns_not_ok() -> void:
 	var node = LoadPcgDataAssetNode.new()
 	node.name = "helper_test"
 	var result = node._as_vector3([1.0, 2.0])
 	assert_bool(result.ok).is_false()
-	node.free()
 
 func test_infer_variant_type_bools() -> void:
 	var node = LoadPcgDataAssetNode.new()
 	node.name = "helper_test"
 	var result = node._infer_variant_type([true, false, true])
 	assert_int(result).is_equal(FlowData.DataType.Bool)
-	node.free()
 
 func test_infer_variant_type_ints() -> void:
 	var node = LoadPcgDataAssetNode.new()
 	node.name = "helper_test"
 	var result = node._infer_variant_type([1, 2, 3])
 	assert_int(result).is_equal(FlowData.DataType.Int)
-	node.free()
 
 func test_infer_variant_type_floats() -> void:
 	var node = LoadPcgDataAssetNode.new()
 	node.name = "helper_test"
 	var result = node._infer_variant_type([1.0, 2.5, 3.7])
 	assert_int(result).is_equal(FlowData.DataType.Float)
-	node.free()
 
 func test_infer_variant_type_vectors() -> void:
 	var node = LoadPcgDataAssetNode.new()
 	node.name = "helper_test"
 	var result = node._infer_variant_type([Vector3(1, 0, 0), Vector3(0, 1, 0)])
 	assert_int(result).is_equal(FlowData.DataType.Vector)
-	node.free()
 
 func test_infer_variant_type_strings() -> void:
 	var node = LoadPcgDataAssetNode.new()
 	node.name = "helper_test"
 	var result = node._infer_variant_type(["hello", "world"])
 	assert_int(result).is_equal(FlowData.DataType.String)
-	node.free()
 
 func test_infer_variant_type_mixed_becomes_string() -> void:
 	var node = LoadPcgDataAssetNode.new()
@@ -370,7 +351,6 @@ func test_infer_variant_type_mixed_becomes_string() -> void:
 	# Int and string mixed -> not bool, int, float, or vector -> String
 	var result = node._infer_variant_type([1, "hello"])
 	assert_int(result).is_equal(FlowData.DataType.String)
-	node.free()
 
 func test_rows_to_data_column_count() -> void:
 	var node = LoadPcgDataAssetNode.new()
@@ -393,7 +373,6 @@ func test_rows_to_data_column_count() -> void:
 	assert_object(sb).is_not_null()
 	assert_int(sa.container.size()).is_equal(3)
 	assert_int(sb.container.size()).is_equal(3)
-	node.free()
 
 func test_rows_to_data_missing_key_fills_null() -> void:
 	var node = LoadPcgDataAssetNode.new()
@@ -411,7 +390,6 @@ func test_rows_to_data_missing_key_fills_null() -> void:
 	assert_object(sa).is_not_null()
 	assert_int(sa.container.size()).is_equal(2)
 	assert_float(float(sa.container[1])).is_equal_approx(0.0, 0.001)
-	node.free()
 
 func test_streams_to_data_aligns_columns() -> void:
 	var node = LoadPcgDataAssetNode.new()
@@ -431,7 +409,6 @@ func test_streams_to_data_aligns_columns() -> void:
 	assert_object(sy).is_not_null()
 	assert_int(sx.container.size()).is_equal(3)
 	assert_int(sy.container.size()).is_equal(3)
-	node.free()
 
 func test_streams_to_data_source_path_when_enabled() -> void:
 	var node = LoadPcgDataAssetNode.new()
@@ -446,7 +423,6 @@ func test_streams_to_data_source_path_when_enabled() -> void:
 	assert_object(sp).is_not_null()
 	assert_int(sp.container.size()).is_equal(2)
 	assert_str(sp.container[0]).is_equal("my_source.json")
-	node.free()
 
 func test_streams_to_data_skips_non_array_entries() -> void:
 	var node = LoadPcgDataAssetNode.new()
@@ -459,4 +435,125 @@ func test_streams_to_data_skips_non_array_entries() -> void:
 	var out = node._streams_to_data(streams, "")
 	assert_bool(out.hasStream("v")).is_true()
 	assert_bool(out.hasStream("meta")).is_false()
-	node.free()
+
+# ---------------------------------------------------------------------------
+# Inference short-circuit + parsed-JSON cache
+# ---------------------------------------------------------------------------
+
+## Reference copy of the pre-short-circuit inference (every candidate probed for
+## every value). The optimised node must agree with it on every column.
+func _reference_infer(node, values : Array) -> int:
+	var can_bool := true
+	var can_int := true
+	var can_float := true
+	var can_vector := true
+	for value in values:
+		if value == null:
+			continue
+		var t := typeof(value)
+		if t != TYPE_BOOL: can_bool = false
+		if t != TYPE_INT: can_int = false
+		if t != TYPE_INT and t != TYPE_FLOAT: can_float = false
+		if not node._as_vector3(value).ok: can_vector = false
+	if can_bool: return FlowData.DataType.Bool
+	if can_int: return FlowData.DataType.Int
+	if can_float: return FlowData.DataType.Float
+	if can_vector: return FlowData.DataType.Vector
+	return FlowData.DataType.String
+
+func test_infer_variant_type_mixed_columns_unchanged() -> void:
+	var node = LoadPcgDataAssetNode.new()
+	node.name = "helper_test"
+	var columns := {
+		"bools": [true, null, false],
+		"ints": [1, 2, null, 3],
+		"floats": [1.0, 2, 3.5],
+		"vec_strings": ["1 2 3", "(4, 5, 6)", null, "7;8;9"],
+		"vec_mixed": [Vector3.ONE, [1, 2, 3], {"x": 1, "y": 2, "z": 3}, "1|2|3"],
+		"float_then_vec": [1.0, "1 2 3"],
+		"vec_then_float": ["1 2 3", 1.0],
+		"bool_then_int": [true, 1],
+		"strings": ["a", "b"],
+		"string_then_vec": ["a", "1 2 3", Vector3.ZERO],
+		"all_null": [null, null],
+		"empty": [],
+	}
+	var expected := {
+		"bools": FlowData.DataType.Bool,
+		"ints": FlowData.DataType.Int,
+		"floats": FlowData.DataType.Float,
+		"vec_strings": FlowData.DataType.Vector,
+		"vec_mixed": FlowData.DataType.Vector,
+		"float_then_vec": FlowData.DataType.String,
+		"vec_then_float": FlowData.DataType.String,
+		"bool_then_int": FlowData.DataType.String,
+		"strings": FlowData.DataType.String,
+		"string_then_vec": FlowData.DataType.String,
+		"all_null": FlowData.DataType.Bool,
+		"empty": FlowData.DataType.Bool,
+	}
+	for name in columns:
+		var got : int = node._infer_variant_type(columns[name])
+		assert_int(got).override_failure_message("column %s" % name).is_equal(expected[name])
+		assert_int(got).override_failure_message("column %s vs reference" % name) \
+			.is_equal(_reference_infer(node, columns[name]))
+
+func test_second_load_hits_cache() -> void:
+	var json := '[{"a": 1.0, "tag": "x", "p": "1 2 3"}, {"a": 2.0, "tag": "y", "p": "4 5 6"}]'
+	var path = _write_temp_json("test_cache_hit.json", json)
+	var s = _make_settings()
+	s.asset_path = path
+	var first = _run(s)
+	assert_str(first.err).is_empty()
+	assert_int(LoadPcgDataAssetNode.parse_count).is_equal(1)
+	assert_int(LoadPcgDataAssetNode.cache_hits).is_equal(0)
+	var out1 = _output(first)
+	# Mutating the returned Data must not leak into the cache.
+	out1.findStream("a").container[0] = 99.0
+
+	var second = _run(s)
+	assert_str(second.err).is_empty()
+	assert_int(LoadPcgDataAssetNode.parse_count).is_equal(1)
+	assert_int(LoadPcgDataAssetNode.cache_hits).is_equal(1)
+	var out2 = _output(second)
+	assert_float(out2.findStream("a").container[0]).is_equal(1.0)
+	assert_int(out2.findStream("p").data_type).is_equal(FlowData.DataType.Vector)
+	assert_str(out2.findStream("tag").container[1]).is_equal("y")
+	assert_object(out2).is_not_same(out1)
+
+func test_settings_change_misses_cache() -> void:
+	var path = _write_temp_json("test_cache_settings.json", '[{"a": 1.0}]')
+	var s = _make_settings()
+	s.asset_path = path
+	_run(s)
+	s.add_source_path = true
+	var node = _run(s)
+	assert_int(LoadPcgDataAssetNode.parse_count).is_equal(2)
+	assert_bool(_output(node).hasStream("source_path")).is_true()
+
+func test_modified_time_change_invalidates_cache() -> void:
+	# Same byte length on purpose, so only the mtime differs between revisions.
+	var path = _write_temp_json("test_cache_mtime.json", '[{"a": 1.0}]')
+	var s = _make_settings()
+	s.asset_path = path
+	var first = _run(s)
+	assert_float(_output(first).findStream("a").container[0]).is_equal(1.0)
+	var mtime_before := FileAccess.get_modified_time(path)
+	# mtime has one-second resolution; wait until it can differ.
+	OS.delay_msec(1100)
+	_write_temp_json("test_cache_mtime.json", '[{"a": 7.0}]')
+	assert_int(FileAccess.get_modified_time(path)).is_not_equal(mtime_before)
+	var second = _run(s)
+	assert_int(LoadPcgDataAssetNode.parse_count).is_equal(2)
+	assert_int(LoadPcgDataAssetNode.cache_hits).is_equal(0)
+	assert_float(_output(second).findStream("a").container[0]).is_equal(7.0)
+
+func test_clear_cache_forces_reparse() -> void:
+	var path = _write_temp_json("test_cache_clear.json", '[{"a": 1.0}]')
+	var s = _make_settings()
+	s.asset_path = path
+	_run(s)
+	LoadPcgDataAssetNode.clear_cache()
+	_run(s)
+	assert_int(LoadPcgDataAssetNode.parse_count).is_equal(1)
+	assert_int(LoadPcgDataAssetNode.cache_hits).is_equal(0)

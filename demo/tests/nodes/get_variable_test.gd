@@ -41,7 +41,6 @@ func test_retrieves_float_variable() -> void:
 	var stream = out.findStream("value")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([1.0, 2.0, 3.0]))
-	node.free()
 
 func test_retrieves_vector_variable() -> void:
 	var s = GetVariableSettings.new()
@@ -54,7 +53,6 @@ func test_retrieves_vector_variable() -> void:
 	var stream = out.findStream("position")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(2)
-	node.free()
 
 func test_retrieves_int_variable() -> void:
 	var s = GetVariableSettings.new()
@@ -67,7 +65,6 @@ func test_retrieves_int_variable() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([10, 20, 30]))
-	node.free()
 
 func test_retrieves_color_variable() -> void:
 	var s = GetVariableSettings.new()
@@ -80,7 +77,6 @@ func test_retrieves_color_variable() -> void:
 	var stream = out.findStream("color")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(2)
-	node.free()
 
 func test_error_when_variable_name_is_empty() -> void:
 	var s = GetVariableSettings.new()
@@ -88,7 +84,6 @@ func test_error_when_variable_name_is_empty() -> void:
 	var stored = _make_data("value", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run(s, {"some_var": stored})
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_when_variable_name_is_whitespace_only() -> void:
 	var s = GetVariableSettings.new()
@@ -96,14 +91,12 @@ func test_error_when_variable_name_is_whitespace_only() -> void:
 	var stored = _make_data("value", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run(s, {"   ": stored})
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_when_variable_not_in_context() -> void:
 	var s = GetVariableSettings.new()
 	s.variable_name = "missing_var"
 	var node = _run(s, {})
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_when_variable_name_missing_from_non_empty_context() -> void:
 	var s = GetVariableSettings.new()
@@ -111,7 +104,6 @@ func test_error_when_variable_name_missing_from_non_empty_context() -> void:
 	var other = _make_data("value", PackedFloat32Array([5.0]), FlowDataScript.DataType.Float)
 	var node = _run(s, {"other_var": other})
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_output_is_same_data_object() -> void:
 	var s = GetVariableSettings.new()
@@ -121,7 +113,6 @@ func test_output_is_same_data_object() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_same(stored)
-	node.free()
 
 func test_multiple_streams_preserved() -> void:
 	var s = GetVariableSettings.new()
@@ -137,4 +128,3 @@ func test_multiple_streams_preserved() -> void:
 	assert_object(out.findStream("position")).is_not_null()
 	assert_object(out.findStream("density")).is_not_null()
 	assert_object(out.findStream("seed")).is_not_null()
-	node.free()

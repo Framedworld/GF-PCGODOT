@@ -44,7 +44,6 @@ func test_passthrough_no_attribute_name() -> void:
 	var stream = out.findStream("density")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([0.5, 1.5, -0.3]))
-	node.free()
 
 func test_float_values_within_range() -> void:
 	var s = SanityCheckSettings.new()
@@ -59,7 +58,6 @@ func test_float_values_within_range() -> void:
 	var stream = out.findStream("density")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([0.0, 0.5, 1.0]))
-	node.free()
 
 func test_float_value_below_min_fails() -> void:
 	var s = SanityCheckSettings.new()
@@ -70,7 +68,6 @@ func test_float_value_below_min_fails() -> void:
 	var node = _run(data, s)
 	assert_str(node.err).is_not_empty()
 	assert_str(node.err).contains("outside range")
-	node.free()
 
 func test_float_value_above_max_fails() -> void:
 	var s = SanityCheckSettings.new()
@@ -81,7 +78,6 @@ func test_float_value_above_max_fails() -> void:
 	var node = _run(data, s)
 	assert_str(node.err).is_not_empty()
 	assert_str(node.err).contains("outside range")
-	node.free()
 
 func test_int_values_within_range() -> void:
 	var s = SanityCheckSettings.new()
@@ -96,7 +92,6 @@ func test_int_values_within_range() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([0, 5, 10]))
-	node.free()
 
 func test_int_value_out_of_range_fails() -> void:
 	var s = SanityCheckSettings.new()
@@ -107,7 +102,6 @@ func test_int_value_out_of_range_fails() -> void:
 	var node = _run(data, s)
 	assert_str(node.err).is_not_empty()
 	assert_str(node.err).contains("outside range")
-	node.free()
 
 func test_attribute_not_found_fails() -> void:
 	var s = SanityCheckSettings.new()
@@ -118,7 +112,6 @@ func test_attribute_not_found_fails() -> void:
 	var node = _run(data, s)
 	assert_str(node.err).is_not_empty()
 	assert_str(node.err).contains("not found")
-	node.free()
 
 func test_non_numeric_attribute_fails() -> void:
 	var s = SanityCheckSettings.new()
@@ -129,7 +122,6 @@ func test_non_numeric_attribute_fails() -> void:
 	var node = _run(data, s)
 	assert_str(node.err).is_not_empty()
 	assert_str(node.err).contains("not numeric")
-	node.free()
 
 func test_vector_attribute_fails_type_check() -> void:
 	var s = SanityCheckSettings.new()
@@ -140,7 +132,6 @@ func test_vector_attribute_fails_type_check() -> void:
 	var node = _run(data, s)
 	assert_str(node.err).is_not_empty()
 	assert_str(node.err).contains("not numeric")
-	node.free()
 
 func test_missing_input_fails() -> void:
 	var s = SanityCheckSettings.new()
@@ -149,7 +140,6 @@ func test_missing_input_fails() -> void:
 	s.max_value = 1.0
 	var node = _run(null, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_single_element_at_boundary() -> void:
 	var s = SanityCheckSettings.new()
@@ -161,7 +151,6 @@ func test_single_element_at_boundary() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_custom_range_and_attribute_name() -> void:
 	var s = SanityCheckSettings.new()
@@ -176,7 +165,6 @@ func test_custom_range_and_attribute_name() -> void:
 	var stream = out.findStream("temperature")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([-40.0, 0.0, 37.5, 100.0]))
-	node.free()
 
 func test_passthrough_preserves_all_streams() -> void:
 	var s = SanityCheckSettings.new()
@@ -190,4 +178,3 @@ func test_passthrough_preserves_all_streams() -> void:
 	assert_object(out).is_not_null()
 	assert_object(out.findStream("density")).is_not_null()
 	assert_object(out.findStream("position")).is_not_null()
-	node.free()

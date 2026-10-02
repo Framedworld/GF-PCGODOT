@@ -25,7 +25,7 @@ func execute(ctx : FlowData.EvaluationContext):
 	var room_min : int = getSettingValue(ctx, "room_min_size", 4)
 	var room_max : int = getSettingValue(ctx, "room_max_size", 8)
 	var torch_prob : float = getSettingValue(ctx, "torch_probability", 0.15)
-	var seed_val : int = getSettingValue(ctx, "random_seed", 12345)
+	var seed_val : int = derive_seed(graph_seed, int(getSettingValue(ctx, "random_seed", 12345)))
 	
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_val

@@ -38,7 +38,6 @@ func test_null_input_sets_error() -> void:
 	s.mode = SelfPruningSettings.ePruneMode.BoundsOverlap
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_well_separated_points_all_kept() -> void:
 	var positions = PackedVector3Array([
@@ -59,7 +58,6 @@ func test_well_separated_points_all_kept() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(3)
-	node.free()
 
 func test_overlapping_points_pruned() -> void:
 	var positions = PackedVector3Array([
@@ -80,7 +78,6 @@ func test_overlapping_points_pruned() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_less(3)
-	node.free()
 
 func test_grid_cell_prune_removes_duplicates() -> void:
 	var positions = PackedVector3Array([
@@ -96,7 +93,6 @@ func test_grid_cell_prune_removes_duplicates() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(2)
-	node.free()
 
 func test_grid_cell_prune_invalid_cell_size_sets_error() -> void:
 	var positions = PackedVector3Array([Vector3(0.0, 0.0, 0.0)])
@@ -105,7 +101,6 @@ func test_grid_cell_prune_invalid_cell_size_sets_error() -> void:
 	s.cell_size = 0.0
 	var node = _run([_make_point_data(positions)], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_output_preserves_other_streams() -> void:
 	var positions = PackedVector3Array([
@@ -126,4 +121,3 @@ func test_output_preserves_other_streams() -> void:
 	var density_stream = out.findStream("density")
 	assert_object(density_stream).is_not_null()
 	assert_int(density_stream.container.size()).is_equal(2)
-	node.free()

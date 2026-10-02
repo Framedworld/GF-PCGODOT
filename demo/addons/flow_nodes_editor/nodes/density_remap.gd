@@ -4,6 +4,7 @@ extends FlowNodeBase
 func _init():
 	meta_node = {
 		"title" : "Density Remap",
+		"category" : "Density",
 		"settings" : DensityRemapNodeSettings,
 		"ins" : [{ "label": "In" }], 
 		"outs" : [{ "label" : "Out" }],

@@ -48,14 +48,12 @@ func test_missing_input_a_sets_error() -> void:
 	var dataB = _make_points(PackedVector3Array([Vector3(0, 0, 0)]))
 	var node = _run([null, dataB], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_input_b_sets_error() -> void:
 	var s = _default_settings()
 	var dataA = _make_points(PackedVector3Array([Vector3(0, 0, 0)]))
 	var node = _run([dataA, null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_both_inputs_empty_returns_empty_output() -> void:
 	var s = _default_settings()
@@ -66,7 +64,6 @@ func test_both_inputs_empty_returns_empty_output() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_a_minus_b_empty_a_returns_empty() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.A_Minus_B)
@@ -77,7 +74,6 @@ func test_a_minus_b_empty_a_returns_empty() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_b_minus_a_empty_b_returns_empty() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.B_Minus_A)
@@ -88,7 +84,6 @@ func test_b_minus_a_empty_b_returns_empty() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_union_empty_a_returns_b() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.Union)
@@ -100,7 +95,6 @@ func test_union_empty_a_returns_b() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(2)
-	node.free()
 
 func test_a_minus_b_non_overlapping_keeps_all_a() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.A_Minus_B)
@@ -115,7 +109,6 @@ func test_a_minus_b_non_overlapping_keeps_all_a() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(2)
-	node.free()
 
 func test_a_minus_b_fully_overlapping_removes_all_a() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.A_Minus_B)
@@ -128,7 +121,6 @@ func test_a_minus_b_fully_overlapping_removes_all_a() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_b_minus_a_non_overlapping_keeps_all_b() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.B_Minus_A)
@@ -143,7 +135,6 @@ func test_b_minus_a_non_overlapping_keeps_all_b() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(2)
-	node.free()
 
 func test_intersection_overlapping_points_returns_overlap_from_a() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.Intersection)
@@ -162,7 +153,6 @@ func test_intersection_overlapping_points_returns_overlap_from_a() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_array(pos_stream.container).is_equal(PackedVector3Array([Vector3(0, 0, 0)]))
-	node.free()
 
 func test_intersection_no_overlap_returns_empty() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.Intersection)
@@ -176,7 +166,6 @@ func test_intersection_no_overlap_returns_empty() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_union_non_overlapping_returns_all_points() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.Union)
@@ -190,7 +179,6 @@ func test_union_non_overlapping_returns_all_points() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(4)
-	node.free()
 
 func test_symmetric_difference_non_overlapping_returns_all() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.SymmetricDifference)
@@ -204,7 +192,6 @@ func test_symmetric_difference_non_overlapping_returns_all() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(4)
-	node.free()
 
 func test_symmetric_difference_fully_overlapping_returns_empty() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.SymmetricDifference)
@@ -217,7 +204,6 @@ func test_symmetric_difference_fully_overlapping_returns_empty() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_missing_position_stream_sets_error() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.A_Minus_B)
@@ -226,7 +212,6 @@ func test_missing_position_stream_sets_error() -> void:
 	var dataB = _make_points(PackedVector3Array([Vector3(0, 0, 0)]))
 	var node = _run([dataA, dataB], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_union_overlap_source_from_b_returns_b_points_for_overlaps() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.Union)
@@ -242,7 +227,6 @@ func test_union_overlap_source_from_b_returns_b_points_for_overlaps() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(3)
-	node.free()
 
 func test_symmetric_difference_empty_b_returns_all_a() -> void:
 	var s = _default_settings(DifferenceSettings.eOperation.SymmetricDifference)
@@ -254,4 +238,3 @@ func test_symmetric_difference_empty_b_returns_all_a() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(2)
-	node.free()

@@ -113,23 +113,74 @@ func execute(_ctx : FlowData.EvaluationContext):
 		setError("Attribute '%s' must be Float/Int/Bool/Vector/Color/String(float-compatible)" % attr_name)
 		return
 
-	var range_min = minf(settings.min_value, settings.max_value)
-	var range_max = maxf(settings.min_value, settings.max_value)
+	var range_min : float = minf(settings.min_value, settings.max_value)
+	var range_max : float = maxf(settings.min_value, settings.max_value)
+	var inclusive_min : bool = settings.inclusive_min
+	var inclusive_max : bool = settings.inclusive_max
+	var use_absolute_value : bool = settings.use_absolute_value
 
+	# Every point's value as a float (the coercions of _stream_value_as_float),
+	# converted once with a typed loop per stream type. `valid` is only needed
+	# for String streams, where a non-parseable value goes to Outside.
+	var values := PackedFloat64Array()
+	values.resize(num_points)
+	var valid := PackedByteArray()
+	var broadcast : bool = stream_size == 1
+	match stream.data_type:
+		FlowData.DataType.Float:
+			var c : PackedFloat32Array = stream.container
+			for i in range(num_points):
+				values[i] = c[0 if broadcast else i]
+		FlowData.DataType.Int:
+			var c : PackedInt32Array = stream.container
+			for i in range(num_points):
+				values[i] = float(c[0 if broadcast else i])
+		FlowData.DataType.Bool:
+			var c : PackedByteArray = stream.container
+			for i in range(num_points):
+				values[i] = 1.0 if c[0 if broadcast else i] != 0 else 0.0
+		FlowData.DataType.Vector:
+			var c : PackedVector3Array = stream.container
+			for i in range(num_points):
+				var v : Vector3 = c[0 if broadcast else i]
+				values[i] = v.length()
+		FlowData.DataType.Color:
+			var c : PackedColorArray = stream.container
+			for i in range(num_points):
+				var col : Color = c[0 if broadcast else i]
+				values[i] = (col.r + col.g + col.b) / 3.0
+		_:
+			valid.resize(num_points)
+			for i in range(num_points):
+				var converted = _stream_value_as_float(stream, i)
+				valid[i] = 1 if converted[0] else 0
+				values[i] = float(converted[1])
+
+	var check_valid : bool = not valid.is_empty()
 	var inside := PackedInt32Array()
 	var outside := PackedInt32Array()
 	for i in range(num_points):
-		var converted = _stream_value_as_float(stream, i)
-		if not converted[0]:
+		if check_valid and valid[i] == 0:
 			# Non-parseable String value: it can never be inside a numeric range
 			outside.append(i)
 			continue
 
-		var value = float(converted[1])
-		if settings.use_absolute_value:
+		var value : float = values[i]
+		if use_absolute_value:
 			value = absf(value)
 
-		if _passes_range(value, range_min, range_max):
+		# Same test as _passes_range, with the settings read once.
+		var passes : bool
+		if inclusive_min:
+			passes = value >= range_min
+		else:
+			passes = value > range_min
+		if passes:
+			if inclusive_max:
+				passes = value <= range_max
+			else:
+				passes = value < range_max
+		if passes:
 			inside.append(i)
 		else:
 			outside.append(i)

@@ -63,7 +63,6 @@ func test_palette_mode_basic() -> void:
 	var stream = out.findStream("color")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(3)
-	node.free()
 
 func test_palette_mode_colors_from_palette() -> void:
 	var pos = PackedVector3Array([Vector3(0,0,0), Vector3(1,0,0), Vector3(2,0,0), Vector3(3,0,0), Vector3(4,0,0)])
@@ -85,7 +84,6 @@ func test_palette_mode_colors_from_palette() -> void:
 				found = true
 				break
 		assert_bool(found).is_true()
-	node.free()
 
 func test_hsv_mode_values_in_range() -> void:
 	var pos = PackedVector3Array([Vector3(0,0,0), Vector3(1,0,0), Vector3(2,0,0), Vector3(3,0,0)])
@@ -100,7 +98,6 @@ func test_hsv_mode_values_in_range() -> void:
 	for i in range(stream.container.size()):
 		var c: Color = stream.container[i]
 		assert_float(c.a).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_hsv_mode_alpha_always_one() -> void:
 	var pos = PackedVector3Array([Vector3(0,0,0), Vector3(1,0,0), Vector3(2,0,0)])
@@ -114,7 +111,6 @@ func test_hsv_mode_alpha_always_one() -> void:
 	for i in range(stream.container.size()):
 		var c: Color = stream.container[i]
 		assert_float(c.a).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_deterministic_with_seed() -> void:
 	var pos = PackedVector3Array([Vector3(0,0,0), Vector3(1,0,0), Vector3(2,0,0)])
@@ -125,7 +121,6 @@ func test_deterministic_with_seed() -> void:
 	var out1 = _output(node1)
 	var stream1 = out1.findStream("color")
 	var result1 = PackedColorArray(stream1.container)
-	node1.free()
 
 	var in_data2 = _make_data("pos", pos, FlowDataScript.DataType.Vector)
 	var s2 = _make_settings_hsv("color", 55555)
@@ -134,7 +129,6 @@ func test_deterministic_with_seed() -> void:
 	var out2 = _output(node2)
 	var stream2 = out2.findStream("color")
 	assert_array(stream2.container).is_equal(result1)
-	node2.free()
 
 func test_per_point_seed_stream_deterministic() -> void:
 	var pos = PackedVector3Array([Vector3(0,0,0), Vector3(1,0,0), Vector3(2,0,0)])
@@ -149,7 +143,6 @@ func test_per_point_seed_stream_deterministic() -> void:
 	var out1 = _output(node1)
 	var stream1 = out1.findStream("color")
 	var result1 = PackedColorArray(stream1.container)
-	node1.free()
 
 	var in_data2 = FlowDataScript.Data.new()
 	in_data2.registerStream("pos", pos, FlowDataScript.DataType.Vector)
@@ -160,7 +153,6 @@ func test_per_point_seed_stream_deterministic() -> void:
 	var out2 = _output(node2)
 	var stream2 = out2.findStream("color")
 	assert_array(stream2.container).is_equal(result1)
-	node2.free()
 
 func test_single_point() -> void:
 	var in_data = _make_data("pos", PackedVector3Array([Vector3(0, 0, 0)]), FlowDataScript.DataType.Vector)
@@ -172,7 +164,6 @@ func test_single_point() -> void:
 	var stream = out.findStream("color")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
-	node.free()
 
 func test_preserves_existing_streams() -> void:
 	var in_data = FlowDataScript.Data.new()
@@ -186,7 +177,6 @@ func test_preserves_existing_streams() -> void:
 	assert_object(out.findStream("pos")).is_not_null()
 	assert_object(out.findStream("weight")).is_not_null()
 	assert_object(out.findStream("color")).is_not_null()
-	node.free()
 
 func test_custom_out_name() -> void:
 	var in_data = _make_data("pos", PackedVector3Array([Vector3(0,0,0), Vector3(1,0,0)]), FlowDataScript.DataType.Vector)
@@ -197,10 +187,8 @@ func test_custom_out_name() -> void:
 	assert_object(out).is_not_null()
 	assert_object(out.findStream("my_custom_color")).is_not_null()
 	assert_object(out.findStream("color")).is_null()
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s = _make_settings_palette()
 	var node = _run(null, s)
 	assert_str(node.err).is_not_empty()
-	node.free()

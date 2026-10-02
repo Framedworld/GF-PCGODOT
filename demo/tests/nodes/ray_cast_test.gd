@@ -83,7 +83,6 @@ func test_ray_hits_floor() -> void:
 	assert_float(pos.container[0].y).is_equal_approx(0.5, 0.05)
 	var dist = out.findStream("dist")
 	assert_float(dist.container[0]).is_equal_approx(4.5, 0.05)
-	node.free()
 
 func test_ray_misses_returns_zero_hit() -> void:
 	var s = _settings()
@@ -93,17 +92,14 @@ func test_ray_misses_returns_zero_hit() -> void:
 	assert_str(node.err).is_empty()
 	var hit = _output(node).findStream("hit")
 	assert_int(hit.container[0]).is_equal(0)
-	node.free()
 
 func test_null_input_sets_error() -> void:
 	var s = _settings()
 	var node = _run_no_scene([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_position_stream_sets_error() -> void:
 	var s = _settings()
 	var d = _make_data("color", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = await _run_against_floor(d, s)
 	assert_str(node.err).is_not_empty()
-	node.free()

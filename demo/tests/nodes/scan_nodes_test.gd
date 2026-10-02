@@ -32,7 +32,7 @@ func _output(node) -> FlowData.Data:
 # ---------------------------------------------------------------------------
 # Error path: null owner must not crash and must produce empty output
 # ---------------------------------------------------------------------------
-func test_null_owner_returns_empty_output() -> void:
+func test_null_owner_reports_owner_error_and_empty_output() -> void:
 	var s = ScanNodesSettings.new()
 	var node = ScanNodesNode.new()
 	node.name = "test_node"
@@ -42,12 +42,11 @@ func test_null_owner_returns_empty_output() -> void:
 	ctx.owner = null
 	node.preExecute(ctx)
 	node.execute(ctx)
-	assert_str(node.err).is_empty()
+	assert_str(node.err).contains("needs an owner node")
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	var spos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(spos.size()).is_equal(0)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Basic: empty scene produces zero-point output
@@ -62,7 +61,6 @@ func test_empty_scene_zero_points() -> void:
 	var spos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(spos.size()).is_equal(0)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Core: two Node3D children at known positions are collected
@@ -84,7 +82,6 @@ func test_collects_node3d_children_and_positions() -> void:
 	var spos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(spos.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Core: output point count matches non-FlowGraphNode3D Node3D children
@@ -101,7 +98,6 @@ func test_output_point_count_matches_child_count() -> void:
 	var spos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(spos.size()).is_equal(5)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # filter_by_class_name: only nodes of the specified class are returned
@@ -124,7 +120,6 @@ func test_filter_by_class_name_meshinstance() -> void:
 	var spos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(spos.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # filter_by_name: wildcard name filter selects matching nodes only
@@ -149,7 +144,6 @@ func test_filter_by_name_wildcard() -> void:
 	var spos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(spos.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # recursive = false: only direct children are collected, not grandchildren
@@ -174,7 +168,6 @@ func test_non_recursive_only_direct_children() -> void:
 	# direct + mid = 2 (mid itself is a direct child Node3D); nested is NOT collected
 	assert_int(spos.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # recursive = true: grandchildren are included
@@ -195,7 +188,6 @@ func test_recursive_includes_nested_nodes() -> void:
 	# mid + nested = 2
 	assert_int(spos.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # group_name: only nodes in the specified group are collected
@@ -217,7 +209,6 @@ func test_group_name_filter() -> void:
 	var spos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(spos.size()).is_equal(1)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # import_metadata: float metadata appears as a custom stream sized to n points
@@ -243,7 +234,6 @@ func test_import_metadata_float_creates_stream() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # import_metadata: nodes without a given meta key leave the stream slot at default
@@ -267,7 +257,6 @@ func test_import_metadata_stream_size_equals_nsamples() -> void:
 	# Stream was sized to nsamples (2) when added via addStream
 	assert_int(stream.container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # import_properties: "position" stream can be imported from node property
@@ -287,7 +276,6 @@ func test_import_properties_position() -> void:
 	# A stream named "position" should exist (last path part is the stream name)
 	assert_bool(out.hasStream("position")).is_true()
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # size_to_bounds with a MeshInstance3D: ssize comes from AABB, not raw scale
@@ -310,7 +298,6 @@ func test_size_to_bounds_false_gives_scale() -> void:
 	# Without size_to_bounds, ssize is the node scale
 	assert_bool(ssize[0].is_equal_approx(Vector3(2.0, 3.0, 4.0))).is_true()
 	owner_node.free()
-	node.free()
 
 func test_size_to_bounds_with_box_mesh() -> void:
 	var owner_node = _make_owner()
@@ -330,7 +317,6 @@ func test_size_to_bounds_with_box_mesh() -> void:
 	# AABB.size of a BoxMesh equals the mesh size; scale is default ONE so result = box.size
 	assert_bool(ssize[0].is_equal_approx(Vector3(2.0, 4.0, 6.0))).is_true()
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # position stream: node at a known global position records that position
@@ -351,7 +337,6 @@ func test_position_recorded_correctly() -> void:
 	assert_int(spos.size()).is_equal(1)
 	assert_bool(spos[0].is_equal_approx(Vector3(10.0, 20.0, 30.0))).is_true()
 	owner_node.free()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Non-Node3D children (plain Node, Control) are skipped — they are not Node3D
@@ -371,4 +356,3 @@ func test_non_node3d_children_are_skipped() -> void:
 	var spos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(spos.size()).is_equal(1)
 	owner_node.free()
-	node.free()

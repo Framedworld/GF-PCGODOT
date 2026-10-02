@@ -38,10 +38,10 @@ func _mutate_seed(base_seed : int, idx : int, pos : Vector3) -> int:
 		var px = int(round(pos.x * 1000.0))
 		var py = int(round(pos.y * 1000.0))
 		var pz = int(round(pos.z * 1000.0))
-		h = hash([base_seed, px, py, pz, settings.random_seed, settings.seed_offset])
+		h = hash([base_seed, px, py, pz, effective_seed(), settings.seed_offset])
 	else:
 		# No position basis: the point index is the only per-point distinguisher.
-		h = hash([base_seed, idx, settings.random_seed, settings.seed_offset])
+		h = hash([base_seed, idx, effective_seed(), settings.seed_offset])
 	var mutated = h & 0x7fffffff
 
 	match settings.mode:

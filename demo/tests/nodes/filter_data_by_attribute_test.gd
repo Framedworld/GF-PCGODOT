@@ -44,7 +44,6 @@ func test_attribute_found_routes_to_inside() -> void:
 	assert_object(inside.findStream("color")).is_not_null()
 	assert_int(inside.size()).is_equal(2)
 	assert_int(outside.size()).is_equal(0)
-	node.free()
 
 func test_attribute_not_found_routes_to_outside() -> void:
 	var data = _make_data("position", PackedVector3Array([Vector3.ZERO, Vector3.ONE]), FlowDataScript.DataType.Vector)
@@ -57,18 +56,15 @@ func test_attribute_not_found_routes_to_outside() -> void:
 	assert_int(inside.size()).is_equal(0)
 	assert_object(outside.findStream("position")).is_not_null()
 	assert_int(outside.size()).is_equal(2)
-	node.free()
 
 func test_empty_attribute_name_causes_error() -> void:
 	var data = _make_data("value", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run(data, "")
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_input_causes_error() -> void:
 	var node = _run(null, "some_attr")
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_filter_float_stream_by_attribute() -> void:
 	var data = _make_data("density", PackedFloat32Array([0.1, 0.5, 0.9]), FlowDataScript.DataType.Float)
@@ -78,7 +74,6 @@ func test_filter_float_stream_by_attribute() -> void:
 	var outside = _output(node, 1)
 	assert_array(inside.findStream("density").container).is_equal(PackedFloat32Array([0.1, 0.5, 0.9]))
 	assert_int(outside.size()).is_equal(0)
-	node.free()
 
 func test_filter_int_stream_by_attribute() -> void:
 	var data = _make_data("point_id", PackedInt32Array([10, 20, 30]), FlowDataScript.DataType.Int)
@@ -87,7 +82,6 @@ func test_filter_int_stream_by_attribute() -> void:
 	var inside = _output(node, 0)
 	assert_array(inside.findStream("point_id").container).is_equal(PackedInt32Array([10, 20, 30]))
 	assert_int(_output(node, 1).size()).is_equal(0)
-	node.free()
 
 func test_filter_vector_stream_by_attribute() -> void:
 	var data = _make_data("normal", PackedVector3Array([Vector3.UP, Vector3.DOWN]), FlowDataScript.DataType.Vector)
@@ -97,7 +91,6 @@ func test_filter_vector_stream_by_attribute() -> void:
 	var outside = _output(node, 1)
 	assert_int(inside.size()).is_equal(0)
 	assert_array(outside.findStream("normal").container).is_equal(PackedVector3Array([Vector3.UP, Vector3.DOWN]))
-	node.free()
 
 func test_single_element_data_routes_correctly() -> void:
 	var data = _make_data("tag", PackedFloat32Array([42.0]), FlowDataScript.DataType.Float)
@@ -107,7 +100,6 @@ func test_single_element_data_routes_correctly() -> void:
 	assert_int(inside.size()).is_equal(1)
 	assert_array(inside.findStream("tag").container).is_equal(PackedFloat32Array([42.0]))
 	assert_int(_output(node, 1).size()).is_equal(0)
-	node.free()
 
 func test_data_with_multiple_streams_preserves_all_when_matched() -> void:
 	var data = FlowDataScript.Data.new()
@@ -120,4 +112,3 @@ func test_data_with_multiple_streams_preserves_all_when_matched() -> void:
 	assert_object(inside.findStream("weight")).is_not_null()
 	assert_int(inside.size()).is_equal(3)
 	assert_int(_output(node, 1).size()).is_equal(0)
-	node.free()

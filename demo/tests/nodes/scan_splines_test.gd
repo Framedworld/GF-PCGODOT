@@ -52,7 +52,7 @@ func _output(node) -> FlowData.Data:
 # Tests
 # ---------------------------------------------------------------------------
 
-func test_null_owner_returns_empty_streams() -> void:
+func test_null_owner_reports_owner_error_and_empty_streams() -> void:
 	var s = ScanSplinesSettings.new()
 	var node = ScanSplinesNode.new()
 	node.name = "test_node"
@@ -62,12 +62,11 @@ func test_null_owner_returns_empty_streams() -> void:
 	ctx.owner = null
 	node.preExecute(ctx)
 	node.execute(ctx)
-	assert_str(node.err).is_empty()
+	assert_str(node.err).contains("needs an owner node")
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	var node_stream = out.findStream("node")
 	assert_int(node_stream.container.size()).is_equal(0)
-	node.free()
 
 func test_collects_path3d_nodes_with_curves() -> void:
 	var owner_node = _make_owner_with_splines(3)
@@ -83,7 +82,6 @@ func test_collects_path3d_nodes_with_curves() -> void:
 	for cv in curve_stream.container:
 		assert_object(cv).is_instanceof(Curve3D)
 	owner_node.free()
-	node.free()
 
 func test_node_and_curve_streams_stay_aligned() -> void:
 	# node[i] must match curve[i] (same Path3D)
@@ -101,7 +99,6 @@ func test_node_and_curve_streams_stay_aligned() -> void:
 		assert_object(path_node).is_instanceof(Path3D)
 		assert_object(curve).is_equal(path_node.curve)
 	owner_node.free()
-	node.free()
 
 func test_skips_path3d_without_curve() -> void:
 	var owner_node = FlowGraphNode3D.new()
@@ -121,7 +118,6 @@ func test_skips_path3d_without_curve() -> void:
 	assert_int(out.findStream("node").container.size()).is_equal(2)
 	assert_int(out.findStream("curve").container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_ignores_non_path3d_nodes() -> void:
 	var owner_node = FlowGraphNode3D.new()
@@ -136,7 +132,6 @@ func test_ignores_non_path3d_nodes() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(_output(node).findStream("node").container.size()).is_equal(1)
 	owner_node.free()
-	node.free()
 
 func test_group_filter_collects_only_grouped_nodes() -> void:
 	var owner_node = _make_owner_with_splines(2, "spline_group")
@@ -149,7 +144,6 @@ func test_group_filter_collects_only_grouped_nodes() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(_output(node).findStream("node").container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_non_recursive_only_direct_children() -> void:
 	var owner_node = FlowGraphNode3D.new()
@@ -166,7 +160,6 @@ func test_non_recursive_only_direct_children() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(_output(node).findStream("node").container.size()).is_equal(1)
 	owner_node.free()
-	node.free()
 
 func test_recursive_collects_nested_nodes() -> void:
 	var owner_node = FlowGraphNode3D.new()
@@ -183,7 +176,6 @@ func test_recursive_collects_nested_nodes() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(_output(node).findStream("node").container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_required_meta_bool_filters_nodes() -> void:
 	var owner_node = FlowGraphNode3D.new()
@@ -200,7 +192,6 @@ func test_required_meta_bool_filters_nodes() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(_output(node).findStream("node").container.size()).is_equal(1)
 	owner_node.free()
-	node.free()
 
 func test_required_meta_bool_false_excludes_node() -> void:
 	var owner_node = FlowGraphNode3D.new()
@@ -215,7 +206,6 @@ func test_required_meta_bool_false_excludes_node() -> void:
 	assert_str(node.err).is_empty()
 	assert_int(_output(node).findStream("node").container.size()).is_equal(0)
 	owner_node.free()
-	node.free()
 
 func test_empty_scene_produces_empty_output() -> void:
 	var owner_node = FlowGraphNode3D.new()
@@ -228,4 +218,3 @@ func test_empty_scene_produces_empty_output() -> void:
 	assert_int(out.findStream("node").container.size()).is_equal(0)
 	assert_int(out.findStream("curve").container.size()).is_equal(0)
 	owner_node.free()
-	node.free()

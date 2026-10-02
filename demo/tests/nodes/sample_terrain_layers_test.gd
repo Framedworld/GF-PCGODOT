@@ -89,7 +89,6 @@ func test_world_xz_single_layer_solid_red_texture() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.75, 0.02)
 	assert_float(stream.container[1]).is_equal_approx(0.75, 0.02)
 	assert_float(stream.container[2]).is_equal_approx(0.75, 0.02)
-	node.free()
 
 func test_world_xz_multiple_layers_independent_streams() -> void:
 	var tex_grass := _make_solid_texture(Color(1.0, 0.0, 0.0, 1.0))
@@ -113,7 +112,6 @@ func test_world_xz_multiple_layers_independent_streams() -> void:
 	assert_int(stream_rock.container.size()).is_equal(2)
 	assert_float(stream_grass.container[0]).is_equal_approx(1.0, 0.02)
 	assert_float(stream_rock.container[0]).is_equal_approx(0.5, 0.02)
-	node.free()
 
 func test_uv_attribute_vector_stream() -> void:
 	var tex := _make_solid_texture(Color(0.6, 0.0, 0.0, 1.0))
@@ -132,7 +130,6 @@ func test_uv_attribute_vector_stream() -> void:
 	assert_int(stream.container.size()).is_equal(2)
 	assert_float(stream.container[0]).is_equal_approx(0.6, 0.02)
 	assert_float(stream.container[1]).is_equal_approx(0.6, 0.02)
-	node.free()
 
 func test_uv_attribute_color_stream() -> void:
 	var tex := _make_solid_texture(Color(0.4, 0.0, 0.0, 1.0))
@@ -150,7 +147,6 @@ func test_uv_attribute_color_stream() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
 	assert_float(stream.container[0]).is_equal_approx(0.4, 0.02)
-	node.free()
 
 func test_value_channel_green() -> void:
 	var tex := _make_solid_texture(Color(0.0, 0.8, 0.0, 1.0))
@@ -167,7 +163,6 @@ func test_value_channel_green() -> void:
 	var stream = out.findStream("layer_moss")
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(0.8, 0.02)
-	node.free()
 
 func test_custom_stream_prefix() -> void:
 	var tex := _make_solid_texture(Color(1.0, 0.0, 0.0, 1.0))
@@ -183,7 +178,6 @@ func test_custom_stream_prefix() -> void:
 	assert_object(out).is_not_null()
 	assert_object(out.findStream("terrain_dirt")).is_not_null()
 	assert_object(out.findStream("layer_dirt")).is_null()
-	node.free()
 
 func test_empty_input_data_passthrough() -> void:
 	var tex := _make_solid_texture(Color(1.0, 0.0, 0.0, 1.0))
@@ -197,7 +191,6 @@ func test_empty_input_data_passthrough() -> void:
 	assert_str(node.err).is_empty()
 	var out := _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_error_missing_input() -> void:
 	var tex := _make_solid_texture(Color(1.0, 0.0, 0.0, 1.0))
@@ -216,7 +209,6 @@ func test_error_missing_input() -> void:
 	dummy.free()
 
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_no_layers_defined() -> void:
 	var s := _make_world_xz_settings([])
@@ -225,7 +217,6 @@ func test_error_no_layers_defined() -> void:
 	var node := _run(in_data, s)
 
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_empty_layer_name() -> void:
 	var tex := _make_solid_texture(Color(1.0, 0.0, 0.0, 1.0))
@@ -236,7 +227,6 @@ func test_error_empty_layer_name() -> void:
 	var node := _run(in_data, s)
 
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_duplicate_layer_name() -> void:
 	var tex := _make_solid_texture(Color(1.0, 0.0, 0.0, 1.0))
@@ -248,7 +238,6 @@ func test_error_duplicate_layer_name() -> void:
 	var node := _run(in_data, s)
 
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_missing_position_stream_for_world_xz() -> void:
 	var tex := _make_solid_texture(Color(1.0, 0.0, 0.0, 1.0))
@@ -260,7 +249,6 @@ func test_error_missing_position_stream_for_world_xz() -> void:
 	var node := _run(in_data, s)
 
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_degenerate_world_bounds() -> void:
 	var tex := _make_solid_texture(Color(1.0, 0.0, 0.0, 1.0))
@@ -273,7 +261,6 @@ func test_error_degenerate_world_bounds() -> void:
 	var node := _run(in_data, s)
 
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_missing_uv_attribute() -> void:
 	var tex := _make_solid_texture(Color(1.0, 0.0, 0.0, 1.0))
@@ -285,7 +272,6 @@ func test_error_missing_uv_attribute() -> void:
 	var node := _run(in_data, s)
 
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_uv_attribute_wrong_type() -> void:
 	var tex := _make_solid_texture(Color(1.0, 0.0, 0.0, 1.0))
@@ -297,7 +283,6 @@ func test_error_uv_attribute_wrong_type() -> void:
 	var node := _run(in_data, s)
 
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_null_texture() -> void:
 	var entry := _make_layer_entry("grass", null)
@@ -307,7 +292,6 @@ func test_error_null_texture() -> void:
 	var node := _run(in_data, s)
 
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_output_preserves_existing_streams() -> void:
 	var tex := _make_solid_texture(Color(1.0, 0.0, 0.0, 1.0))
@@ -325,4 +309,3 @@ func test_output_preserves_existing_streams() -> void:
 	assert_object(out.findStream(FlowData.AttrPosition)).is_not_null()
 	assert_object(out.findStream("density")).is_not_null()
 	assert_object(out.findStream("layer_grass")).is_not_null()
-	node.free()

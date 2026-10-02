@@ -21,7 +21,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var in_size = in_data.size()
 
 	var rng = RandomNumberGenerator.new()
-	rng.seed = settings.random_seed
+	rng.seed = effective_seed()
 
 	# Per-point seed consumption (UE $Seed parity): when the input carries an
 	# AttrSeed Int stream, each point's randomness comes from its own seed so
@@ -46,7 +46,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 
 	for i in range(in_size):
 		if point_seeds != null:
-			rng.seed = int(point_seeds[FlowData.bcast_idx(point_seeds.size(), i)]) ^ settings.random_seed
+			rng.seed = int(point_seeds[FlowData.bcast_idx(point_seeds.size(), i)]) ^ effective_seed()
 		if use_palette and palette_size > 0:
 			var idx = rng.randi_range(0, palette_size - 1)
 			colors[i] = palette[idx]

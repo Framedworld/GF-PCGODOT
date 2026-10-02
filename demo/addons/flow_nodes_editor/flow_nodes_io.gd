@@ -7,6 +7,10 @@ class_name FlowNodeIO
 const LOAD_PROGRESS_CHUNK_SIZE := 8
 const FAST_GRAPH_LOAD_NODE_THRESHOLD := 24
 
+# Settings keys that are only written when non-empty, so graphs that never use the
+# feature serialise exactly as before (no new key on every node).
+const OMIT_WHEN_EMPTY_PROPS := { "bindings": true }
+
 static func resource_to_dict(resource: Resource) -> Dictionary:
 	var dict := {}
 	for prop in resource.get_property_list():
@@ -14,7 +18,10 @@ static func resource_to_dict(resource: Resource) -> Dictionary:
 			continue
 		if prop.usage & PROPERTY_USAGE_STORAGE != 0:
 			var name = prop.name
-			dict[name] = resource.get(name)
+			var value = resource.get(name)
+			if OMIT_WHEN_EMPTY_PROPS.has(name) and value is Dictionary and value.is_empty():
+				continue
+			dict[name] = value
 	return dict
 
 static func split_floats(in_str : String) -> Array:
@@ -72,6 +79,39 @@ static func dict_to_resource(data: Dictionary, resource: Resource) -> void:
 						resource.set(name, value)
 				else:
 					resource.set(name, value)
+
+## The writes dict_to_resource(data, resource) makes, as a list to replay on
+## fresh instances of the same settings class (FlowCompiledGraph): one
+## [property, value, is_typed_array] per saved property, in property-list order,
+## with Color / Vector2 / Vector3 strings already parsed. A typed array entry
+## means "clear the instance's own typed array and append these items".
+static func settings_assignments(data: Dictionary, resource: Resource) -> Array:
+	var assignments := []
+	for prop in resource.get_property_list():
+		var name = prop.name
+		if name in FlowNodeAssets.discarded_props:
+			continue
+		if not data.has(name):
+			continue
+		var value = data[name]
+		var type = prop.type
+		match type:
+			TYPE_COLOR:
+				assignments.append([name, _parse_color(value), false])
+			TYPE_VECTOR2:
+				assignments.append([name, _parse_vector2(value), false])
+			TYPE_VECTOR3:
+				assignments.append([name, _parse_vector3(value), false])
+			_:
+				if type == TYPE_ARRAY and typeof(value) == TYPE_ARRAY:
+					var target_arr = resource.get(name)
+					if target_arr != null and target_arr.is_typed():
+						assignments.append([name, value, true])
+					else:
+						assignments.append([name, value, false])
+				else:
+					assignments.append([name, value, false])
+	return assignments
 
 static func _stabilize_missing_seed(settings_res: Resource, node_name: String, template: String, serialized_settings: Dictionary) -> void:
 	if settings_res == null:
@@ -177,7 +217,7 @@ static func nodes_as_dict( nodes, frames, editor : Control ):
 
 	var data := {
 		"type" : "flow_graph_nodes",
-		"version" : 1,
+		"version" : FlowGraphMigrations.CURRENT_VERSION,
 		"min_pos" : min_pos,
 		"nodes" : nodes_clean,
 		"links" : links,
@@ -228,6 +268,9 @@ static func create_nodes_from_dict( dict, editor : Control, paste_offset = null)
 	if dict.get( "type", null) != "flow_graph_nodes":
 		push_error( "Invalid dict to paste nodes from" )
 		return []
+	# Clipboard JSON (and resources loaded outside loadFromResource) may predate the
+	# current graph format. No-op when already current.
+	dict = FlowGraphMigrations.migrate(dict)
 	var new_nodes = []
 	var old_to_new_names = {}
 	var variable_name_remaps := {}
@@ -247,6 +290,9 @@ static func create_nodes_from_dict( dict, editor : Control, paste_offset = null)
 
 		# Apply saved settings...
 		dict_to_resource( in_node.settings, node.settings )
+		# Same per-node fallback seed the runtime evaluator uses, so the dock
+		# previews what a FlowGraphNode3D generates for graphs saved without it.
+		_stabilize_missing_seed( node.settings, String( new_name ), node_template, in_node.settings )
 		_normalize_loaded_node_template(node, editor)
 		_ensure_unique_set_variable_name(node, editor, variable_name_remaps)
 
@@ -298,6 +344,7 @@ static func create_nodes_from_dict_with_progress(dict, editor: Control, paste_of
 	if dict.get("type", null) != "flow_graph_nodes":
 		push_error("Invalid dict to paste nodes from")
 		return []
+	dict = FlowGraphMigrations.migrate(dict)
 
 	var source_nodes: Array = dict.get("nodes", [])
 	if source_nodes.size() <= FAST_GRAPH_LOAD_NODE_THRESHOLD:
@@ -333,6 +380,7 @@ static func create_nodes_from_dict_with_progress(dict, editor: Control, paste_of
 			await _report_load_progress(progress_callback, "Building Graph...", completed_steps, total_steps, start_progress, end_progress)
 
 		dict_to_resource(in_node.settings, node.settings)
+		_stabilize_missing_seed(node.settings, String(new_name), node_template, in_node.settings)
 		_normalize_loaded_node_template(node, editor)
 		_ensure_unique_set_variable_name(node, editor, variable_name_remaps)
 		node.settings.inspect_enabled = false
@@ -457,10 +505,36 @@ static func saveToResource( editor : Control ):
 	current_resource.view_offset = gedit.scroll_offset
 	current_resource.new_name_counter = editor.new_name_counter
 
+## Editor load: upgrades an old graph resource in memory to the current format and,
+## when a migration changed its nodes, marks it dirty so the next save writes them.
+## An upgrade that only bumps the version stamp leaves the graph unmodified: the
+## stamp is written with the next real save (nodes_as_dict always writes the
+## current version), and a freshly opened tab must not show as modified. Returns
+## true when the resource data changed.
+static func migrate_resource_for_editor(editor: Control, resource: FlowGraphResource) -> bool:
+	if resource == null or resource.data.is_empty():
+		return false
+	var migrated: Dictionary = FlowGraphMigrations.migrate(resource.data)
+	if is_same(migrated, resource.data):
+		return false
+	var content_changed := not _same_except_version(migrated, resource.data)
+	resource.data = migrated
+	if content_changed and editor != null and editor.has_method("queueSave"):
+		editor.queueSave()
+	return true
+
+static func _same_except_version(a: Dictionary, b: Dictionary) -> bool:
+	var a_rest := a.duplicate()
+	var b_rest := b.duplicate()
+	a_rest.erase("version")
+	b_rest.erase("version")
+	return a_rest == b_rest
+
 static func loadFromResource( editor : Control ):
 	var current_resource = editor.current_resource
 	if current_resource == null:
 		return
+	migrate_resource_for_editor(editor, current_resource)
 
 	# Register the input_* and output_* nodes before trying to load the nodes
 	for input in current_resource.in_params:
@@ -488,6 +562,7 @@ static func loadFromResourceWithProgress(editor: Control, progress_callback: Cal
 	if editor.has_method("_should_use_fast_graph_load") and editor._should_use_fast_graph_load(current_resource):
 		loadFromResource(editor)
 		return
+	migrate_resource_for_editor(editor, current_resource)
 
 	await _call_load_progress(progress_callback, "Registering Parameters...", 45.0)
 	for input in current_resource.in_params:
@@ -560,6 +635,9 @@ static func _is_local_runtime_param(runtime_key: String) -> bool:
 		"flow_analyze_node",
 		"flow_suppress_preview_side_effects",
 		"flow_suppress_seed_advance",
+		# Mirrored from ctx.seed per evaluation; a loop iteration's derived seed
+		# must never leak into the parent context.
+		"seed",
 	]
 
 
@@ -583,7 +661,7 @@ static func _is_topo_final_root(node: FlowNodeBase) -> bool:
 static func _needs_input_order_stabilization(node: FlowNodeBase) -> bool:
 	if node.node_template == "subgraph":
 		return true
-	# MapGen finals (scene_3d_plan, layer subgraph feeds, etc.) can be scheduled too early
+	# Final nodes that also consume other nodes' outputs can be scheduled too early
 	# when multiple finals are merged; only adjust nodes that still have in-graph wires.
 	if node.getMeta().get("is_final", false):
 		for conn in node.deps:
@@ -712,29 +790,33 @@ static func build_execution_order(node_list: Array, instances_by_name: Dictionar
 	return ordered_nodes
 
 
-# FlowNodeBase extends GraphNode (a Control, not RefCounted). evaluate_graph
-# instantiates the whole graph without ever adding the nodes to the tree, so
-# they must be freed explicitly — otherwise every runtime evaluation leaks the
-# full node graph (and loop.gd evaluates once per element).
-static func _free_node_instances(node_list: Array) -> void:
-	for node in node_list:
-		if is_instance_valid(node):
-			node.free()
-
 # Runtime args (e.g. FlowGraphNode3D.args) may hold raw primitives instead of
 # FlowData.Data. Wrap supported primitives into a single-entry Data whose
 # stream is named after the input param, so graph-input constants work at
 # runtime. Falsy primitives (0, 0.0, "") are valid values — hence the explicit
 # null/type checks instead of truthiness.
-static func _coerce_input_data(val, input_name: String):
+#
+# Supported raw values: bool, int, float, String, Vector2 (and Vector2i),
+# Vector3, Vector4, Quaternion, Color, Transform3D and Resources. The stream
+# type comes from the value (FlowNodeBase.getFlowDataTypeFromObject). When the
+# caller knows the graph parameter's type (`param_type`) and the value feeds it
+# as is (FlowNodeBase.valueMatchesFlowDataType: an int for an Int64 parameter, a
+# float for a Double one, a Vector4 for a Quaternion one), the parameter's type
+# is used instead. An int fed into a Float parameter still arrives as Int.
+static func _coerce_input_data(val, input_name: String, param_type: int = FlowData.DataType.Invalid):
 	if val == null:
 		return null
 	if val is FlowData.Data:
 		return val
 	var data_type = FlowNodeBase.getFlowDataTypeFromObject(val)
 	if data_type == FlowData.DataType.Invalid:
-		push_warning("evaluate_graph: input '%s' got unsupported runtime value of type %s — expected FlowData.Data or float/int/bool/String/Vector3/Color" % [input_name, type_string(typeof(val))])
+		push_warning("evaluate_graph: input '%s' got unsupported runtime value of type %s — expected FlowData.Data or bool/int/float/String/Vector2/Vector3/Vector4/Quaternion/Color/Transform3D/Resource" % [input_name, type_string(typeof(val))])
 		return null
+	if param_type != FlowData.DataType.Invalid and param_type != data_type and FlowNodeBase.valueMatchesFlowDataType(val, param_type):
+		data_type = param_type
+	# An input named like a canonical attribute (density, seed, ...) takes that
+	# attribute's numeric type, so `{"density": 1}` still registers as Float.
+	data_type = FlowData.canonical_numeric_type(input_name, data_type)
 	var data = load("res://addons/flow_nodes_editor/flow_data.gd").Data.new()
 	var container = data.addStream(input_name, data_type)
 	if container == null:
@@ -751,290 +833,526 @@ static func _coerce_input_data(val, input_name: String):
 	return data
 
 # ---------------------------------------------------------------------------
-# Resumable evaluator foundation (PARITY_ROADMAP "Async / proximity runtime
-# generation", stage 2 only — time-slicing).
+# Per-instance overrides and $param bindings (RUNTIME_API_P0 §4).
 #
-# The evaluation has three phases:
-#   1. _build_evaluation_state(): instance nodes, build deps, topo-sort, build
-#      the EvaluationContext, feed graph inputs. (Cheap; done up front.)
-#   2. execution of the ordered node list — the only resumable part. Each node
-#      is run by _execute_single_node().
-#   3. _finalize_evaluation(): collect outputs, publish flow variables, free the
-#      instanced node Controls.
-#
-# evaluate_graph() runs all three phases synchronously in one call and is
-# byte-for-byte identical to the historical behavior (it just drives the same
-# helpers to completion). GraphEvaluation exposes the same work as a resumable
-# state object with a step(budget_ms) method, so a host (FlowGraphNode3D with
-# async_generation = true) can spread phase 2 across frames. Topo sort, cycle
-# detection, variable/runtime-param publishing and node-instance freeing are
-# shared by both paths — there is a single execution implementation.
+# Precedence for a node setting at evaluation time, highest first:
+#   1. a wired parameter port (getSettingValue reads the connected input at
+#      execute time, so it wins over whatever is written here)
+#   2. a per-instance override  (ctx.overrides, from FlowGraphNode3D.overrides)
+#   3. a $param binding         (NodeSettings.bindings)
+#   4. the value saved in the graph resource
 # ---------------------------------------------------------------------------
 
-# Phase 1: instance + order + context + feed inputs. Returns a state Dictionary,
-# or {} on the recursion-guard trip (mirroring evaluate_graph's early return).
-static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary, depth: int) -> Dictionary:
-	var instances = {}
-	var node_list = []
-	for n_data in graph.data.get("nodes", []):
-		var template = n_data.template
-		var name = n_data.name
-		var script_path = FlowNodeRegistry.get_node_script_path(template)
-		if script_path.is_empty():
-			push_error("Failed to resolve node script for template: %s. Make sure its provider addon registered its node directory before evaluation." % template)
-			continue
-		var node_script = load(script_path)
-		if not node_script:
-			push_error("Failed to load node script for template: %s" % template)
-			continue
-		var raw_instance = node_script.new()
-		var instance := raw_instance as FlowNodeBase
-		if instance == null:
-			push_error("Node script is not a FlowNodeBase: %s" % script_path)
-			if raw_instance is Node:
-				raw_instance.free()
-			continue
-		instance.name = name
-		instance.node_template = template
+## Meta key on an EvaluationContext holding the Dictionary of override keys that
+## matched at least one node anywhere in the current evaluation tree.
+const OVERRIDE_HITS_META := &"flow_override_hits"
 
-		# Initialize settings resource if defined. Nodes without a settings
-		# class (e.g. merge_points) fall back to the base NodeSettings,
-		# mirroring the editor — the evaluator reads settings.disabled and
-		# settings.debug_enabled on every node.
-		var meta = instance.getMeta()
-		if meta.has("settings") and meta.settings:
-			instance.settings = meta.settings.new()
-		else:
-			instance.settings = NodeSettings.new()
+## True when `settings` could be changed by apply_setting_bindings under `ctx`:
+## the context carries overrides or the settings declare bindings. Cheap; lets the
+## evaluators skip all binding work for graphs that use neither.
+static func has_setting_bindings(settings: Resource, ctx: FlowData.EvaluationContext) -> bool:
+	if settings == null:
+		return false
+	if ctx != null and ctx.overrides != null and not ctx.overrides.is_empty():
+		return true
+	if not ("bindings" in settings):
+		return false
+	var bindings = settings.get("bindings")
+	return bindings is Dictionary and not bindings.is_empty()
 
-		# Apply saved settings
-		var saved_settings = n_data.get("settings", {})
-		dict_to_resource(saved_settings, instance.settings)
-		_stabilize_missing_seed(instance.settings, name, template, saved_settings)
+## Applies the context's per-instance overrides, then the node's $param bindings,
+## to `target_settings` (default: node_instance.settings). Overrides are keyed
+## "<node_name>/<property>", optionally prefixed "<graph basename>:" to target one
+## subgraph; a property set by an override is not rebound. A setting name may also
+## address one entry of a Dictionary-typed setting as "<dict_property>/<key>"
+## (e.g. binding "args/theme", override "node/args/theme"); on an Expression node a
+## bare name that is an existing key of its `args` resolves to "args/<name>". Bindings resolve
+## "property" -> "param" against input_data_map, then ctx.runtime_params, then
+## ctx.variables (a FlowData.Data value yields its first element), then the default
+## of `graph`'s declared input of that name (graph.in_params). A missing
+## parameter keeps the saved value silently; a value that cannot be assigned to the
+## property keeps it with a warning. Does not call refreshFromSettings.
+## Returns true when at least one setting was written.
+static func apply_setting_bindings(node_instance, graph: FlowGraphResource, ctx: FlowData.EvaluationContext, input_data_map: Dictionary = {}, target_settings: Resource = null) -> bool:
+	node_instance = _as_element(node_instance)
+	if node_instance == null or ctx == null:
+		return false
+	var settings: Resource = target_settings if target_settings != null else node_instance.settings
+	if settings == null:
+		return false
+	var node_name := String(node_instance.name)
+	var changed := false
+	var overridden := {}
 
-		instance.refreshFromSettings()
+	if ctx.overrides != null and not ctx.overrides.is_empty():
+		var graph_name := graph_basename(graph)
+		# get_meta with a null default still errors on a missing key: check first.
+		var hits = ctx.get_meta(OVERRIDE_HITS_META) if ctx.has_meta(OVERRIDE_HITS_META) else null
+		for key in ctx.overrides:
+			var target := _parse_override_key(str(key))
+			if target.is_empty() or target.node != node_name:
+				continue
+			if not target.scope.is_empty() and target.scope != graph_name:
+				continue
+			var override_target := _resolve_setting_target(settings, target.prop)
+			if override_target.is_empty():
+				continue
+			if hits is Dictionary:
+				hits[key] = true
+			if _assign_setting_target(settings, override_target, ctx.overrides[key], node_name, "override '%s'" % key):
+				changed = true
+				overridden[override_target.id] = true
 
-		instances[name] = instance
-		node_list.append(instance)
+	if "bindings" in settings:
+		var bindings = settings.get("bindings")
+		if bindings is Dictionary and not bindings.is_empty():
+			for prop in bindings:
+				var prop_name := str(prop)
+				var param_name := str(bindings[prop]).strip_edges().trim_prefix("$")
+				if prop_name.is_empty() or param_name.is_empty():
+					continue
+				var binding_target := _resolve_setting_target(settings, prop_name)
+				if binding_target.is_empty():
+					push_warning("Flow: node '%s' binds unknown setting '%s' to '$%s'; ignored." % [node_name, prop_name, param_name])
+					continue
+				if overridden.has(binding_target.id):
+					continue
+				var resolved := _resolve_binding_param(param_name, ctx, input_data_map, graph)
+				if resolved.is_empty():
+					continue
+				if _assign_setting_target(settings, binding_target, resolved[0], node_name, "binding '$%s'" % param_name):
+					changed = true
+	return changed
 
-	# Build connections (deps and dependants)
-	for conn in graph.data.get("links", []):
-		var src_node = instances.get(conn.from_node)
-		var dst_node = instances.get(conn.to_node)
-		if src_node and dst_node:
-			src_node.dependants.append(conn)
-			dst_node.deps.append(conn)
-	_add_virtual_variable_dependencies(node_list)
-	var ordered_nodes: Array = build_execution_order(node_list, instances)
-	if OS.get_environment("MAPGEN_DEBUG_ORDER") == "1":
-		for ordered_node in ordered_nodes:
-			if (
-				"assemble_map_plan" in ordered_node.node_template
-				or ordered_node.node_template == "set_variable"
-				or ordered_node.node_template == "get_variable"
-				or "pcg_map_plan" in ordered_node.name
-			):
-				print("eval_order: %s (%s)" % [ordered_node.name, ordered_node.node_template])
+## Editor evaluation path: when overrides/bindings apply to `node`, swaps a scratch
+## duplicate of its settings in (the authored resource is never written, so it is
+## never dirtied, saved or re-emitted as changed) and returns the authored settings
+## to hand back to end_scratch_setting_bindings() after the node ran. Returns null,
+## leaving the node untouched, when nothing applies.
+## `node` is a FlowNodeBase element or the editor's FlowNodeWidget showing one.
+static func begin_scratch_setting_bindings(node, graph: FlowGraphResource, ctx: FlowData.EvaluationContext, input_data_map: Dictionary = {}) -> Resource:
+	node = _as_element(node)
+	if node == null or node.settings == null or not has_setting_bindings(node.settings, ctx):
+		return null
+	var authored: Resource = node.settings
+	var scratch: Resource = authored.duplicate()
+	if not apply_setting_bindings(node, graph, ctx, input_data_map, scratch):
+		return null
+	node.settings = scratch
+	return authored
 
-	# Construct EvaluationContext for subgraph
-	var ctx = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()
-	ctx.graph = graph
-	ctx.owner = parent_ctx.owner
-	ctx.eval_id = parent_ctx.eval_id
-	ctx.gedit_nodes_by_name = instances
-	ctx.runtime_params = parent_ctx.runtime_params.duplicate(true) if parent_ctx.runtime_params else {}
-	for key in runtime_params.keys():
-		ctx.runtime_params[key] = runtime_params[key]
-	ctx.runtime_params["__eval_depth"] = depth
-	ctx.set_meta("flow_eval_depth", depth)
-	_inherit_flow_variables(ctx, parent_ctx)
-	FlowVariableEval._mirror_variables_to_runtime(ctx)
-
-	# Feed subgraph inputs from input_data_map
-	for node in ordered_nodes:
-		var is_specific_input = false
-		var specific_input_name = ""
-		if node.node_template == "input":
-			if node.settings and node.settings.name != "" and node.settings.name != "in_val":
-				for param in graph.in_params:
-					if param and param.name == node.settings.name:
-						is_specific_input = true
-						specific_input_name = param.name
-						break
-		elif node.node_template.begins_with("input_"):
-			is_specific_input = true
-			specific_input_name = node.settings.name
-
-		if is_specific_input:
-			var val = _coerce_input_data(input_data_map.get(specific_input_name, null), specific_input_name)
-			if val:
-				# Create a new Data object to rename/register the stream under the input's name
-				var target_data = load("res://addons/flow_nodes_editor/flow_data.gd").Data.new()
-				for stream_name in val.streams:
-					var stream = val.streams[stream_name]
-					target_data.registerStream(stream_name, stream.container, stream.data_type)
-
-				# Ensure that the main stream is registered under input_name
-				if val.streams.size() > 0 and not target_data.hasStream(specific_input_name):
-					var main_stream_name = val.last_added_stream_name
-					if main_stream_name == "" or not val.hasStream(main_stream_name):
-						main_stream_name = val.streams.keys()[val.streams.size() - 1]
-					var main_stream = val.streams[main_stream_name]
-					target_data.registerStream(specific_input_name, main_stream.container, main_stream.data_type)
-				# Carry per-data domain attributes and kind across the subgraph boundary.
-				target_data.data_attrs = val.data_attrs.duplicate()
-				target_data.kind = val.kind
-				node.set_output(0, target_data)
-		elif node.node_template == "input":
-			# Generic multi-port inputs node
-			for i in range(graph.in_params.size()):
-				var param = graph.in_params[i]
-				if param:
-					var val = _coerce_input_data(input_data_map.get(param.name, null), param.name)
-					var target_data = load("res://addons/flow_nodes_editor/flow_data.gd").Data.new()
-					if val:
-						for stream_name in val.streams:
-							var stream = val.streams[stream_name]
-							target_data.registerStream(stream_name, stream.container, stream.data_type)
-						if val.streams.size() > 0 and not target_data.hasStream(param.name):
-							var main_stream_name = val.last_added_stream_name
-							if main_stream_name == "" or not val.hasStream(main_stream_name):
-								main_stream_name = val.streams.keys()[val.streams.size() - 1]
-							var main_stream = val.streams[main_stream_name]
-							target_data.registerStream(param.name, main_stream.container, main_stream.data_type)
-						target_data.data_attrs = val.data_attrs.duplicate()
-						target_data.kind = val.kind
-					else:
-						var new_value = param.get_default_value()
-						var container = target_data.addStream(param.name, param.data_type)
-						if container != null:
-							container.resize(1)
-							FlowData.Data.writeValue(container, 0, new_value, param.data_type)
-					node.set_output(i, target_data)
-
-	return {
-		"graph": graph,
-		"parent_ctx": parent_ctx,
-		"instances": instances,
-		"node_list": node_list,
-		"ordered_nodes": ordered_nodes,
-		"ctx": ctx,
-		# Local overrides passed into THIS subgraph invocation. Carried so
-		# _finalize_evaluation can tell _publish_runtime_params which keys are
-		# local (must not leak to the parent) vs. genuinely produced downstream.
-		"local_params": runtime_params,
-	}
-
-
-# Phase 2 (one node): identical body to the historical inline execution loop.
-# Shared verbatim by the synchronous path and the resumable step() so the two
-# can never diverge.
-static func _execute_single_node(node, instances: Dictionary, graph: FlowGraphResource, ctx: FlowData.EvaluationContext) -> void:
-	if (node.node_template.begins_with("input_") or node.node_template == "input") and node.generated_bulks.size() > 0:
+## Restores the settings returned by begin_scratch_setting_bindings(). No-op on null.
+static func end_scratch_setting_bindings(node, authored: Resource) -> void:
+	node = _as_element(node)
+	if node == null or authored == null or not is_instance_valid(node):
 		return
+	node.settings = authored
 
-	node.inputs.clear()
-	var num_ins = node.getMeta().get("ins", []).size()
-	if node.node_template == "output":
-		if "out_params" in graph and graph.out_params.size() > 0:
-			num_ins = graph.out_params.size()
-		else:
-			num_ins = max(num_ins, 1)
-	node.inputs.resize(num_ins)
-	for conn in node.deps:
-		if conn.get("virtual_variable", false):
+## The runtime element behind `node`: the element itself, or the element of an
+## editor widget (FlowNodeWidget, a GraphNode). Null for anything else.
+static func _as_element(node) -> FlowNodeBase:
+	if node is GraphNode:
+		node = node.get("element")
+	return node as FlowNodeBase
+
+## Name used for "<graph>:" override prefixes: the graph file's basename
+## ("res://graphs/style_room_default.tres" -> "style_room_default"). Graphs without
+## a file of their own (in-memory or embedded) fall back to their resource_name.
+static func graph_basename(graph: Resource) -> String:
+	if graph == null:
+		return ""
+	var path := graph.resource_path
+	if path.is_empty() or path.contains("::"):
+		return String(graph.resource_name)
+	return path.get_file().get_basename()
+
+static func _is_bindable_setting(settings: Resource, prop: String) -> bool:
+	if prop == "bindings" or FlowNodeAssets.discarded_props.has(prop):
+		return false
+	return prop in settings
+
+## Resolves a binding/override setting name to what it writes:
+##   "<property>"              -> { prop, id }            a plain setting property
+##   "<dict_property>/<key>"   -> { prop, key, id }       one entry of a Dictionary setting
+##   "<name>" on an Expression -> { prop: "args", key, id } when <name> is an existing args key
+## `id` is the canonical "<prop>" / "<prop>/<key>" form (an override on an id stops a
+## binding on the same id). Returns {} when the name matches none of these.
+static func _resolve_setting_target(settings: Resource, name: String) -> Dictionary:
+	if name.is_empty():
+		return {}
+	if _is_bindable_setting(settings, name):
+		return { "prop": name, "id": name }
+	var slash := name.find("/")
+	if slash > 0 and slash < name.length() - 1:
+		var dict_prop := name.substr(0, slash)
+		var key := name.substr(slash + 1)
+		if _is_bindable_setting(settings, dict_prop) and settings.get(dict_prop) is Dictionary:
+			return { "prop": dict_prop, "key": key, "id": name }
+		return {}
+	if settings is ExpressionNodeSettings:
+		var args = settings.get("args")
+		if args is Dictionary and _dict_key_matching(args, name) != null:
+			return { "prop": "args", "key": name, "id": "args/" + name }
+	return {}
+
+# The key of `dict` whose string form is `key` (String or StringName keys), or null.
+static func _dict_key_matching(dict: Dictionary, key: String):
+	if dict.has(key):
+		return key
+	for k in dict:
+		if str(k) == key:
+			return k
+	return null
+
+# Writes `value` into the setting described by a _resolve_setting_target() result.
+# A Dictionary entry is coerced to the type of the entry it replaces (any value when
+# the key is new) and written into a fresh copy of the Dictionary, never in place:
+# the editor's scratch settings duplicate shares its containers with the authored one.
+static func _assign_setting_target(settings: Resource, target: Dictionary, value, node_name: String, source_label: String) -> bool:
+	if not target.has("key"):
+		return _assign_setting(settings, target.prop, value, node_name, source_label)
+	var dict = settings.get(target.prop)
+	if not (dict is Dictionary):
+		return false
+	var existing_key = _dict_key_matching(dict, target.key)
+	var current = dict[existing_key] if existing_key != null else null
+	var coerced := _coerce_setting_value(value, { "type": typeof(current) }, current)
+	if coerced.is_empty():
+		push_warning("Flow: %s cannot assign %s value %s to setting '%s' (%s) of node '%s'; keeping the saved value." % [
+			source_label, type_string(typeof(value)), str(value), target.id, type_string(typeof(current)), node_name])
+		return false
+	var updated: Dictionary = dict.duplicate()
+	updated[existing_key if existing_key != null else target.key] = coerced[0]
+	settings.set(target.prop, updated)
+	return true
+
+static func _parse_override_key(key: String) -> Dictionary:
+	var scope := ""
+	var rest := key
+	var colon := key.find(":")
+	if colon >= 0:
+		scope = key.substr(0, colon)
+		rest = key.substr(colon + 1)
+	# "<node>/<property>" or "<node>/<dict_property>/<key>": the node name is up to
+	# the first "/", the rest is the setting name (see _resolve_setting_target).
+	var slash := rest.find("/")
+	if slash <= 0 or slash >= rest.length() - 1:
+		return {}
+	return { "scope": scope, "node": rest.substr(0, slash), "prop": rest.substr(slash + 1) }
+
+# Context the bindings of one graph level resolve against: what the child ctx
+# built later in _build_evaluation_state will hold (parent overrides, parent +
+# local runtime params, inherited variables), without copying anything deeply.
+static func _binding_scope_context(graph: FlowGraphResource, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary, override_hits: Dictionary) -> FlowData.EvaluationContext:
+	var scope = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()
+	scope.graph = graph
+	scope.owner = parent_ctx.owner
+	scope.overrides = parent_ctx.overrides
+	var parent_params: Dictionary = parent_ctx.runtime_params if parent_ctx.runtime_params else {}
+	scope.runtime_params = parent_params.merged(runtime_params, true)
+	scope.variables = parent_ctx.variables
+	scope.set_meta(OVERRIDE_HITS_META, override_hits)
+	return scope
+
+# Returns [value] when `param_name` resolves, [] when it is absent everywhere.
+# Sources, first hit wins: input_data_map, ctx.runtime_params, ctx.variables, then
+# the default of the graph's own declared input (`graph.in_params`) of that name,
+# so one declared graph input can single-source a knob in dock previews (which
+# feed no inputs) as well as at runtime.
+static func _resolve_binding_param(param_name: String, ctx: FlowData.EvaluationContext, input_data_map: Dictionary, graph: FlowGraphResource = null) -> Array:
+	for source in [input_data_map, ctx.runtime_params, ctx.variables]:
+		if source == null or not source.has(param_name):
 			continue
-		var src = instances.get(conn.from_node)
-		if src and src.generated_bulks.size() > 0:
-			var src_bulk = src.generated_bulks[src.generated_bulks.size() - 1]
-			if conn.from_port < src_bulk.size():
-				node.inputs[conn.to_port] = src_bulk[conn.from_port]
+		var value = source[param_name]
+		if value is FlowData.Data:
+			value = _first_value_of(value, param_name)
+		if value != null:
+			return [value]
+	if graph != null:
+		for param in graph.in_params:
+			if param != null and param.name == param_name:
+				var default_value = param.get_default_value()
+				if default_value != null:
+					return [default_value]
+				break
+	return []
 
-	node.preExecute(ctx)
-	if node.settings != null and node.settings.disabled:
-		node.executedDisabled(ctx)
-	elif not FlowVariableEval.try_fast_execute(node, ctx, instances):
-		node.run(ctx)
-	if FlowVariableEval.should_refresh_debug_draw(node):
-		node.setupDrawDebug()
+# Element 0 of stream `name` (or of the per-data attribute `name` / "@data.<name>").
+# A Data holding exactly one stream yields that stream's first element whatever its
+# name, mirroring how the graph-input feed treats a Data's main stream. Bool streams
+# are stored as bytes and come back as bool. Returns null when nothing matches.
+static func _first_value_of(data: FlowData.Data, name: String):
+	if data == null:
+		return null
+	var attr_name := name.trim_prefix(FlowData.DataAttrPrefix)
+	if not data.streams.has(name) and data.data_attrs.has(attr_name):
+		return data.data_attrs[attr_name].get("value", null)
+	var stream = data.streams.get(name, null)
+	if stream == null and data.streams.size() == 1:
+		stream = data.streams.values()[0]
+	if stream == null or stream.container == null or stream.container.size() == 0:
+		return null
+	var value = stream.container[0]
+	if stream.data_type == FlowData.DataType.Bool:
+		return bool(value)
+	return value
+
+# Writes `value` into settings[prop] when the types are compatible (with int<->float
+# and String<->StringName coercion); otherwise warns and keeps the current value.
+static func _assign_setting(settings: Resource, prop: String, value, node_name: String, source_label: String) -> bool:
+	var info := {}
+	for p in settings.get_property_list():
+		if p.name == prop:
+			info = p
+			break
+	if info.is_empty():
+		return false
+	var coerced := _coerce_setting_value(value, info, settings.get(prop))
+	if coerced.is_empty():
+		push_warning("Flow: %s cannot assign %s value %s to setting '%s' (%s) of node '%s'; keeping the saved value." % [
+			source_label, type_string(typeof(value)), str(value), prop, type_string(int(info.type)), node_name])
+		return false
+	settings.set(prop, coerced[0])
+	return true
+
+# Returns [coerced_value] or [] when `value` cannot be assigned to the property.
+static func _coerce_setting_value(value, info: Dictionary, current) -> Array:
+	var target_type := int(info.type)
+	var value_type := typeof(value)
+	if target_type == TYPE_NIL:
+		return [value]
+	match target_type:
+		TYPE_FLOAT:
+			if value_type == TYPE_FLOAT or value_type == TYPE_INT:
+				return [float(value)]
+		TYPE_INT:
+			if value_type == TYPE_INT:
+				return [value]
+			if value_type == TYPE_FLOAT:
+				return [int(value)]
+		TYPE_STRING:
+			if value_type == TYPE_STRING or value_type == TYPE_STRING_NAME:
+				return [String(value)]
+		TYPE_STRING_NAME:
+			if value_type == TYPE_STRING or value_type == TYPE_STRING_NAME:
+				return [StringName(value)]
+		TYPE_VECTOR2:
+			if value_type == TYPE_VECTOR2 or value_type == TYPE_VECTOR2I:
+				return [Vector2(value)]
+		TYPE_VECTOR3:
+			if value_type == TYPE_VECTOR3 or value_type == TYPE_VECTOR3I:
+				return [Vector3(value)]
+		TYPE_ARRAY:
+			if value_type == TYPE_ARRAY:
+				if current is Array and current.is_typed():
+					# Build a fresh array of the property's element type; never
+					# mutate `current` (the editor's scratch duplicate may share it).
+					var element_type: int = current.get_typed_builtin()
+					var typed: Array = current.duplicate()
+					typed.clear()
+					for item in value:
+						if element_type == TYPE_OBJECT:
+							if item != null and not (item is Object):
+								return []
+						elif typeof(item) != element_type:
+							return []
+						typed.append(item)
+					return [typed]
+				return [value]
+		TYPE_OBJECT:
+			if value == null:
+				return [null]
+			if value_type != TYPE_OBJECT:
+				return []
+			var class_hint := str(info.get("hint_string", ""))
+			if int(info.get("hint", 0)) == PROPERTY_HINT_RESOURCE_TYPE and not class_hint.is_empty():
+				if not _object_is_class(value, class_hint):
+					return []
+			return [value]
+		_:
+			if value_type == target_type:
+				return [value]
+	return []
+
+static func _object_is_class(value: Object, class_hint: String) -> bool:
+	for class_name_hint in class_hint.split(","):
+		var wanted := class_name_hint.strip_edges()
+		if wanted.is_empty() or value.is_class(wanted):
+			return true
+		var script: Script = value.get_script()
+		while script != null:
+			if String(script.get_global_name()) == wanted:
+				return true
+			script = script.get_base_script()
+	return false
+
+# Reports, once per evaluation tree, every override key that matched no node.
+static func _warn_unmatched_overrides(overrides: Dictionary, hits: Dictionary) -> void:
+	if overrides == null or overrides.is_empty():
+		return
+	for key in overrides:
+		if not hits.has(key):
+			push_warning("Flow: override '%s' matched no node setting in this evaluation (expected \"[graph:]node_name/property\" or \"[graph:]node_name/dict_property/key\")." % str(key))
+
+# ---------------------------------------------------------------------------
+# Evaluator (docs/PARITY_ROUND2.md WP1). The work lives in
+# executor/flow_executor.gd (FlowExecutor) on top of a cached
+# executor/flow_compiled_graph.gd (FlowCompiledGraph). The functions below keep
+# the historical entry points and their signatures:
+#
+#   evaluate_graph()          synchronous (threaded when the context asks)
+#   begin_evaluation()        resumable, time-sliced GraphEvaluation
+#   evaluate_graph_snapshot() golden-output snapshot
+#   _build_evaluation_state / _execute_single_node / _finalize_evaluation
+#                             the three phases, for callers that drive them
+# ---------------------------------------------------------------------------
+
+# Phase 1: elements from the compiled graph + context + input feed. Returns a
+# state Dictionary ("graph", "parent_ctx", "instances", "node_list",
+# "ordered_nodes", "ctx", ...).
+static func _build_evaluation_state(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary, depth: int) -> Dictionary:
+	return FlowExecutor.build_state(graph, input_data_map, parent_ctx, runtime_params, depth)
 
 
-# Phase 3: collect outputs, publish variables, free instances. Identical to the
-# historical tail of evaluate_graph.
+# Phase 2 (one node).
+static func _execute_single_node(node, instances: Dictionary, graph: FlowGraphResource, ctx: FlowData.EvaluationContext) -> void:
+	FlowExecutor.execute_node(node, instances, graph, ctx)
+
+
+# Phase 3: collect outputs, publish variables, release the elements.
 static func _finalize_evaluation(state: Dictionary) -> Dictionary:
-	var graph: FlowGraphResource = state["graph"]
-	var node_list: Array = state["node_list"]
-	var ctx: FlowData.EvaluationContext = state["ctx"]
-	var parent_ctx: FlowData.EvaluationContext = state["parent_ctx"]
-	var local_params: Dictionary = state.get("local_params", {})
-
-	# Collect output data
-	var outputs = {}
-	for node in node_list:
-		var is_specific_output = false
-		var specific_output_name = ""
-		if node.node_template == "output":
-			if node.settings and node.settings.name != "" and node.settings.name != "out_val":
-				if "out_params" in graph:
-					for param in graph.out_params:
-						if param and param.name == node.settings.name:
-							is_specific_output = true
-							specific_output_name = param.name
-							break
-		elif node.node_template.begins_with("output_"):
-			is_specific_output = true
-			specific_output_name = node.settings.name
-
-		if is_specific_output:
-			if node.generated_bulks.size() > 0:
-				var bulk = node.generated_bulks[node.generated_bulks.size() - 1]
-				if bulk.size() > 0:
-					outputs[specific_output_name] = bulk[0]
-			elif node.inputs.size() > 0 and node.inputs[0] != null:
-				outputs[specific_output_name] = node.inputs[0]
-		elif node.node_template == "output":
-			# Generic multi-port outputs node
-			if "out_params" in graph and graph.out_params.size() > 0:
-				for i in range(graph.out_params.size()):
-					var param = graph.out_params[i]
-					if not param:
-						continue
-					if node.inputs.size() > i and node.inputs[i] != null:
-						outputs[param.name] = node.inputs[i]
-			else:
-				var out_name = node.settings.name
-				if node.generated_bulks.size() > 0:
-					var bulk = node.generated_bulks[node.generated_bulks.size() - 1]
-					if bulk.size() > 0:
-						outputs[out_name] = bulk[0]
-				elif node.inputs.size() > 0 and node.inputs[0] != null:
-					outputs[out_name] = node.inputs[0]
-	_publish_flow_variables(ctx, parent_ctx)
-	_publish_runtime_params(ctx, parent_ctx, local_params)
-
-	# Outputs are collected (FlowData.Data is RefCounted, so the references in
-	# `outputs` keep the data alive) — free the instanced node Controls now.
-	_free_node_instances(node_list)
-	return outputs
+	return FlowExecutor.finalize_state(state)
 
 
-## Synchronous graph evaluation — the default, unchanged runtime path.
-## Builds the state, runs every ordered node in one pass, finalizes. This is
-## the historical evaluate_graph: same phases, same order, same side effects,
-## same return value. Nested subgraph/loop nodes keep calling this.
+## Build a root EvaluationContext (docs/RUNTIME_API_P0.md §3).
+## `owner` may be null for owner-less evaluation. Any Node3D can host the
+## evaluation (spawned content is parented under it and tagged with its
+## instance id); a FlowGraphNode3D additionally contributes its `overrides`,
+## and its `threaded` / `output_cache` options (FlowExecutor.THREADED_META /
+## OUTPUT_CACHE_META on the context).
+## `params` become ctx.runtime_params, with "seed" mirrored from `seed`.
+## `overrides` ("node_name/property" -> value) are merged over the owner's.
+## eval_id starts at 0 here; nested evaluations copy the parent's verbatim.
+static func make_context(owner : Node3D = null, seed : int = 0, params : Dictionary = {},
+		overrides : Dictionary = {}) -> FlowData.EvaluationContext:
+	var ctx = load("res://addons/flow_nodes_editor/flow_data.gd").EvaluationContext.new()
+	ctx.owner = owner
+	ctx.component_id = owner.get_instance_id() if owner != null else 0
+	var merged_overrides := {}
+	if owner != null:
+		var owner_overrides = owner.get("overrides")
+		if owner_overrides is Dictionary:
+			merged_overrides = owner_overrides.duplicate()
+		if owner.get("threaded") == true:
+			ctx.set_meta(FlowExecutor.THREADED_META, true)
+		if owner.get("output_cache") == true:
+			ctx.set_meta(FlowExecutor.OUTPUT_CACHE_META, true)
+	if overrides:
+		merged_overrides.merge(overrides, true)
+	ctx.overrides = merged_overrides
+	ctx.seed = seed
+	ctx.eval_id = 0
+	ctx.gedit_nodes_by_name = {}
+	ctx.runtime_params = params.duplicate(true) if params else {}
+	ctx.runtime_params["seed"] = seed
+	return ctx
+
+## Errors raised (FlowNodeBase.setError) during the most recent top-level
+## FlowNodeIO.evaluate() or FlowGraphNode3D.generate()/generate_async(), in the
+## order they were raised, nested subgraph and loop evaluations included:
+## [{ "node": <node name>, "template": <template>, "message": <text> }, ...].
+## Reset at the start of every top-level evaluation; empty when nothing failed.
+static var last_errors : Array = []
+
+# Error log of the synchronous top-level evaluation in progress (null otherwise).
+static var _sync_error_log = null
+
+## Runs `graph` from the root context `ctx` (depth 0) and collects every node
+## error into `ctx`'s error log. Sets last_errors and returns
+## { "outputs": Dictionary, "errors": Array }. Used by evaluate() and
+## FlowGraphNode3D.generate(). A nested call (a node that calls evaluate())
+## also reports its errors to the evaluation around it.
+static func evaluate_collecting_errors(graph : FlowGraphResource, input_data_map : Dictionary, ctx : FlowData.EvaluationContext) -> Dictionary:
+	var error_log := start_error_log(ctx)
+	var outer = _sync_error_log
+	_sync_error_log = error_log
+	var outputs := evaluate_graph(graph, input_data_map, ctx, {}, 0)
+	_sync_error_log = outer
+	if outer is Array:
+		outer.append_array(error_log)
+	last_errors = error_log
+	return { "outputs": outputs, "errors": error_log }
+
+## Attaches a fresh error log to the root context `ctx`, resets last_errors to
+## it and returns it. The async path (FlowGraphNode3D.generate_async) calls this
+## before begin_evaluation().
+static func start_error_log(ctx : FlowData.EvaluationContext) -> Array:
+	var error_log : Array = []
+	ctx.set_meta(FlowNodeBase.ERROR_LOG_META, error_log)
+	last_errors = error_log
+	return error_log
+
+## One-call evaluation: builds a context with make_context() and runs
+## evaluate_graph(). `inputs` maps graph input names to FlowData.Data or plain
+## values (float/int/bool/String/Vector3/Color). Returns the graph outputs,
+## name -> FlowData.Data. With `owner == null`, owner-dependent nodes
+## (spawners, scene scanners, apply_on_actor) report an error and pass their
+## input through. The run's node errors are in FlowNodeIO.last_errors.
+static func evaluate(graph : FlowGraphResource, inputs : Dictionary = {}, seed : int = 0,
+		params : Dictionary = {}, owner : Node3D = null, overrides : Dictionary = {}) -> Dictionary:
+	if graph == null:
+		last_errors = []
+		push_warning("FlowNodeIO.evaluate: graph is null")
+		return {}
+	var ctx := make_context(owner, seed, params, overrides)
+	return evaluate_collecting_errors(graph, inputs.duplicate() if inputs else {}, ctx).outputs
+
+
+## Synchronous graph evaluation — the default runtime path. Same phases, order,
+## side effects and return value as always; the graph is parsed once
+## (FlowCompiledGraph) and reused. Nested subgraph/loop nodes keep calling
+## this. Runs threaded when `parent_ctx` carries FlowExecutor.THREADED_META.
 static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary = {}, depth: int = 0) -> Dictionary:
-	if depth > 20:
-		push_error("PCG graph evaluation exceeded maximum recursion depth (20). Check for circular subgraph references.")
-		return {}
-	var state := _build_evaluation_state(graph, input_data_map, parent_ctx, runtime_params, depth)
-	if state.is_empty():
-		return {}
-	var graph_res: FlowGraphResource = state["graph"]
-	var instances: Dictionary = state["instances"]
-	var ctx: FlowData.EvaluationContext = state["ctx"]
-	for node in state["ordered_nodes"]:
-		_execute_single_node(node, instances, graph_res, ctx)
-	return _finalize_evaluation(state)
+	return FlowExecutor.evaluate(graph, input_data_map, parent_ctx, runtime_params, depth)
+
+
+## Dynamic subgraph (loop / subgraph `graph_attribute`): resolves one attribute
+## value to a graph. A FlowGraphResource is used as is; a String (or
+## StringName) is a resource path loaded through ResourceLoader (which returns
+## the already-loaded object, so FlowCompiledGraph.for_graph reuses its
+## compiled form); an empty String means `default_graph`. Returns
+## { "graph": FlowGraphResource or null, "error": String } with a readable
+## error when the value names no usable graph. `memo` (optional) maps each
+## resolved String path to its result, so one node run loads and validates a
+## path once and keeps the loaded graph alive across its iterations.
+static func resolve_graph_reference(value, default_graph: FlowGraphResource = null, memo = null) -> Dictionary:
+	if value is FlowGraphResource:
+		return { "graph": value, "error": "" }
+	if value is String or value is StringName:
+		var path := String(value).strip_edges()
+		if path == "":
+			if default_graph != null:
+				return { "graph": default_graph, "error": "" }
+			return { "graph": null, "error": "graph path is empty and no default graph is assigned" }
+		if memo is Dictionary and memo.has(path):
+			return memo[path]
+		var result := { "graph": null, "error": "" }
+		if not ResourceLoader.exists(path):
+			result.error = "graph not found: %s" % path
+		else:
+			var loaded = ResourceLoader.load(path)
+			if loaded is FlowGraphResource:
+				result.graph = loaded
+			else:
+				result.error = "%s is not a FlowGraphResource" % path
+		if memo is Dictionary:
+			memo[path] = result
+		return result
+	if value == null:
+		return { "graph": null, "error": "no graph value" }
+	if value is Object:
+		return { "graph": null, "error": "value is a %s, not a FlowGraphResource or a path" % value.get_class() }
+	return { "graph": null, "error": "value %s is not a FlowGraphResource or a path" % type_string(typeof(value)) }
 
 
 ## OPT-IN resumable evaluation (PARITY_ROADMAP async stage 2).
@@ -1043,16 +1361,15 @@ static func evaluate_graph(graph: FlowGraphResource, input_data_map: Dictionary,
 ## phase 2 (node execution) is spread over multiple calls. Returns null on the
 ## recursion-guard trip, matching evaluate_graph's {} early-out.
 static func begin_evaluation(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary = {}, depth: int = 0):
-	if depth > 20:
-		push_error("PCG graph evaluation exceeded maximum recursion depth (20). Check for circular subgraph references.")
+	var executor := FlowExecutor.new()
+	executor.mode = FlowExecutor.Mode.TIME_SLICED
+	if not executor.begin(graph, input_data_map, parent_ctx, runtime_params, depth):
 		return null
-	var state := _build_evaluation_state(graph, input_data_map, parent_ctx, runtime_params, depth)
-	if state.is_empty():
-		return null
-	return GraphEvaluation.new(state)
+	return GraphEvaluation.new(executor)
 
 
-## Resumable, time-sliced driver over an already-built evaluation state.
+## Resumable, time-sliced driver: a compatibility wrapper over a FlowExecutor
+## in TIME_SLICED mode.
 ##
 ## Lifecycle:
 ##   var ev = FlowNodeIO.begin_evaluation(graph, args, ctx)
@@ -1061,41 +1378,37 @@ static func begin_evaluation(graph: FlowGraphResource, input_data_map: Dictionar
 ##   var outputs = ev.outputs       # populated once is_done() is true
 ##
 ## Granularity is one node: a step never interrupts a node mid-run (a single
-## heavy node can still overrun the budget — the heavy nodes are native-
-## accelerated, so this is acceptable for stage 2). Phase 1 (build) already ran
-## in begin_evaluation; finalize (output collection, variable publishing,
-## instance freeing) runs automatically when the last node completes, so the
-## same teardown guarantees as the synchronous path hold.
+## heavy node can still overrun the budget). Finalize (output collection,
+## variable publishing, element release) runs automatically when the last node
+## completes, so the same teardown guarantees as the synchronous path hold.
 class GraphEvaluation:
 	extends RefCounted
 
+	var executor: FlowExecutor
+	## The evaluation state built by FlowExecutor.build_state.
 	var _state: Dictionary
-	var _ordered: Array
+	## Node name -> element, and the ordered element list (emptied on finalize).
 	var _instances: Dictionary
-	var _graph: FlowGraphResource
-	var _ctx: FlowData.EvaluationContext
-	var _index: int = 0
-	var _finalized: bool = false
+	var _ordered: Array
 	var outputs: Dictionary = {}
 
-	func _init(state: Dictionary) -> void:
-		_state = state
-		_ordered = state["ordered_nodes"]
-		_instances = state["instances"]
-		_graph = state["graph"]
-		_ctx = state["ctx"]
+	func _init(new_executor: FlowExecutor) -> void:
+		executor = new_executor
+		_state = executor.state
+		_instances = _state["instances"]
+		_ordered = _state["ordered_nodes"]
 
 	## Total nodes in the ordered execution list.
 	func node_count() -> int:
-		return _ordered.size()
+		return executor.node_count()
 
 	## Nodes executed so far (for progress reporting / proximity scheduling later).
 	func progress() -> int:
-		return _index
+		return executor.progress()
 
 	## True once every node has run and finalize has published outputs.
 	func is_done() -> bool:
-		return _finalized
+		return executor.is_done()
 
 	## Execute ordered nodes until `budget_ms` of wall-clock time is spent this
 	## call, then return so the host can yield the frame. Resumes from where it
@@ -1103,26 +1416,186 @@ class GraphEvaluation:
 	## call) so a tiny/zero budget cannot deadlock. Returns true when the whole
 	## graph is finished (outputs are then populated).
 	func step(budget_ms: float = 4.0) -> bool:
-		if _finalized:
-			return true
-		var start_us := Time.get_ticks_usec()
-		var budget_us := int(maxf(budget_ms, 0.0) * 1000.0)
-		while _index < _ordered.size():
-			FlowNodeIO._execute_single_node(_ordered[_index], _instances, _graph, _ctx)
-			_index += 1
-			# Node-level granularity: check the budget only between nodes. Guarantee
-			# one node of progress per call regardless of budget.
-			if Time.get_ticks_usec() - start_us >= budget_us:
-				break
-		if _index >= _ordered.size():
-			outputs = FlowNodeIO._finalize_evaluation(_state)
-			_finalized = true
-			return true
-		return false
+		var finished := executor.step(budget_ms)
+		if finished:
+			outputs = executor.outputs
+		return finished
 
 	## Run the remainder synchronously (e.g. on teardown / forced completion),
 	## still finalizing exactly once.
 	func run_to_completion() -> Dictionary:
-		while not _finalized:
-			step(1.0e12)
+		while not executor.is_done():
+			executor.step(1.0e12)
+		outputs = executor.outputs
 		return outputs
+
+
+# ---------------------------------------------------------------------------
+# Golden-output snapshot (used by tests/golden; see tests/golden/README.md).
+#
+# Self-contained on purpose: it only drives the evaluator phases above and
+# never changes their behaviour. evaluate_graph_snapshot() runs exactly what
+# evaluate_graph() runs (same build, same ordered execution, same finalize and
+# element release) but, before the elements are released, records a summary
+# of every node's generated bulks. A regression can then be pinned to the
+# first node whose output drifted instead of only to the graph outputs.
+# ---------------------------------------------------------------------------
+
+## Float quantization for snapshot hashes: values are rounded to 1/1000 before
+## hashing so last-bit float noise (different CPUs, compilers, engine minor
+## versions) does not register as a regression.
+const SNAPSHOT_FLOAT_QUANTUM := 1000.0
+
+## Evaluates `graph` like evaluate_graph() and returns
+##   { node_name: [ bulk_0 [ port_0 summary, port_1 summary, ... ], bulk_1 [...] ] }
+## for EVERY node instanced from the graph (a node that did not execute maps to
+## []; an unset port maps to null). Summaries come from snapshot_summarize_data().
+## When `outputs_out` is a Dictionary it receives the graph outputs that
+## evaluate_graph() would have returned.
+static func evaluate_graph_snapshot(graph: FlowGraphResource, input_data_map: Dictionary, parent_ctx: FlowData.EvaluationContext, runtime_params: Dictionary = {}, depth: int = 0, outputs_out = null) -> Dictionary:
+	var executor := FlowExecutor.new()
+	if parent_ctx != null and parent_ctx.get_meta(FlowExecutor.THREADED_META, false):
+		executor.mode = FlowExecutor.Mode.THREADED
+	if not executor.begin(graph, input_data_map, parent_ctx, runtime_params, depth):
+		return {}
+	var node_list : Array = executor.state["node_list"].duplicate()
+	# Execute without finalizing, so the elements' bulks can be read first.
+	if executor.mode == FlowExecutor.Mode.THREADED:
+		executor._run_threaded()
+	else:
+		for node in executor.state["ordered_nodes"]:
+			executor._run_element(node)
+	var snapshot := {}
+	for node in node_list:
+		var bulks := []
+		for bulk in node.generated_bulks:
+			var ports := []
+			for port_data in bulk:
+				if port_data is FlowData.Data:
+					ports.append(snapshot_summarize_data(port_data))
+				else:
+					ports.append(null)
+			bulks.append(ports)
+		snapshot[str(node.name)] = bulks
+	var outputs := executor.finalize()
+	if outputs_out is Dictionary:
+		outputs_out.clear()
+		for key in outputs:
+			outputs_out[key] = outputs[key]
+	return snapshot
+
+## Stable, JSON-friendly summary of a Data: point count, kind, sorted tags,
+## per-data attributes and, per stream (sorted by name): name, data_type,
+## element count and a content hash.
+static func snapshot_summarize_data(data: FlowData.Data) -> Dictionary:
+	var names := []
+	for stream_name in data.streams.keys():
+		names.append(str(stream_name))
+	names.sort()
+	var streams := []
+	for stream_name in names:
+		var stream = data.streams[stream_name]
+		streams.append({
+			"name": stream_name,
+			"data_type": int(stream.data_type),
+			"count": stream.container.size(),
+			"hash": snapshot_hash_container(stream.container),
+		})
+	var tags := []
+	for tag in data.tags:
+		tags.append(str(tag))
+	tags.sort()
+	var attr_names := []
+	for attr_name in data.data_attrs.keys():
+		attr_names.append(str(attr_name))
+	attr_names.sort()
+	var attrs := {}
+	for attr_name in attr_names:
+		var record = data.data_attrs[attr_name]
+		var value = record.get("value", null) if record is Dictionary else record
+		var data_type = int(record.get("data_type", -1)) if record is Dictionary else -1
+		attrs[attr_name] = { "data_type": data_type, "hash": snapshot_hash_container([value]) }
+	return {
+		"size": data.size(),
+		"kind": int(data.kind),
+		"tags": tags,
+		"data_attrs": attrs,
+		"streams": streams,
+	}
+
+## Content hash (16 hex chars of SHA-256) of a stream container. Integer, bool
+## and string containers hash their exact contents; float-based containers are
+## quantized with SNAPSHOT_FLOAT_QUANTUM first; Resource/Node arrays hash only
+## resource_path (or class) per element, never object identity.
+static func snapshot_hash_container(container) -> String:
+	var hctx := HashingContext.new()
+	hctx.start(HashingContext.HASH_SHA256)
+	var bytes := PackedByteArray()
+	if container is PackedByteArray:
+		bytes = container
+	elif container is PackedInt32Array or container is PackedInt64Array:
+		bytes = container.to_byte_array()
+	elif container is PackedStringArray:
+		bytes = ("\u001f".join(container)).to_utf8_buffer()
+	elif container is PackedFloat32Array or container is PackedFloat64Array:
+		var q := PackedInt64Array()
+		q.resize(container.size())
+		for i in range(container.size()):
+			q[i] = _snapshot_quantize(container[i])
+		bytes = q.to_byte_array()
+	elif container is PackedVector2Array or container is PackedVector3Array or container is PackedVector4Array or container is PackedColorArray:
+		var comps := 2
+		if container is PackedVector3Array:
+			comps = 3
+		elif container is PackedVector4Array or container is PackedColorArray:
+			comps = 4
+		var q := PackedInt64Array()
+		q.resize(container.size() * comps)
+		var k := 0
+		for i in range(container.size()):
+			var v = container[i]
+			for c in range(comps):
+				q[k] = _snapshot_quantize(v[c])
+				k += 1
+		bytes = q.to_byte_array()
+	elif container is Array:
+		var tokens := PackedStringArray()
+		for value in container:
+			tokens.append(_snapshot_value_token(value))
+		bytes = ("\u001f".join(tokens)).to_utf8_buffer()
+	else:
+		bytes = _snapshot_value_token(container).to_utf8_buffer()
+	if bytes.size() > 0:
+		hctx.update(bytes)
+	return hctx.finish().hex_encode().substr(0, 16)
+
+static func _snapshot_quantize(v: float) -> int:
+	if is_nan(v):
+		return -9223372036854775807
+	if is_inf(v):
+		return 9223372036854775807 if v > 0.0 else -9223372036854775806
+	return int(round(v * SNAPSHOT_FLOAT_QUANTUM))
+
+static func _snapshot_value_token(value) -> String:
+	if typeof(value) == TYPE_NIL:
+		return "null"
+	if typeof(value) == TYPE_OBJECT:
+		if not is_instance_valid(value):
+			return "null"
+		if value is Resource and not value.resource_path.is_empty():
+			return value.resource_path
+		return "<%s>" % value.get_class()
+	match typeof(value):
+		TYPE_FLOAT:
+			return str(_snapshot_quantize(value))
+		TYPE_VECTOR2, TYPE_VECTOR3, TYPE_VECTOR4, TYPE_COLOR, TYPE_QUATERNION:
+			var parts := PackedStringArray()
+			var n := 4
+			if typeof(value) == TYPE_VECTOR2:
+				n = 2
+			elif typeof(value) == TYPE_VECTOR3:
+				n = 3
+			for c in range(n):
+				parts.append(str(_snapshot_quantize(value[c])))
+			return ",".join(parts)
+	return var_to_str(value)

@@ -17,7 +17,7 @@ func _init():
 
 func _scene_root(ctx : FlowData.EvaluationContext) -> Node:
 	if Engine.is_editor_hint():
-		return EditorInterface.get_edited_scene_root()
+		return editor_edited_scene_root()
 	if ctx.owner and ctx.owner.get_tree():
 		return ctx.owner
 	return null
@@ -79,6 +79,8 @@ func _resolve_scalar_stream(in_data : FlowData.Data, name : String, in_size : in
 func execute(ctx : FlowData.EvaluationContext):
 	var in_data : FlowData.Data = require_input(0, ctx)
 	if in_data == null:
+		return
+	if handleMissingOwner(ctx):
 		return
 	var in_size := in_data.size()
 	if in_size == 0:

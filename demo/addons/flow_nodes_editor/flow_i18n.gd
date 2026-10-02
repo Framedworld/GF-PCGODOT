@@ -117,8 +117,11 @@ static func _string_dictionary(messages: Dictionary) -> Dictionary:
 
 static func _current_locale_key() -> String:
 	var locale := TranslationServer.get_locale()
-	if Engine.is_editor_hint():
-		var editor_settings := EditorInterface.get_editor_settings()
+	# Named through Engine's singleton table: exported builds lack EditorInterface
+	# and would fail to parse a direct reference, even behind is_editor_hint().
+	if Engine.is_editor_hint() and Engine.has_singleton(&"EditorInterface"):
+		var ei : Object = Engine.get_singleton(&"EditorInterface")
+		var editor_settings : Object = ei.call("get_editor_settings")
 		if editor_settings and editor_settings.has_setting("interface/editor/editor_language"):
 			var editor_locale := String(editor_settings.get_setting("interface/editor/editor_language"))
 			if not editor_locale.is_empty():

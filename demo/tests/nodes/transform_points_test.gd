@@ -64,7 +64,6 @@ func test_identity_no_offset_no_rotation_no_scale() -> void:
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_object(size_stream).is_not_null()
 	assert_array(size_stream.container).is_equal(sizes)
-	node.free()
 
 func test_deterministic_fixed_offset() -> void:
 	var positions := PackedVector3Array([Vector3(0, 0, 0), Vector3(10, 0, 0)])
@@ -81,7 +80,6 @@ func test_deterministic_fixed_offset() -> void:
 	assert_object(pos_stream).is_not_null()
 	var expected := PackedVector3Array([Vector3(5, 3, 1), Vector3(15, 3, 1)])
 	assert_array(pos_stream.container).is_equal(expected)
-	node.free()
 
 func test_deterministic_fixed_rotation_world_space() -> void:
 	var positions := PackedVector3Array([Vector3(0, 0, 0)])
@@ -97,7 +95,6 @@ func test_deterministic_fixed_rotation_world_space() -> void:
 	var rot_stream = out.findStream(FlowData.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	assert_array(rot_stream.container).is_equal(PackedVector3Array([Vector3(0, 90, 0)]))
-	node.free()
 
 func test_deterministic_uniform_scale() -> void:
 	var positions := PackedVector3Array([Vector3(0, 0, 0), Vector3(1, 1, 1)])
@@ -113,7 +110,6 @@ func test_deterministic_uniform_scale() -> void:
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_object(size_stream).is_not_null()
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(3, 3, 3), Vector3(6, 6, 6)]))
-	node.free()
 
 func test_deterministic_non_uniform_scale() -> void:
 	var positions := PackedVector3Array([Vector3(0, 0, 0)])
@@ -129,13 +125,11 @@ func test_deterministic_non_uniform_scale() -> void:
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_object(size_stream).is_not_null()
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(4, 2, 18)]))
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s := _make_settings()
 	var node = _run(null, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_position_stream_error() -> void:
 	var d := FlowDataScript.Data.new()
@@ -144,7 +138,6 @@ func test_missing_position_stream_error() -> void:
 	var s := _make_settings()
 	var node = _run(d, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_preserves_extra_streams() -> void:
 	var positions := PackedVector3Array([Vector3(1, 0, 0)])
@@ -164,7 +157,6 @@ func test_preserves_extra_streams() -> void:
 	var color_stream = out.findStream("custom_color")
 	assert_object(color_stream).is_not_null()
 	assert_array(color_stream.container).is_equal(PackedColorArray([Color.RED]))
-	node.free()
 
 func test_single_point() -> void:
 	var positions := PackedVector3Array([Vector3(0, 0, 0)])
@@ -180,7 +172,6 @@ func test_single_point() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(1)
 	assert_array(pos_stream.container).is_equal(PackedVector3Array([Vector3(1, 0, 0)]))
-	node.free()
 
 func test_random_seed_determinism() -> void:
 	var positions := PackedVector3Array([Vector3(0, 0, 0), Vector3(5, 0, 0), Vector3(10, 0, 0)])
@@ -215,5 +206,3 @@ func test_random_seed_determinism() -> void:
 	var pos1 = out1.findStream(FlowData.AttrPosition)
 	var pos2 = out2.findStream(FlowData.AttrPosition)
 	assert_array(pos1.container).is_equal(pos2.container)
-	node1.free()
-	node2.free()

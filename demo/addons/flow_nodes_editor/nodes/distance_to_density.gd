@@ -4,6 +4,7 @@ extends FlowNodeBase
 func _init():
 	meta_node = {
 		"title" : "Distance to Density",
+		"category" : "Density",
 		"settings" : DistanceToDensityNodeSettings,
 		"ins" : [{ "label": "In" }], 
 		"outs" : [{ "label" : "Out" }],

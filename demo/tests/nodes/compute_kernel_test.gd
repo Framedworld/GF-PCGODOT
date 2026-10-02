@@ -48,13 +48,11 @@ func test_missing_input_sets_error() -> void:
 	var s = _default_settings()
 	var node = _run([], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_null_input_sets_error() -> void:
 	var s = _default_settings()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # --- Empty data passthrough -------------------------------------------------
 # When point_count == 0 the node should emit the duplicate without touching
@@ -68,7 +66,6 @@ func test_empty_data_passes_through() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 # --- Malformed input binding ------------------------------------------------
 
@@ -78,7 +75,6 @@ func test_malformed_input_binding_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_input_binding_non_int_index_sets_error() -> void:
 	var s = _default_settings()
@@ -86,7 +82,6 @@ func test_input_binding_non_int_index_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # --- Malformed output binding -----------------------------------------------
 
@@ -96,7 +91,6 @@ func test_malformed_output_binding_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_output_binding_unsupported_type_sets_error() -> void:
 	var s = _default_settings()
@@ -104,7 +98,6 @@ func test_output_binding_unsupported_type_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_output_binding_non_int_index_sets_error() -> void:
 	var s = _default_settings()
@@ -112,7 +105,6 @@ func test_output_binding_non_int_index_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # --- No output bindings -----------------------------------------------------
 
@@ -122,7 +114,6 @@ func test_no_output_bindings_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_only_empty_string_output_bindings_sets_error() -> void:
 	var s = _default_settings()
@@ -130,7 +121,6 @@ func test_only_empty_string_output_bindings_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # --- Missing referenced stream ----------------------------------------------
 
@@ -140,7 +130,6 @@ func test_missing_stream_in_input_binding_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # --- Inline shader source empty ---------------------------------------------
 
@@ -151,7 +140,6 @@ func test_empty_inline_shader_source_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_whitespace_only_inline_shader_source_sets_error() -> void:
 	var s = _default_settings()
@@ -160,7 +148,6 @@ func test_whitespace_only_inline_shader_source_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([5.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # --- FILE mode with invalid path --------------------------------------------
 
@@ -171,7 +158,6 @@ func test_file_mode_empty_path_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_file_mode_nonexistent_path_sets_error() -> void:
 	var s = _default_settings()
@@ -180,7 +166,6 @@ func test_file_mode_nonexistent_path_sets_error() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # --- Graceful fallback: input passes through unchanged ----------------------
 # On GPU failure the node calls _fallback which calls set_output(0, in_data).
@@ -195,7 +180,6 @@ func test_graceful_fallback_preserves_input_streams() -> void:
 	assert_object(out).is_not_null()
 	var stream = out.findStream("value")
 	assert_object(stream).is_not_null()
-	node.free()
 
 # --- Unsupported stream type for packing ------------------------------------
 
@@ -206,7 +190,6 @@ func test_color_stream_input_binding_sets_error() -> void:
 	var d = _make_data("col", PackedColorArray([Color(1, 0, 0, 1)]), FlowDataScript.DataType.Color)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # --- Vec3 packing variants (parsing only; GPU may not be available) ---------
 # Both packing modes should not error before reaching GPU creation.
@@ -221,7 +204,6 @@ func test_vec3_padded_packing_reaches_shader_stage() -> void:
 	var d = _make_data("pos", PackedVector3Array([Vector3(1, 2, 3)]), FlowDataScript.DataType.Vector)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_vec3_tight_packing_reaches_shader_stage() -> void:
 	var s = _default_settings()
@@ -232,7 +214,6 @@ func test_vec3_tight_packing_reaches_shader_stage() -> void:
 	var d = _make_data("pos", PackedVector3Array([Vector3(4, 5, 6)]), FlowDataScript.DataType.Vector)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # --- bind_point_count disabled: still validates bindings --------------------
 
@@ -243,7 +224,6 @@ func test_bind_point_count_false_still_validates_output_bindings() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # --- Skipped / whitespace input bindings are ignored -----------------------
 # A binding entry that is all whitespace should be skipped without error,
@@ -257,7 +237,6 @@ func test_whitespace_input_bindings_skipped() -> void:
 	var d = _make_data("value", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # --- Int stream is accepted as input (packed as float) ----------------------
 
@@ -269,4 +248,3 @@ func test_int_stream_input_reaches_shader_stage() -> void:
 	var d = _make_data("ids", PackedInt32Array([1, 2, 3]), FlowDataScript.DataType.Int)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()

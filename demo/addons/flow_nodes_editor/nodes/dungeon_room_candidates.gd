@@ -23,7 +23,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var n_candidates : int = getSettingValue(ctx, "candidate_count", 40)
 	var r_min : int = getSettingValue(ctx, "min_room_size", 3)
 	var r_max : int = getSettingValue(ctx, "max_room_size", 6)
-	var seed_val : int = getSettingValue(ctx, "random_seed", 12345)
+	var seed_val : int = derive_seed(graph_seed, int(getSettingValue(ctx, "random_seed", 12345)))
 	
 	if r_min > r_max:
 		setError("min_room_size (%d) must be <= max_room_size (%d)" % [r_min, r_max])

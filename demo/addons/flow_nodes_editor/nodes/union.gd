@@ -4,6 +4,7 @@ extends "res://addons/flow_nodes_editor/nodes/difference.gd"
 func _init():
 	meta_node = {
 		"title" : "Union",
+		"category" : "Spatial",
 		"settings" : DifferenceNodeSettings,
 		"ins" : [{ "label": "In A" }, { "label": "In B" }],
 		"outs" : [{ "label" : "Out" }],

@@ -51,7 +51,6 @@ func test_basic_distance() -> void:
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.001)
 	assert_float(stream.container[1]).is_equal_approx(2.0, 0.001)
-	node.free()
 
 func test_distance_normalized_by_max_distance() -> void:
 	var s = DistanceSettings.new()
@@ -75,7 +74,6 @@ func test_distance_normalized_by_max_distance() -> void:
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(0.0, 0.001)
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.001)
-	node.free()
 
 func test_empty_input_a_passes_through() -> void:
 	var s = DistanceSettings.new()
@@ -91,7 +89,6 @@ func test_empty_input_a_passes_through() -> void:
 	var stream = out.findStream("distance")
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(0)
-	node.free()
 
 func test_empty_b_set_fills_with_ones() -> void:
 	var s = DistanceSettings.new()
@@ -115,7 +112,6 @@ func test_empty_b_set_fills_with_ones() -> void:
 	assert_int(stream.container.size()).is_equal(2)
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.001)
 	assert_float(stream.container[1]).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_missing_target_port_errors() -> void:
 	var s = DistanceSettings.new()
@@ -128,7 +124,6 @@ func test_missing_target_port_errors() -> void:
 	var node = _run([_make_vector_data("position", pts_a), null], s)
 
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_out_name_errors() -> void:
 	var s = DistanceSettings.new()
@@ -145,4 +140,3 @@ func test_empty_out_name_errors() -> void:
 	], s)
 
 	assert_str(node.err).is_not_empty()
-	node.free()

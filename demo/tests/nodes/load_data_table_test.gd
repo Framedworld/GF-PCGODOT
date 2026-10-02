@@ -55,21 +55,18 @@ func test_empty_path_produces_no_error() -> void:
 	s.table_path = ""
 	var node = _run(s)
 	assert_str(node.err).is_empty()
-	node.free()
 
 func test_missing_file_sets_error() -> void:
 	var s = _default_settings()
 	s.table_path = "res://this_file_does_not_exist_ever.csv"
 	var node = _run(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_file_error_mentions_path() -> void:
 	var s = _default_settings()
 	s.table_path = "res://no_such_file.csv"
 	var node = _run(s)
 	assert_str(node.err).contains("no_such_file.csv")
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Basic CSV parsing: column count and row count
@@ -88,7 +85,6 @@ func test_basic_csv_row_and_column_count() -> void:
 	var name_stream = out.findStream("name")
 	assert_object(name_stream).is_not_null()
 	assert_int(name_stream.container.size()).is_equal(2)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Type inference: Int column
@@ -109,7 +105,6 @@ func test_infers_int_column() -> void:
 	assert_int(id_stream.container[0]).is_equal(1)
 	assert_int(id_stream.container[1]).is_equal(2)
 	assert_int(id_stream.container[2]).is_equal(3)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Type inference: Float column
@@ -129,7 +124,6 @@ func test_infers_float_column() -> void:
 	assert_float(x_stream.container[0]).is_equal_approx(1.5, 0.001)
 	assert_float(x_stream.container[1]).is_equal_approx(2.5, 0.001)
 	assert_float(x_stream.container[2]).is_equal_approx(3.5, 0.001)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Type inference: Bool column
@@ -149,7 +143,6 @@ func test_infers_bool_column() -> void:
 	assert_int(flag_stream.container[0]).is_equal(1)
 	assert_int(flag_stream.container[1]).is_equal(0)
 	assert_int(flag_stream.container[2]).is_equal(1)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Type inference: String column (mixed types -> falls back to String)
@@ -169,7 +162,6 @@ func test_infers_string_column_for_mixed() -> void:
 	# String container
 	assert_str(String(label_stream.container[0])).is_equal("hello")
 	assert_str(String(label_stream.container[2])).is_equal("world")
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Type inference disabled: all columns become String
@@ -190,7 +182,6 @@ func test_no_type_inference_all_strings() -> void:
 	# Without inference, container should be PackedStringArray
 	assert_str(String(id_stream.container[0])).is_equal("1")
 	assert_str(String(id_stream.container[1])).is_equal("2")
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Vector column (quoted "x,y,z" in comma-delimited file)
@@ -211,7 +202,6 @@ func test_infers_vector_column_quoted() -> void:
 	assert_bool(Vector3(1, 2, 3).is_equal_approx(v0)).is_true()
 	var v1 = pos_stream.container[1]
 	assert_bool(Vector3(4, 5, 6).is_equal_approx(v1)).is_true()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Tab delimiter
@@ -231,7 +221,6 @@ func test_tab_delimiter() -> void:
 	assert_object(a_stream).is_not_null()
 	assert_int(a_stream.container[0]).is_equal(10)
 	assert_int(a_stream.container[1]).is_equal(30)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Semicolon delimiter
@@ -250,7 +239,6 @@ func test_semicolon_delimiter() -> void:
 	var x_stream = out.findStream("x")
 	assert_object(x_stream).is_not_null()
 	assert_int(x_stream.container[0]).is_equal(1)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Pipe delimiter
@@ -270,7 +258,6 @@ func test_pipe_delimiter() -> void:
 	assert_object(col1_stream).is_not_null()
 	assert_str(String(col1_stream.container[0])).is_equal("foo")
 	assert_str(String(col1_stream.container[1])).is_equal("baz")
-	node.free()
 
 # ---------------------------------------------------------------------------
 # first_row_is_header = false: auto-generated column names
@@ -293,7 +280,6 @@ func test_no_header_generates_column_names() -> void:
 	# Values are all rows (no header consumed)
 	var c0 = out.findStream("column_0")
 	assert_int(c0.container.size()).is_equal(2)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Duplicate header names get unique suffixes
@@ -311,7 +297,6 @@ func test_duplicate_headers_made_unique() -> void:
 	assert_object(out.findStream("x")).is_not_null()
 	assert_object(out.findStream("x_1")).is_not_null()
 	assert_object(out.findStream("x_2")).is_not_null()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Header spaces replaced with underscores
@@ -328,7 +313,6 @@ func test_header_spaces_replaced_with_underscores() -> void:
 	assert_object(out).is_not_null()
 	assert_object(out.findStream("first_name")).is_not_null()
 	assert_object(out.findStream("last_name")).is_not_null()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # trim_values: leading/trailing whitespace stripped
@@ -348,7 +332,6 @@ func test_trim_values_strips_whitespace() -> void:
 	var v = out.findStream("val")
 	assert_str(String(v.container[0])).is_equal("hello")
 	assert_str(String(v.container[1])).is_equal("world")
-	node.free()
 
 # ---------------------------------------------------------------------------
 # trim_values = false: whitespace preserved
@@ -367,7 +350,6 @@ func test_no_trim_preserves_whitespace() -> void:
 	assert_object(out).is_not_null()
 	var v = out.findStream("val")
 	assert_str(String(v.container[0])).is_equal("  hello  ")
-	node.free()
 
 # ---------------------------------------------------------------------------
 # add_row_index emits a zero-based Int stream
@@ -390,7 +372,6 @@ func test_add_row_index_stream() -> void:
 	assert_int(idx.container[0]).is_equal(0)
 	assert_int(idx.container[1]).is_equal(1)
 	assert_int(idx.container[2]).is_equal(2)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # add_row_index with blank attribute name: stream NOT added
@@ -409,7 +390,6 @@ func test_add_row_index_blank_name_skipped() -> void:
 	assert_object(out).is_not_null()
 	# No row_index stream should exist when attribute name is blank
 	assert_object(out.findStream("")).is_null()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # add_source_path emits a String stream with the file path
@@ -431,7 +411,6 @@ func test_add_source_path_stream() -> void:
 	assert_int(sp.container.size()).is_equal(2)
 	assert_str(String(sp.container[0])).is_equal(path)
 	assert_str(String(sp.container[1])).is_equal(path)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Quoted fields containing the delimiter are parsed as one cell
@@ -449,7 +428,6 @@ func test_quoted_field_with_delimiter_inside() -> void:
 	var note_stream = out.findStream("note")
 	assert_object(note_stream).is_not_null()
 	assert_str(String(note_stream.container[0])).is_equal("hello, world")
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Escaped quotes ("") inside a quoted field
@@ -468,7 +446,6 @@ func test_escaped_double_quotes_in_field() -> void:
 	var text_stream = out.findStream("text")
 	assert_object(text_stream).is_not_null()
 	assert_str(String(text_stream.container[0])).is_equal("say \"hello\"")
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Empty file produces no error and no streams (or empty data)
@@ -480,7 +457,6 @@ func test_empty_file_produces_no_error() -> void:
 	s.table_path = path
 	var node = _run(s)
 	assert_str(node.err).is_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Single header row only (no data rows) produces zero-size streams
@@ -498,7 +474,6 @@ func test_header_only_produces_zero_rows() -> void:
 	var name_stream = out.findStream("name")
 	assert_object(name_stream).is_not_null()
 	assert_int(name_stream.container.size()).is_equal(0)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # CRLF line endings parsed correctly
@@ -518,7 +493,6 @@ func test_crlf_line_endings() -> void:
 	assert_int(a_stream.container.size()).is_equal(2)
 	assert_int(a_stream.container[0]).is_equal(1)
 	assert_int(a_stream.container[1]).is_equal(3)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Blank column header falls back to "column_N"
@@ -536,4 +510,3 @@ func test_blank_header_becomes_column_index_name() -> void:
 	# Blank first header -> "column_0"
 	assert_object(out.findStream("column_0")).is_not_null()
 	assert_object(out.findStream("value")).is_not_null()
-	node.free()

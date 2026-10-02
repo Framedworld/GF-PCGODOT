@@ -70,7 +70,6 @@ func test_all_attributes_present() -> void:
 	var sz_stream = out.findStream(FlowDataScript.AttrSize)
 	assert_object(sz_stream).is_not_null()
 	assert_array(sz_stream.container).is_equal(sz)
-	node.free()
 
 func test_use_defaults_when_missing_all() -> void:
 	var s = _default_settings()
@@ -105,13 +104,11 @@ func test_use_defaults_when_missing_all() -> void:
 	assert_array(sz_stream.container).is_equal(PackedVector3Array([
 		Vector3(5, 5, 5), Vector3(5, 5, 5), Vector3(5, 5, 5)
 	]))
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s = _default_settings()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_position_attribute_no_default_error() -> void:
 	var s = _default_settings()
@@ -125,7 +122,6 @@ func test_missing_position_attribute_no_default_error() -> void:
 
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_size_attribute_no_default_error() -> void:
 	var s = _default_settings()
@@ -139,20 +135,20 @@ func test_missing_size_attribute_no_default_error() -> void:
 
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_wrong_stream_type_error() -> void:
 	var s = _default_settings()
 	s.use_defaults_when_missing = false
 
 	var d = FlowDataScript.Data.new()
-	d.registerStream("position", PackedFloat32Array([1.0, 2.0, 3.0]), FlowDataScript.DataType.Float)
+	# The canonical schema refuses a Float "position" through registerStream; build
+	# the mistyped stream by hand to keep exercising the node's own type check.
+	d.streams["position"] = { "container": PackedFloat32Array([1.0, 2.0, 3.0]), "name": "position", "data_type": FlowDataScript.DataType.Float }
 	d.registerStream("rotation", PackedVector3Array([Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]), FlowDataScript.DataType.Vector)
 	d.registerStream("size", PackedVector3Array([Vector3.ONE, Vector3.ONE, Vector3.ONE]), FlowDataScript.DataType.Vector)
 
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_input_passes_through() -> void:
 	var s = _default_settings()
@@ -163,7 +159,6 @@ func test_empty_input_passes_through() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_single_element_broadcast() -> void:
 	var s = _default_settings()
@@ -193,7 +188,6 @@ func test_single_element_broadcast() -> void:
 	assert_array(sz_stream.container).is_equal(PackedVector3Array([
 		Vector3(2, 2, 2), Vector3(2, 2, 2), Vector3(2, 2, 2)
 	]))
-	node.free()
 
 func test_custom_attribute_names() -> void:
 	var s = AttributeSetToPointSettings.new()
@@ -225,7 +219,6 @@ func test_custom_attribute_names() -> void:
 	var sz_out = out.findStream(FlowDataScript.AttrSize)
 	assert_object(sz_out).is_not_null()
 	assert_array(sz_out.container).is_equal(sz)
-	node.free()
 
 func test_size_mismatch_error() -> void:
 	var s = _default_settings()
@@ -241,4 +234,3 @@ func test_size_mismatch_error() -> void:
 
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()

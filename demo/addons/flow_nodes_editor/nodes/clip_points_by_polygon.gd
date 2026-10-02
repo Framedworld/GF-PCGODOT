@@ -57,7 +57,7 @@ func _collect_polygons_from_settings(ctx : FlowData.EvaluationContext) -> Array:
 	var polygons : Array = []
 	if settings.polygon_node_path == NodePath():
 		return polygons
-	var root = ctx.owner if ctx.owner else (EditorInterface.get_edited_scene_root() if Engine.is_editor_hint() else null)
+	var root = ctx.owner if ctx.owner else editor_edited_scene_root()
 	if root == null:
 		return polygons
 	var node = root.get_node_or_null(settings.polygon_node_path)
@@ -72,6 +72,14 @@ func _is_inside_any(p : Vector2, polygons : Array) -> bool:
 		if Geometry2D.is_point_in_polygon(p, poly):
 			return true
 	return false
+
+# Editor dirty tracking: with a polygon_node_path the node reads a Path3D from
+# the scene, so any scene edit may change its output (polygons wired through
+# the Polygon input are covered by the node that scanned them).
+func computeSceneFingerprint(ctx : FlowData.EvaluationContext) -> Variant:
+	if settings == null or settings.polygon_node_path == NodePath():
+		return SCENE_INDEPENDENT
+	return null
 
 func execute(ctx : FlowData.EvaluationContext):
 	var points : FlowData.Data = require_input(0, ctx, "Points input")

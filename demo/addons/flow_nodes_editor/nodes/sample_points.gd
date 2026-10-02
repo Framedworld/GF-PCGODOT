@@ -9,6 +9,35 @@ class BNSample:
 	var v : float
 
 static var blue_noise_samples : Array[BNSample] = []
+# Serializes the one-time table build: FlowExecutor's threaded mode may run
+# several sample_points nodes at once (docs/PARITY_ROUND2.md WP1). The table is
+# built into a local array and published whole, so readers see it empty or full.
+static var _blue_noise_mutex := Mutex.new()
+
+## Streams the sampler generates itself; never inherited from the input points.
+const GENERATED_STREAMS := [
+	FlowData.AttrPosition, FlowData.AttrRotation, FlowData.AttrRotationQuat,
+	FlowData.AttrSize, FlowData.AttrBoundsMin, FlowData.AttrBoundsMax,
+	FlowData.AttrDensity, FlowData.AttrSeed,
+]
+
+# Parent (input point) index of every generated sample. Filled by the samplers
+# only while _track_parents is on (inherit_attributes), so the default path does
+# no extra work.
+var _track_parents : bool = false
+var _sample_parents := PackedInt32Array()
+
+## Marks every sample emitted so far beyond the recorded ones as a child of
+## input point `parent_idx`. Called at the end of each input point's iteration.
+func _record_parent( parent_idx : int, total_samples : int ) -> void:
+	if not _track_parents:
+		return
+	var from := _sample_parents.size()
+	if total_samples <= from:
+		return
+	_sample_parents.resize( total_samples )
+	for k in range( from, total_samples ):
+		_sample_parents[k] = parent_idx
 
 func _init():
 	meta_node = {
@@ -18,7 +47,7 @@ func _init():
 		"category" : "Sampler",
 		"ins" : [{ "label" : "In" }],
 		"outs" : [{ "label" : "Out" }],
-		"tooltip" : "Subdivides each input point into a subgrid of regular points with the specified sampling distance.\nSupports uniform grid, quasi-random (golden ratio) and blue-noise distributions.",
+		"tooltip" : "Subdivides each input point into a subgrid of regular points with the specified sampling distance.\nSupports uniform grid, quasi-random (golden ratio) and blue-noise distributions.\nEnable 'Inherit Attributes' to copy each input point's other attributes onto its samples.",
 	}
 	
 func isUniformGridParam( prop ) -> bool:
@@ -91,6 +120,7 @@ func uniformSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Transf
 					# UE parity: unit scale; the cell extent goes to bounds below.
 					ssize[idx] = cell_extent if legacy else Vector3.ONE
 					idx += 1
+		_record_parent( i, idx )
 
 	# Record each cell's extent as bounds, not scale, so spawned meshes are
 	# placed at natural size instead of stretched to the cell.
@@ -99,7 +129,9 @@ func uniformSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Transf
 		var extents := PackedVector3Array()
 		extents.resize( npts )
 		extents.fill( cell_extent )
-		output.setSymmetricBounds( extents )
+		# Legacy bridge: no bounds streams, exactly as before the size->bounds change.
+		if not legacy:
+			output.setSymmetricBounds( extents )
 	
 
 func uniformDistributedSample1D( n : int, base : float) -> float:
@@ -129,7 +161,7 @@ func uniformDistributedSample3D( n : int, base : float) -> Vector3:
 
 func quasiRandomSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.TransformsStream, output : FlowData.Data ):
 	
-	var samplerFn : Callable= uniformDistributedSample2Das3D if settings.distribution == SamplePointsNodeSettings.eDistribution.QuasiRandom2D else uniformDistributedSample3D
+	var is_2d : bool = settings.distribution == SamplePointsNodeSettings.eDistribution.QuasiRandom2D
 		
 	var spos := output.getVector3Container( FlowData.AttrPosition )
 	var srot := output.getVector3Container( FlowData.AttrRotation )
@@ -152,6 +184,15 @@ func quasiRandomSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tr
 		
 	if qs_num_samples < 0:
 		qs_num_samples = 0
+
+	# The 2D sequence depends only on the sample number and the phase, so it is
+	# computed once and reused for every input point (the 3D one draws from rng
+	# per sample and stays per sample, in the same order).
+	var samples_2d := PackedVector3Array()
+	if is_2d:
+		samples_2d.resize( qs_num_samples )
+		for j : int in qs_num_samples:
+			samples_2d[j] = uniformDistributedSample2Das3D( j, phase )
 	
 	for i : int in in_trs.size():
 		
@@ -167,10 +208,10 @@ func quasiRandomSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tr
 		var origin : Vector3 = in_trs.positions[ i ]
 		var rotation : Vector3 = in_trs.eulers[ i ] 
 		var size : Vector3 = in_trs.sizes[i]
-		var transform = Transform3D( FlowData.eulerToBasis(rotation), origin )
+		var transform := Transform3D( FlowData.eulerToBasis(rotation), origin )
 		
 		var offset := -size * 0.5
-		if settings.distribution == SamplePointsNodeSettings.eDistribution.QuasiRandom2D:
+		if is_2d:
 			offset.y = 0.0
 			
 		var color_idx := 0
@@ -178,7 +219,7 @@ func quasiRandomSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tr
 	
 		#print( "num_samples is %d. Max_j starts at %d " % [ qs_num_samples, max_j ] )
 		for j : int in qs_num_samples:
-			var p : Vector3 = samplerFn.call( j, phase ) * size + offset
+			var p : Vector3 = ( samples_2d[j] if is_2d else uniformDistributedSample3D( j, phase ) ) * size + offset
 			spos[idx] = transform * p
 			srot[idx] = rotation
 			ssize[idx] = point_size
@@ -190,8 +231,16 @@ func quasiRandomSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tr
 					max_j += settings.groups[ color_idx ]
 				out_group_container[idx] = color_idx
 			idx += 1
+		_record_parent( i, idx )
 
 func precomputeBlueNoiseSamples():
+	_blue_noise_mutex.lock()
+	if blue_noise_samples.is_empty():
+		_build_blue_noise_samples()
+	_blue_noise_mutex.unlock()
+
+func _build_blue_noise_samples():
+	var samples : Array[BNSample] = []
 	# Normalize to RGBA8 so the 4-bytes-per-pixel layout below always holds
 	var img : Image = blue_noise_image
 	if img.get_format() != Image.FORMAT_RGBA8:
@@ -202,7 +251,7 @@ func precomputeBlueNoiseSamples():
 	var data : PackedByteArray = img.get_data()
 	var grid_scale_x : float = 1.0 / float(w)
 	var grid_scale_z : float = 1.0 / float(h)
-	blue_noise_samples.resize( w * h )
+	samples.resize( w * h )
 	var idx : int = 0
 	for z : int in range(h):
 		for x : int in range(w):
@@ -215,10 +264,11 @@ func precomputeBlueNoiseSamples():
 			bns.u = x * grid_scale_x
 			bns.v = z * grid_scale_z
 			bns.key = (tex_value << 16) + hash
-			blue_noise_samples[idx] = bns
+			samples[idx] = bns
 			idx += 1
-	blue_noise_samples.sort_custom( func( a: BNSample, b : BNSample) -> bool:
+	samples.sort_custom( func( a: BNSample, b : BNSample) -> bool:
 		return a.key < b.key )
+	blue_noise_samples = samples
 
 func blueNoiseSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.TransformsStream, output : FlowData.Data ):
 
@@ -255,7 +305,7 @@ func blueNoiseSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tran
 		var cell_size : Vector3 = Vector3( max_size, 1.0, max_size )
 
 		# Add i + 256 so each point has a potentially different distribution
-		var base_j : int = posmod( settings.random_seed + i * 256, num_bn )
+		var base_j : int = posmod( effective_seed() + i * 256, num_bn )
 		var max_x = min( size.x, max_size ) * 0.5
 		var max_z = min( size.z, max_size ) * 0.5
 		if blue_noise_samples.is_empty():
@@ -276,6 +326,7 @@ func blueNoiseSampling( ctx : FlowData.EvaluationContext, in_trs : FlowData.Tran
 		spos.resize( idx )
 		srot.resize( idx )
 		ssize.resize( idx )
+		_record_parent( i, idx )
 		
 # Sampler convention (UE parity): outputs carry a density stream (1.0) and a
 # per-point deterministic seed stream derived from the position + node seed.
@@ -284,8 +335,33 @@ func registerDensityAndSeedStreams( out_data : FlowData.Data ):
 	sdensity.fill( 1.0 )
 	var sseed : PackedInt32Array = out_data.addStream( FlowData.AttrSeed, FlowData.DataType.Int )
 	var spos := out_data.getVector3Container( FlowData.AttrPosition )
-	for i in sseed.size():
-		sseed[i] = FlowData.point_seed( spos[i], settings.random_seed )
+	# effective_seed() is constant during the loop. The seed stream is as long
+	# as the position stream (addStream sizes it by size(), the first stream).
+	var node_seed : int = effective_seed()
+	if spos.size() == sseed.size():
+		var seeds := FlowData.point_seed_stream( spos, node_seed )
+		for i in sseed.size():
+			sseed[i] = seeds[i]
+	else:
+		for i in sseed.size():
+			sseed[i] = FlowData.point_seed( spos[i], node_seed )
+
+## Copies every non-generated input stream onto the samples, gathering each
+## sample's value from its parent input point (see _sample_parents).
+func inheritInputAttributes( in_data : FlowData.Data, out_data : FlowData.Data ):
+	for stream_name in in_data.streams:
+		if GENERATED_STREAMS.has( StringName( stream_name ) ) or out_data.streams.has( stream_name ):
+			continue
+		var istream = in_data.streams[ stream_name ]
+		var container
+		if istream.container.size() == 1:
+			# Broadcast stays broadcast (also covers a single input point).
+			container = istream.container.duplicate()
+		else:
+			container = in_data.filteredStream( istream, _sample_parents )
+		if container == null:
+			continue
+		out_data.registerStream( stream_name, container, istream.data_type )
 
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input( 0, ctx )
@@ -293,9 +369,13 @@ func execute( ctx : FlowData.EvaluationContext ):
 		return
 	var out_data := FlowData.Data.new()
 	out_data.addCommonStreams( 0 )
+	_track_parents = settings.inherit_attributes
+	_sample_parents = PackedInt32Array()
 	if in_data.size() == 0:
 		# Keep the output shape consistent with the non-empty case
 		registerDensityAndSeedStreams( out_data )
+		if _track_parents:
+			inheritInputAttributes( in_data, out_data )
 		set_output( 0, out_data )
 		return
 	var in_trs : FlowData.TransformsStream = in_data.getTransformsStream()
@@ -323,4 +403,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			quasiRandomSampling( ctx, in_trs, out_data )
 
 	registerDensityAndSeedStreams( out_data )
+	if _track_parents:
+		inheritInputAttributes( in_data, out_data )
+	_track_parents = false
 	set_output( 0, out_data )

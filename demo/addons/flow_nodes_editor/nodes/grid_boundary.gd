@@ -85,7 +85,7 @@ func _records_to_data(records : Array) -> FlowData.Data:
 func execute(ctx : FlowData.EvaluationContext):
 	var in_data : FlowData.Data = get_input(0)
 	if in_data == null:
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			var empty := FlowData.Data.new()
 			set_output(0, empty)
 			set_output(1, empty)
@@ -95,7 +95,7 @@ func execute(ctx : FlowData.EvaluationContext):
 		return
 	var in_positions := in_data.getVector3Container(FlowData.AttrPosition)
 	if in_positions.size() != in_data.size():
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			var empty := FlowData.Data.new()
 			set_output(0, empty)
 			set_output(1, empty)

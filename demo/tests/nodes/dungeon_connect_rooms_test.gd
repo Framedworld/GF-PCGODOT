@@ -49,7 +49,6 @@ func test_missing_input_error() -> void:
 	node.execute(ctx)
 	assert_str(node.err).is_not_empty()
 	dummy.free()
-	node.free()
 
 func test_single_point_returns_empty_output() -> void:
 	var input = _make_input(PackedVector3Array([Vector3(0, 0, 0)]))
@@ -59,7 +58,6 @@ func test_single_point_returns_empty_output() -> void:
 	assert_object(out).is_not_null()
 	var spos = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(spos.size()).is_equal(0)
-	node.free()
 
 func test_two_rooms_generates_corridor() -> void:
 	var input = _make_input(PackedVector3Array([
@@ -80,7 +78,6 @@ func test_two_rooms_generates_corridor() -> void:
 	assert_object(type_stream).is_not_null()
 	assert_int(cell_type_stream.container.size()).is_equal(spos.size())
 	assert_int(conn_id_stream.container.size()).is_equal(spos.size())
-	node.free()
 
 func test_corridor_cells_are_all_corridor_type() -> void:
 	var input = _make_input(PackedVector3Array([
@@ -94,7 +91,6 @@ func test_corridor_cells_are_all_corridor_type() -> void:
 	assert_object(cell_type_stream).is_not_null()
 	for ct in cell_type_stream.container:
 		assert_str(ct).is_equal("Corridor")
-	node.free()
 
 func test_connection_ids_assigned_per_pair() -> void:
 	var input = _make_input(PackedVector3Array([
@@ -112,7 +108,6 @@ func test_connection_ids_assigned_per_pair() -> void:
 		ids_seen[id] = true
 	assert_bool(ids_seen.has(0)).is_true()
 	assert_bool(ids_seen.has(1)).is_true()
-	node.free()
 
 func test_no_duplicate_corridor_cells() -> void:
 	var input = _make_input(PackedVector3Array([
@@ -129,7 +124,6 @@ func test_no_duplicate_corridor_cells() -> void:
 		var key := Vector3i(int(p.x), int(p.y), int(p.z))
 		assert_bool(seen.has(key)).is_false()
 		seen[key] = true
-	node.free()
 
 func test_cell_size_affects_output_positions() -> void:
 	var input = _make_input(PackedVector3Array([
@@ -145,8 +139,6 @@ func test_cell_size_affects_output_positions() -> void:
 	var spos_small = out_small.getVector3Container(FlowData.AttrPosition)
 	var spos_large = out_large.getVector3Container(FlowData.AttrPosition)
 	assert_bool(spos_small.size() != spos_large.size() or spos_small != spos_large).is_true()
-	node_small.free()
-	node_large.free()
 
 func test_output_size_stream_matches_cell_size() -> void:
 	var input = _make_input(PackedVector3Array([
@@ -163,7 +155,6 @@ func test_output_size_stream_matches_cell_size() -> void:
 		assert_float(sz.x).is_equal_approx(cell_size, 0.001)
 		assert_float(sz.z).is_equal_approx(cell_size, 0.001)
 		assert_float(sz.y).is_equal_approx(1.0, 0.001)
-	node.free()
 
 func test_corridor_y_positions_are_zero() -> void:
 	var input = _make_input(PackedVector3Array([
@@ -176,7 +167,6 @@ func test_corridor_y_positions_are_zero() -> void:
 	var spos = out.getVector3Container(FlowData.AttrPosition)
 	for p in spos:
 		assert_float(p.y).is_equal_approx(0.0, 0.001)
-	node.free()
 
 func test_type_stream_all_zeros() -> void:
 	var input = _make_input(PackedVector3Array([
@@ -190,4 +180,3 @@ func test_type_stream_all_zeros() -> void:
 	assert_object(type_stream).is_not_null()
 	for v in type_stream.container:
 		assert_float(v).is_equal_approx(0.0, 0.001)
-	node.free()

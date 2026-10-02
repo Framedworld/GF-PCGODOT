@@ -4,6 +4,7 @@ extends FlowNodeBase
 func _init():
 	meta_node = {
 		"title" : "Output",
+		"category" : "Output",
 		"settings" : OutputNodeSettings,
 		"ins" : [{ "label" : "In", "data_type" : FlowData.DataType.Float }],
 		"outs" : [],
@@ -46,22 +47,21 @@ func getTitle() -> String:
 		return "Outputs"
 	return settings.name if settings else "Output"
 
-func refreshFromSettings():
-	super.refreshFromSettings()
+# --- Widget hooks (see node.gd) -----------------------------------------------
+
+func widget_refresh(widget):
 	if is_multi_port():
-		pass
-	else:
-		if is_slot_enabled_left( 0 ):
-			var color := getColorForFlowDataType( settings.data_type )
-			set_slot_color_left( 0, color )
+		return
+	if widget.is_slot_enabled_left( 0 ):
+		var color := getColorForFlowDataType( settings.data_type )
+		widget.set_slot_color_left( 0, color )
 
 func onPropChanged( prop_name : String ):
 	super.onPropChanged( prop_name )
 	if prop_name == "data_type" or prop_name == "name":
 		refreshFromSettings()
 
-func _ready():
-	super._ready()
+func widget_ready(_widget):
 	if is_multi_port():
 		var editor = getEditor()
 		if editor and editor.current_resource:
@@ -69,8 +69,7 @@ func _ready():
 				editor.current_resource.in_params_changed.connect(_on_in_params_changed)
 			initFromScript()
 
-func _exit_tree():
-	super._exit_tree()
+func widget_exit_tree(_widget):
 	if is_multi_port():
 		var editor = getEditor()
 		if editor and editor.current_resource:
@@ -80,12 +79,11 @@ func _exit_tree():
 func _on_in_params_changed():
 	initFromScript()
 
-func initFromScript():
-	super.initFromScript()
+func widget_init(widget):
 	if is_multi_port():
 		var spacer = Control.new()
 		spacer.custom_minimum_size.y = 4
-		add_child(spacer)
+		widget.add_child(spacer)
 		
 		var btn = Button.new()
 		btn.text = "+ Add Output Parameter"
@@ -93,7 +91,7 @@ func initFromScript():
 		btn.add_theme_font_size_override("font_size", 10)
 		if not btn.pressed.is_connected(_on_add_output_pressed_deferred):
 			btn.pressed.connect(_on_add_output_pressed_deferred)
-		add_child(btn)
+		widget.add_child(btn)
 
 func _on_add_output_pressed_deferred():
 	call_deferred("_on_add_output_pressed")
@@ -133,6 +131,10 @@ func execute( ctx : FlowData.EvaluationContext ):
 			for stream_name in in_data.streams:
 				var stream = in_data.streams[stream_name]
 				target_data.registerStream(stream_name, stream.container, stream.data_type)
+			# Carry the whole Data across the graph boundary, not just its
+			# streams (docs/RUNTIME_API_P0.md §6): per-data attributes, tags and
+			# the kind marker survive subgraph outputs and component outputs.
+			target_data.copy_meta_from(in_data)
 
 			if in_data.streams.size() == 0:
 				set_output( 0, target_data )
@@ -142,8 +144,10 @@ func execute( ctx : FlowData.EvaluationContext ):
 			if main_stream_name == "" or not in_data.hasStream(main_stream_name):
 				main_stream_name = in_data.streams.keys()[in_data.streams.size() - 1]
 				
-			if in_data.streams.size() > 0 and not target_data.hasStream(settings.name):
-				var main_stream = in_data.streams[main_stream_name]
+			var main_stream = in_data.streams[main_stream_name]
+			# A port named like a canonical attribute (density, seed, ...) only
+			# aliases a main stream of that attribute's type.
+			if not target_data.hasStream(settings.name) and FlowData.canonical_type_error(settings.name, main_stream.data_type) == "":
 				# Register the named output with the main stream's ACTUAL data_type, not
 				# the port's declared settings.data_type. Forcing a declared type onto a
 				# container of a different type (e.g. a Float main stream exposed through a

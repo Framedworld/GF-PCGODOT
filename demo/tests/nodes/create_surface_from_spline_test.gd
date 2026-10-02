@@ -87,7 +87,6 @@ func test_basic_xz_surface() -> void:
 	assert_object(perim_stream).is_not_null()
 	assert_bool(perim_stream.container[0] > 0.0).is_true()
 
-	node.free()
 	path.free()
 
 func test_xy_plane_mode() -> void:
@@ -109,7 +108,6 @@ func test_xy_plane_mode() -> void:
 	assert_object(area_stream).is_not_null()
 	assert_bool(area_stream.container[0] > 0.0).is_true()
 
-	node.free()
 	path.free()
 
 func test_multiple_paths_produce_multiple_surfaces() -> void:
@@ -135,7 +133,6 @@ func test_multiple_paths_produce_multiple_surfaces() -> void:
 	assert_object(area_stream).is_not_null()
 	assert_int(area_stream.container.size()).is_equal(2)
 
-	node.free()
 	pathA.free()
 	pathB.free()
 
@@ -160,7 +157,6 @@ func test_spline_ref_output_included() -> void:
 	assert_int(ref_stream.container.size()).is_equal(1)
 	assert_bool(ref_stream.container[0] == path).is_true()
 
-	node.free()
 	path.free()
 
 func test_spline_ref_excluded_when_disabled() -> void:
@@ -182,7 +178,6 @@ func test_spline_ref_excluded_when_disabled() -> void:
 	var ref_stream = out.findStream("node")
 	assert_object(ref_stream).is_null()
 
-	node.free()
 	path.free()
 
 func test_minimum_thickness_applied() -> void:
@@ -209,14 +204,12 @@ func test_minimum_thickness_applied() -> void:
 	assert_int(sizes.size()).is_equal(1)
 	assert_bool(sizes[0].z >= 1.0).is_true()
 
-	node.free()
 	path.free()
 
 func test_missing_input_produces_error() -> void:
 	var s := CreateSurfaceFromSplineSettings.new()
 	var node = _run(null, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_wrong_stream_name_produces_error() -> void:
 	var path := _make_path_xz(0.0, 0.0, 4.0, 4.0)
@@ -230,7 +223,6 @@ func test_wrong_stream_name_produces_error() -> void:
 	var node = _run(d, s)
 	assert_str(node.err).is_not_empty()
 
-	node.free()
 	path.free()
 
 func test_empty_stream_produces_empty_output() -> void:
@@ -254,7 +246,6 @@ func test_empty_stream_produces_empty_output() -> void:
 	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(0)
 
-	node.free()
 
 func test_optional_attributes_suppressed_when_name_empty() -> void:
 	var path := _make_path_xz(0.0, 0.0, 4.0, 4.0)
@@ -274,5 +265,4 @@ func test_optional_attributes_suppressed_when_name_empty() -> void:
 	assert_object(out.findStream("surface_area")).is_null()
 	assert_object(out.findStream("surface_perimeter")).is_null()
 
-	node.free()
 	path.free()

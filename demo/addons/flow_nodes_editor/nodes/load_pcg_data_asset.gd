@@ -11,8 +11,30 @@ func _init():
 		"outs" : [{ "label" : "Out" }],
 		"aliases" : ["Load PCG Data Asset"],
 		"category" : "Input",
-		"tooltip" : "Loads JSON or Resource-backed PCG point/attribute data into FlowData streams.\nNote: JSON numbers always parse as floats, so numeric JSON columns become Float streams (never Int).",
+		"tooltip" : "Loads JSON or Resource-backed PCG point/attribute data into FlowData streams.\nNote: JSON numbers always parse as floats, so numeric JSON columns become Float streams (never Int).\nParsed JSON is cached per path + file modification time; a changed file is re-read automatically.",
 	}
+
+# Parsed-JSON cache shared by every Load PCG Data Asset node. Keyed by the
+# resolved path, the file's modified time and every setting that changes the
+# parsed result, so an edited file (new mtime) or a settings change misses.
+# Callers always receive a duplicate(), never the cached instance.
+const MAX_CACHE_ENTRIES := 32
+static var _cache : Dictionary = {}
+## Number of JSON parses actually performed (cache misses). Test/diagnostic aid.
+static var parse_count : int = 0
+## Number of evaluations served from the cache. Test/diagnostic aid.
+static var cache_hits : int = 0
+# Guards _cache and the counters: FlowExecutor's threaded mode may run several
+# of these nodes at once (docs/PARITY_ROUND2.md WP1).
+static var _cache_mutex := Mutex.new()
+
+## Drops every cached parse result (and resets the diagnostic counters).
+static func clear_cache() -> void:
+	_cache_mutex.lock()
+	_cache.clear()
+	parse_count = 0
+	cache_hits = 0
+	_cache_mutex.unlock()
 
 func _as_vector3(value) -> Dictionary:
 	if value is Vector3:
@@ -40,14 +62,18 @@ func _infer_variant_type(values : Array) -> int:
 		if value == null:
 			continue
 		var t := typeof(value)
-		if t != TYPE_BOOL:
+		if can_bool and t != TYPE_BOOL:
 			can_bool = false
-		if t != TYPE_INT:
+		if can_int and t != TYPE_INT:
 			can_int = false
-		if t != TYPE_INT and t != TYPE_FLOAT:
+		if can_float and t != TYPE_INT and t != TYPE_FLOAT:
 			can_float = false
-		if not _as_vector3(value).ok:
+		# The Vector3 probe (string strip/replace/split) is the expensive one:
+		# only run it while Vector is still a candidate.
+		if can_vector and not _as_vector3(value).ok:
 			can_vector = false
+		if not (can_bool or can_int or can_float or can_vector):
+			break
 	if can_bool:
 		return FlowData.DataType.Bool
 	if can_int:
@@ -177,8 +203,52 @@ func _parse_resource_asset(path : String) -> FlowData.Data:
 	setError("Resource '%s' does not expose '%s', '%s', or 'points'" % [path, settings.streams_property_name, settings.rows_property_name])
 	return null
 
-func execute(_ctx : FlowData.EvaluationContext):
-	var path : String = settings.asset_path.strip_edges()
+## "path|mtime|length" identifying one on-disk revision of the file. mtime
+## has 1 s resolution on most filesystems; the byte length guards the common
+## "rewritten within the same second" case at the cost of an open().
+func _file_revision(path : String) -> String:
+	var length := -1
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f != null:
+		length = f.get_length()
+		f.close()
+	return "%s|%d|%d" % [path, FileAccess.get_modified_time(path), length]
+
+func _parse_json_asset_cached(path : String, format : int) -> FlowData.Data:
+	var revision := _file_revision(path)
+	var key := "%s|%d|%s|%s|%s|%s" % [
+		revision, format,
+		settings.rows_property_name, settings.streams_property_name,
+		str(settings.add_source_path), settings.source_path_attribute,
+	]
+	_cache_mutex.lock()
+	var cached = _cache.get(key, null)
+	if cached != null:
+		cache_hits += 1
+		_cache_mutex.unlock()
+		return cached.duplicate()
+	parse_count += 1
+	_cache_mutex.unlock()
+	var parsed := _parse_json_asset(path)
+	if parsed == null:
+		return null
+	_cache_mutex.lock()
+	if _cache.size() >= MAX_CACHE_ENTRIES:
+		_cache.clear()
+	# Drop stale entries of the same path (older mtime/length) so edits don't
+	# pile up; entries for the same file revision but other settings are kept.
+	var path_prefix := path + "|"
+	var revision_prefix := revision + "|"
+	for k in _cache.keys():
+		var ks := String(k)
+		if ks.begins_with(path_prefix) and not ks.begins_with(revision_prefix):
+			_cache.erase(k)
+	_cache[key] = parsed
+	_cache_mutex.unlock()
+	return parsed.duplicate()
+
+func execute(ctx : FlowData.EvaluationContext):
+	var path : String = str(getSettingValue(ctx, "asset_path", "")).strip_edges()
 	if path == "":
 		set_output(0, FlowData.Data.new())
 		return
@@ -193,7 +263,7 @@ func execute(_ctx : FlowData.EvaluationContext):
 
 	var out : FlowData.Data = null
 	if format == LoadPCGDataAssetSettings.eAssetFormat.Json:
-		out = _parse_json_asset(path)
+		out = _parse_json_asset_cached(path, format)
 	else:
 		out = _parse_resource_asset(path)
 	if out == null:

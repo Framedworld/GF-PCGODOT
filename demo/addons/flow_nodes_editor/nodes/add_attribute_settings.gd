@@ -39,6 +39,18 @@ enum eDomain {
 @export var cte_resource : Resource
 ## Constant string value used when the selected math/expression mode requires it.
 @export var cte_string : String = ""
+## Constant quaternion value (Quaternion data type).
+@export var cte_quaternion : Quaternion = Quaternion.IDENTITY
+## Constant Vector2 value (Vector2 data type).
+@export var cte_vector2 : Vector2 = Vector2.ZERO
+## Constant Vector4 value (Vector4 data type).
+@export var cte_vector4 : Vector4 = Vector4.ZERO
+## Constant transform value (Transform data type).
+@export var cte_transform : Transform3D = Transform3D.IDENTITY
+## Constant 64-bit integer value (Int64 data type).
+@export var cte_int64 : int = 0
+## Constant 64-bit float value (Double data type).
+@export var cte_double : float = 0.0
 
 func _init():
 	super._init()

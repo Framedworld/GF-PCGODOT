@@ -41,7 +41,6 @@ func test_missing_input_sets_error() -> void:
 	var s = GridBoundarySettings.new()
 	var node = _run(null, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_input_produces_empty_outputs() -> void:
 	var d = _make_cell_data(PackedVector3Array())
@@ -57,7 +56,6 @@ func test_empty_input_produces_empty_outputs() -> void:
 	assert_int(edges.size()).is_equal(0)
 	assert_int(corners.size()).is_equal(0)
 	assert_int(all.size()).is_equal(0)
-	node.free()
 
 func test_single_cell_generates_four_edges() -> void:
 	var d = _make_cell_data(PackedVector3Array([Vector3(0, 0, 0)]))
@@ -74,7 +72,6 @@ func test_single_cell_generates_four_edges() -> void:
 	var all = _get_output(node, 2)
 	assert_object(all).is_not_null()
 	assert_int(all.size()).is_equal(4)
-	node.free()
 
 func test_single_cell_with_corners_enabled() -> void:
 	var d = _make_cell_data(PackedVector3Array([Vector3(0, 0, 0)]))
@@ -91,7 +88,6 @@ func test_single_cell_with_corners_enabled() -> void:
 	var all = _get_output(node, 2)
 	assert_object(all).is_not_null()
 	assert_int(all.size()).is_equal(edges.size() + corners.size())
-	node.free()
 
 func test_two_adjacent_cells_share_no_inner_edge() -> void:
 	var d = _make_cell_data(PackedVector3Array([Vector3(0, 0, 0), Vector3(1, 0, 0)]))
@@ -102,7 +98,6 @@ func test_two_adjacent_cells_share_no_inner_edge() -> void:
 	var edges = _get_output(node, 0)
 	assert_object(edges).is_not_null()
 	assert_int(edges.size()).is_equal(6)
-	node.free()
 
 func test_two_cells_different_y_each_get_full_perimeter() -> void:
 	var d = _make_cell_data(PackedVector3Array([Vector3(0, 0, 0), Vector3(0, 1, 0)]))
@@ -113,7 +108,6 @@ func test_two_cells_different_y_each_get_full_perimeter() -> void:
 	var edges = _get_output(node, 0)
 	assert_object(edges).is_not_null()
 	assert_int(edges.size()).is_equal(8)
-	node.free()
 
 func test_all_output_is_union_of_edges_and_corners() -> void:
 	var positions = PackedVector3Array([
@@ -130,7 +124,6 @@ func test_all_output_is_union_of_edges_and_corners() -> void:
 	var all = _get_output(node, 2)
 	assert_object(all).is_not_null()
 	assert_int(all.size()).is_equal(edges.size() + corners.size())
-	node.free()
 
 func test_normal_attribute_stream_present_when_named() -> void:
 	var d = _make_cell_data(PackedVector3Array([Vector3(0, 0, 0)]))
@@ -144,7 +137,6 @@ func test_normal_attribute_stream_present_when_named() -> void:
 	var normal_stream = edges.findStream("boundary_normal")
 	assert_object(normal_stream).is_not_null()
 	assert_int(normal_stream.container.size()).is_equal(edges.size())
-	node.free()
 
 func test_type_attribute_stream_present_when_named() -> void:
 	var d = _make_cell_data(PackedVector3Array([Vector3(0, 0, 0)]))
@@ -158,7 +150,6 @@ func test_type_attribute_stream_present_when_named() -> void:
 	var type_stream = edges.findStream("boundary_type")
 	assert_object(type_stream).is_not_null()
 	assert_int(type_stream.container.size()).is_equal(edges.size())
-	node.free()
 
 func test_normal_attribute_absent_when_empty_string() -> void:
 	var d = _make_cell_data(PackedVector3Array([Vector3(0, 0, 0)]))
@@ -172,7 +163,6 @@ func test_normal_attribute_absent_when_empty_string() -> void:
 	assert_object(edges).is_not_null()
 	var normal_stream = edges.findStream("boundary_normal")
 	assert_object(normal_stream).is_null()
-	node.free()
 
 func test_custom_cell_size_affects_edge_positions() -> void:
 	var d = _make_cell_data(PackedVector3Array([Vector3(0, 0, 0)]))
@@ -191,7 +181,6 @@ func test_custom_cell_size_affects_edge_positions() -> void:
 			found_offset = true
 			break
 	assert_bool(found_offset).is_true()
-	node.free()
 
 func test_wall_height_setting_applied_to_size() -> void:
 	var d = _make_cell_data(PackedVector3Array([Vector3(0, 0, 0)]))
@@ -210,7 +199,6 @@ func test_wall_height_setting_applied_to_size() -> void:
 			all_correct_height = false
 			break
 	assert_bool(all_correct_height).is_true()
-	node.free()
 
 func test_large_grid_no_errors() -> void:
 	var positions = PackedVector3Array()
@@ -228,7 +216,6 @@ func test_large_grid_no_errors() -> void:
 	var corners = _get_output(node, 1)
 	assert_object(corners).is_not_null()
 	assert_int(corners.size()).is_greater(0)
-	node.free()
 
 func test_duplicate_positions_deduplicated() -> void:
 	var d = _make_cell_data(PackedVector3Array([
@@ -241,4 +228,3 @@ func test_duplicate_positions_deduplicated() -> void:
 	var edges = _get_output(node, 0)
 	assert_object(edges).is_not_null()
 	assert_int(edges.size()).is_equal(4)
-	node.free()

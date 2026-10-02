@@ -40,20 +40,17 @@ func test_empty_asset_path_sets_error() -> void:
 	var s = _make_settings("")
 	var node = _run(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_nonexistent_asset_path_sets_error() -> void:
 	var s = _make_settings("res://this_scene_does_not_exist_at_all.tscn")
 	var node = _run(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_whitespace_only_path_sets_error() -> void:
 	# strip_edges() collapses whitespace to "" — same error as empty
 	var s = _make_settings("   ")
 	var node = _run(s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # Mesh-resource branch — uses unit_cube.tres (a BoxMesh, size 1x1x1)
@@ -72,7 +69,6 @@ func test_mesh_resource_produces_one_point() -> void:
 	assert_object(out).is_not_null()
 	var positions = out.getVector3Container(FlowData.AttrPosition)
 	assert_int(positions.size()).is_equal(1)
-	node.free()
 
 func test_mesh_resource_center_at_aabb_center() -> void:
 	# BoxMesh 1x1x1 centered at origin — AABB center == Vector3.ZERO
@@ -85,7 +81,6 @@ func test_mesh_resource_center_at_aabb_center() -> void:
 	var out = _output(node)
 	var positions = out.getVector3Container(FlowData.AttrPosition)
 	assert_bool(positions[0].is_equal_approx(Vector3.ZERO)).is_true()
-	node.free()
 
 func test_mesh_resource_rotation_is_zero() -> void:
 	# Mesh branch always writes Vector3.ZERO for rotation
@@ -98,7 +93,6 @@ func test_mesh_resource_rotation_is_zero() -> void:
 	var out = _output(node)
 	var rotations = out.getVector3Container(FlowData.AttrRotation)
 	assert_bool(rotations[0].is_equal_approx(Vector3.ZERO)).is_true()
-	node.free()
 
 func test_mesh_resource_size_from_bounds() -> void:
 	# use_mesh_bounds=true: size == aabb.size == Vector3(1,1,1) for default BoxMesh
@@ -112,7 +106,6 @@ func test_mesh_resource_size_from_bounds() -> void:
 	var out = _output(node)
 	var sizes = out.getVector3Container(FlowData.AttrSize)
 	assert_bool(sizes[0].is_equal_approx(Vector3.ONE)).is_true()
-	node.free()
 
 func test_mesh_resource_size_uses_fallback_when_bounds_disabled() -> void:
 	var fallback = Vector3(3.0, 4.0, 5.0)
@@ -127,7 +120,6 @@ func test_mesh_resource_size_uses_fallback_when_bounds_disabled() -> void:
 	var out = _output(node)
 	var sizes = out.getVector3Container(FlowData.AttrSize)
 	assert_bool(sizes[0].is_equal_approx(fallback)).is_true()
-	node.free()
 
 func test_mesh_resource_include_mesh_resource_stream() -> void:
 	var s = _make_settings(MESH_PATH)
@@ -142,7 +134,6 @@ func test_mesh_resource_include_mesh_resource_stream() -> void:
 	assert_object(mesh_stream).is_not_null()
 	assert_int(mesh_stream.container.size()).is_equal(1)
 	assert_object(mesh_stream.container[0]).is_instanceof(BoxMesh)
-	node.free()
 
 func test_mesh_resource_blank_mesh_attribute_suppresses_stream() -> void:
 	# When mesh_attribute is blank, the stream must NOT be registered
@@ -157,7 +148,6 @@ func test_mesh_resource_blank_mesh_attribute_suppresses_stream() -> void:
 	# stream name "   " is not "mesh" and blank names aren't registered
 	var mesh_stream = out.findStream("   ")
 	assert_object(mesh_stream).is_null()
-	node.free()
 
 func test_mesh_resource_include_source_name_stream() -> void:
 	var s = _make_settings(MESH_PATH)
@@ -174,7 +164,6 @@ func test_mesh_resource_include_source_name_stream() -> void:
 	# source name for a Mesh is path.get_file()
 	var expected_name = MESH_PATH.get_file()
 	assert_str(name_stream.container[0]).is_equal(expected_name)
-	node.free()
 
 func test_mesh_resource_include_source_path_stream() -> void:
 	var s = _make_settings(MESH_PATH)
@@ -189,7 +178,6 @@ func test_mesh_resource_include_source_path_stream() -> void:
 	assert_object(path_stream).is_not_null()
 	assert_int(path_stream.container.size()).is_equal(1)
 	assert_str(path_stream.container[0]).is_equal(MESH_PATH)
-	node.free()
 
 func test_mesh_resource_all_optional_streams_disabled() -> void:
 	# With all optional streams off, only position/rotation/size should exist
@@ -206,4 +194,3 @@ func test_mesh_resource_all_optional_streams_disabled() -> void:
 	assert_bool(out.hasStream("mesh")).is_false()
 	assert_bool(out.hasStream("source_node_name")).is_false()
 	assert_bool(out.hasStream("source_path")).is_false()
-	node.free()

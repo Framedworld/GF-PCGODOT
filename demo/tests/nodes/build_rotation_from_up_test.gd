@@ -56,7 +56,6 @@ func test_constant_up_vector_z_axis() -> void:
 	var rot_stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	assert_int(rot_stream.container.size()).is_equal(3)
-	node.free()
 
 func test_constant_up_vector_x_axis() -> void:
 	var s = BuildRotationFromUpSettings.new()
@@ -72,7 +71,6 @@ func test_constant_up_vector_x_axis() -> void:
 	var rot_stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	assert_int(rot_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_constant_up_vector_y_axis() -> void:
 	var s = BuildRotationFromUpSettings.new()
@@ -88,7 +86,6 @@ func test_constant_up_vector_y_axis() -> void:
 	var rot_stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	assert_int(rot_stream.container.size()).is_equal(4)
-	node.free()
 
 func test_attribute_up_vector_per_point() -> void:
 	var s = BuildRotationFromUpSettings.new()
@@ -109,7 +106,6 @@ func test_attribute_up_vector_per_point() -> void:
 	var rot_stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	assert_int(rot_stream.container.size()).is_equal(3)
-	node.free()
 
 func test_attribute_broadcast_single_normal() -> void:
 	var s = BuildRotationFromUpSettings.new()
@@ -128,7 +124,6 @@ func test_attribute_broadcast_single_normal() -> void:
 	var rot_stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	assert_int(rot_stream.container.size()).is_equal(5)
-	node.free()
 
 func test_existing_rotation_stream_is_overwritten() -> void:
 	var s = BuildRotationFromUpSettings.new()
@@ -147,7 +142,6 @@ func test_existing_rotation_stream_is_overwritten() -> void:
 	var rot_stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	assert_int(rot_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s = BuildRotationFromUpSettings.new()
@@ -156,7 +150,6 @@ func test_missing_input_error() -> void:
 
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_invalid_axis_error() -> void:
 	var s = BuildRotationFromUpSettings.new()
@@ -167,7 +160,6 @@ func test_invalid_axis_error() -> void:
 	var in_data := _make_point_data(2)
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_attribute_error() -> void:
 	var s = BuildRotationFromUpSettings.new()
@@ -178,21 +170,19 @@ func test_missing_attribute_error() -> void:
 	var in_data := _make_point_data(3)
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_wrong_attribute_type_error() -> void:
 	var s = BuildRotationFromUpSettings.new()
 	s.use_constant = false
-	s.up_vector_attribute = "normal"
+	s.up_vector_attribute = "up_f"
 	s.axis = "z"
 
 	var in_data := _make_point_data(2)
 	var float_vals := PackedFloat32Array([1.0, 2.0])
-	in_data.registerStream("normal", float_vals, FlowDataScript.DataType.Float)
+	in_data.registerStream("up_f", float_vals, FlowDataScript.DataType.Float)
 
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_attribute_size_mismatch_error() -> void:
 	var s = BuildRotationFromUpSettings.new()
@@ -206,7 +196,6 @@ func test_attribute_size_mismatch_error() -> void:
 
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_single_point_constant() -> void:
 	var s = BuildRotationFromUpSettings.new()
@@ -222,4 +211,3 @@ func test_single_point_constant() -> void:
 	var rot_stream = out.findStream(FlowDataScript.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	assert_int(rot_stream.container.size()).is_equal(1)
-	node.free()

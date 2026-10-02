@@ -35,7 +35,6 @@ func test_missing_input_a_error() -> void:
 	s.operation = SubstractSettings.eOperation.A_Minus_B
 	var node = _run([null, null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_input_b_error() -> void:
 	var s = SubstractSettings.new()
@@ -45,7 +44,6 @@ func test_missing_input_b_error() -> void:
 	var dataA = _make_point_data(posA, szA)
 	var node = _run([dataA, null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_a_minus_b_removes_overlapping_points() -> void:
 	var s = SubstractSettings.new()
@@ -75,7 +73,6 @@ func test_a_minus_b_removes_overlapping_points() -> void:
 	var pos_stream = out.findStream("position")
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(2)
-	node.free()
 
 func test_a_intersection_b_keeps_only_overlapping_points() -> void:
 	var s = SubstractSettings.new()
@@ -105,7 +102,6 @@ func test_a_intersection_b_keeps_only_overlapping_points() -> void:
 	var pos_stream = out.findStream("position")
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(1)
-	node.free()
 
 func test_a_minus_b_no_overlap_returns_all_of_a() -> void:
 	var s = SubstractSettings.new()
@@ -133,4 +129,3 @@ func test_a_minus_b_no_overlap_returns_all_of_a() -> void:
 	var pos_stream = out.findStream("position")
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(2)
-	node.free()

@@ -10,7 +10,7 @@ func _init():
 		"ins" : [{ "label": "Bounds" }],
 		"outs" : [{ "label" : "Cells" }],
 		"category" : "Sampler",
-		"tooltip" : "Creates one point per grid cell inside input bounds, or inside configured bounds when no input is connected.",
+		"tooltip" : "Creates one point per grid cell inside input bounds, or inside configured bounds when no input is connected.\nWorld Anchored puts the cells on world multiples of cell_size (partition-invariant) instead of centring them on each box.",
 	}
 
 func _safe_cell_size() -> Vector3:
@@ -21,12 +21,27 @@ func _safe_cell_size() -> Vector3:
 	)
 
 func _axis_positions(center : float, size : float, step : float) -> PackedFloat32Array:
+	if settings.world_anchored:
+		return _anchored_axis_positions(center, size, step)
 	var count : int = maxi(1, roundi(absf(size) / step))
 	var positions := PackedFloat32Array()
 	positions.resize(count)
 	var first := center - (float(count - 1) * step * 0.5)
 	for idx : int in range(count):
 		positions[idx] = first + float(idx) * step
+	return positions
+
+# World-anchored: every k * step with min <= k * step <= max (a tolerance of
+# 1e-4 step on both edges absorbs float error), so the positions depend only on
+# k and step, never on where the box starts.
+func _anchored_axis_positions(center : float, size : float, step : float) -> PackedFloat32Array:
+	var half := absf(size) * 0.5
+	var eps := step * 1e-4
+	var k_min := ceili((center - half - eps) / step)
+	var k_max := floori((center + half + eps) / step)
+	var positions := PackedFloat32Array()
+	for k : int in range(k_min, k_max + 1):
+		positions.append(float(k) * step)
 	return positions
 
 func _cell_key(pos : Vector3, cell_size : Vector3) -> String:
@@ -78,7 +93,7 @@ func execute(_ctx : FlowData.EvaluationContext):
 		var in_positions := in_data.getVector3Container(FlowData.AttrPosition)
 		var in_sizes := in_data.getVector3Container(FlowData.AttrSize)
 		if in_positions.size() != in_data.size():
-			if Engine.is_editor_hint() and _ctx.owner == null:
+			if is_ownerless_preview(_ctx):
 				set_output(0, FlowData.Data.new())
 				return
 			setError("Input bounds must provide position for each point")
@@ -129,7 +144,7 @@ func execute(_ctx : FlowData.EvaluationContext):
 		sdensity.resize(num_cells)
 		sdensity.fill(1.0)
 		out_data.registerStream(FlowData.AttrDensity, sdensity, FlowData.DataType.Float)
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var sseed := PackedInt32Array()
 	sseed.resize(num_cells)
 	for idx : int in range(num_cells):

@@ -56,7 +56,6 @@ func test_null_input_sets_error() -> void:
 	var s = SurfaceSamplerSettings.new()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_input_returns_empty_output() -> void:
 	var in_data = FlowDataScript.Data.new()
@@ -66,7 +65,6 @@ func test_empty_input_returns_empty_output() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_input_with_no_trs_and_no_node_stream_sets_error() -> void:
 	# Data has a stream, but it is neither a TRS bundle nor a "node" stream.
@@ -75,16 +73,18 @@ func test_input_with_no_trs_and_no_node_stream_sets_error() -> void:
 	var s = SurfaceSamplerSettings.new()
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_node_stream_with_no_valid_mesh_instances_sets_error() -> void:
 	# A "node" stream whose entries are not MeshInstance3D with a mesh → error.
 	var d = FlowDataScript.Data.new()
-	d.registerStream("node", [Node3D.new()], FlowDataScript.DataType.String)
+	var not_a_mesh := Node3D.new()
+	d.registerStream("node", [not_a_mesh], FlowDataScript.DataType.String)
 	var s = SurfaceSamplerSettings.new()
 	var node = _run([d], s)
+	# The test owns the out-of-tree Node3D; free it so no orphan outlives the
+	# suite (a leaked orphan breaks later suites' orphan checks).
+	not_a_mesh.free()
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # TRS path: point count
@@ -101,7 +101,6 @@ func test_trs_point_count_equals_num_points() -> void:
 	assert_object(out).is_not_null()
 	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(7)
-	node.free()
 
 func test_trs_two_regions_doubles_point_count() -> void:
 	# Two input regions × num_points = 2 × num_points output points.
@@ -124,7 +123,6 @@ func test_trs_two_regions_doubles_point_count() -> void:
 	assert_object(out).is_not_null()
 	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(10)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # TRS path: stream presence
@@ -141,7 +139,6 @@ func test_trs_output_has_position_rotation_size_streams() -> void:
 	assert_object(out.findStream(FlowDataScript.AttrPosition)).is_not_null()
 	assert_object(out.findStream(FlowDataScript.AttrRotation)).is_not_null()
 	assert_object(out.findStream(FlowDataScript.AttrSize)).is_not_null()
-	node.free()
 
 func test_trs_output_has_density_and_seed_streams() -> void:
 	var s = SurfaceSamplerSettings.new()
@@ -153,7 +150,6 @@ func test_trs_output_has_density_and_seed_streams() -> void:
 	assert_object(out).is_not_null()
 	assert_object(out.findStream(FlowDataScript.AttrDensity)).is_not_null()
 	assert_object(out.findStream(FlowDataScript.AttrSeed)).is_not_null()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # TRS path: density values are always 1.0
@@ -172,7 +168,6 @@ func test_trs_density_stream_all_ones() -> void:
 	assert_int(density.size()).is_equal(5)
 	for i in range(density.size()):
 		assert_float(density[i]).is_equal_approx(1.0, 0.001)
-	node.free()
 
 # ---------------------------------------------------------------------------
 # TRS path: point_size is written to the size stream
@@ -192,7 +187,6 @@ func test_trs_point_size_written_to_size_stream() -> void:
 	assert_int(sizes.size()).is_equal(3)
 	for i in range(sizes.size()):
 		assert_bool(sizes[i].is_equal_approx(Vector3(2.0, 3.0, 4.0))).is_true()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # TRS path: rotation of region is propagated to output rotation stream
@@ -213,7 +207,6 @@ func test_trs_region_rotation_propagated() -> void:
 	assert_int(rotations.size()).is_equal(4)
 	for i in range(rotations.size()):
 		assert_bool(rotations[i].is_equal_approx(region_euler)).is_true()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # TRS path: axis-aligned region — sampled points lie inside the AABB
@@ -242,7 +235,6 @@ func test_trs_points_inside_region_aabb() -> void:
 		assert_bool(local.x >= -half.x - 0.001 and local.x <= half.x + 0.001).is_true()
 		assert_bool(local.y >= -half.y - 0.001 and local.y <= half.y + 0.001).is_true()
 		assert_bool(local.z >= -half.z - 0.001 and local.z <= half.z + 0.001).is_true()
-	node.free()
 
 # ---------------------------------------------------------------------------
 # TRS path: determinism — same seed produces identical results
@@ -268,8 +260,6 @@ func test_trs_same_seed_deterministic() -> void:
 	assert_int(pos1.size()).is_equal(pos2.size())
 	for i in range(pos1.size()):
 		assert_bool(pos1[i].is_equal_approx(pos2[i])).is_true()
-	node1.free()
-	node2.free()
 
 # ---------------------------------------------------------------------------
 # TRS path: different seeds produce different results
@@ -299,8 +289,6 @@ func test_trs_different_seeds_different_results() -> void:
 			any_differ = true
 			break
 	assert_bool(any_differ).is_true()
-	node1.free()
-	node2.free()
 
 # ---------------------------------------------------------------------------
 # Node-stream path: MeshInstance3D objects supply regions via AABB
@@ -320,7 +308,6 @@ func test_node_stream_produces_correct_point_count() -> void:
 	var positions = out.getVector3Container(FlowDataScript.AttrPosition)
 	assert_int(positions.size()).is_equal(6)
 	mi.free()
-	node.free()
 
 func test_node_stream_two_meshes_doubles_point_count() -> void:
 	var mi1 = MeshInstance3D.new()
@@ -337,7 +324,6 @@ func test_node_stream_two_meshes_doubles_point_count() -> void:
 	assert_int(positions.size()).is_equal(8)
 	mi1.free()
 	mi2.free()
-	node.free()
 
 func test_node_stream_skips_entry_without_mesh() -> void:
 	# Entry without a mesh is skipped; only the one with a mesh generates points.
@@ -355,7 +341,6 @@ func test_node_stream_skips_entry_without_mesh() -> void:
 	assert_int(positions.size()).is_equal(3)
 	mi_valid.free()
 	mi_empty.free()
-	node.free()
 
 func test_node_stream_has_density_and_seed_streams() -> void:
 	var mi = MeshInstance3D.new()
@@ -369,7 +354,6 @@ func test_node_stream_has_density_and_seed_streams() -> void:
 	assert_object(out.findStream(FlowDataScript.AttrDensity)).is_not_null()
 	assert_object(out.findStream(FlowDataScript.AttrSeed)).is_not_null()
 	mi.free()
-	node.free()
 
 func test_node_stream_points_inside_default_box_mesh_aabb() -> void:
 	# BoxMesh default size = (1,1,1), centered at origin, identity global_transform.
@@ -391,7 +375,6 @@ func test_node_stream_points_inside_default_box_mesh_aabb() -> void:
 		assert_bool(p.y >= -0.5 - 0.001 and p.y <= 0.5 + 0.001).is_true()
 		assert_bool(p.z >= -0.5 - 0.001 and p.z <= 0.5 + 0.001).is_true()
 	mi.free()
-	node.free()
 
 func test_node_stream_non_mesh_instance_entries_skipped() -> void:
 	# A plain Node3D cast to MeshInstance3D returns null → must be skipped without error.
@@ -412,4 +395,3 @@ func test_node_stream_non_mesh_instance_entries_skipped() -> void:
 	assert_int(positions.size()).is_equal(3)
 	n3d.free()
 	mi.free()
-	node.free()

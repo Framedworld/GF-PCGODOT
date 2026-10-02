@@ -17,7 +17,7 @@ func _init():
 
 func _scene_root(ctx : FlowData.EvaluationContext) -> Node:
 	if Engine.is_editor_hint():
-		return EditorInterface.get_edited_scene_root()
+		return editor_edited_scene_root()
 	if ctx.owner and ctx.owner.get_tree():
 		return ctx.owner.get_tree().current_scene
 	return null
@@ -71,6 +71,8 @@ func computeSceneFingerprint(ctx : FlowData.EvaluationContext) -> Variant:
 	return hashSceneNodesForFingerprint(ctx, filterOutGeneratedNodes(sources))
 
 func execute(ctx : FlowData.EvaluationContext):
+	if handleMissingOwner(ctx):
+		return
 	var player := _find_player(_scene_root(ctx))
 	if player == null:
 		setError("No player/source Node3D found")

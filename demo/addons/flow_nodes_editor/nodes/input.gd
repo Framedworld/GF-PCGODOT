@@ -47,22 +47,21 @@ func getTitle() -> String:
 		return "Inputs"
 	return settings.name
 
-func refreshFromSettings():
-	super.refreshFromSettings()
+# --- Widget hooks (see node.gd) -----------------------------------------------
+
+func widget_refresh(widget):
 	if is_multi_port():
-		pass
-	else:
-		if is_slot_enabled_right( 0 ):
-			var color := getColorForFlowDataType( settings.data_type )
-			set_slot_color_right( 0, color )
+		return
+	if widget.is_slot_enabled_right( 0 ):
+		var color := getColorForFlowDataType( settings.data_type )
+		widget.set_slot_color_right( 0, color )
 
 func onPropChanged( prop_name : String ):
 	super.onPropChanged( prop_name )
 	if prop_name == "data_type" or prop_name == "name":
 		refreshFromSettings()
 
-func _ready():
-	super._ready()
+func widget_ready(_widget):
 	if is_multi_port():
 		var editor = getEditor()
 		if editor and editor.current_resource:
@@ -70,8 +69,7 @@ func _ready():
 				editor.current_resource.in_params_changed.connect(_on_in_params_changed)
 			initFromScript()
 
-func _exit_tree():
-	super._exit_tree()
+func widget_exit_tree(_widget):
 	if is_multi_port():
 		var editor = getEditor()
 		if editor and editor.current_resource:
@@ -81,12 +79,11 @@ func _exit_tree():
 func _on_in_params_changed():
 	initFromScript()
 
-func initFromScript():
-	super.initFromScript()
+func widget_init(widget):
 	if is_multi_port():
 		var spacer = Control.new()
 		spacer.custom_minimum_size.y = 4
-		add_child(spacer)
+		widget.add_child(spacer)
 		
 		var btn = Button.new()
 		btn.text = "+ Add Input Parameter"
@@ -94,7 +91,7 @@ func initFromScript():
 		btn.add_theme_font_size_override("font_size", 10)
 		if not btn.pressed.is_connected(_on_add_input_pressed_deferred):
 			btn.pressed.connect(_on_add_input_pressed_deferred)
-		add_child(btn)
+		widget.add_child(btn)
 
 func _on_add_input_pressed_deferred():
 	call_deferred("_on_add_input_pressed")
@@ -143,15 +140,15 @@ func execute( ctx : FlowData.EvaluationContext ):
 				set_output(i, fixture_data)
 				continue
 			var new_value = param.get_default_value()
-			if ctx.owner and ctx.owner.args.has( param.name ):
-				var ctx_value = ctx.owner.args[ param.name ]
+			if _owner_args(ctx).has( param.name ):
+				var ctx_value = _owner_args(ctx)[ param.name ]
 				if ctx_value is FlowData.Data:
 					var arg_data := _normalize_input_data(ctx_value, param.name, param.data_type)
 					if arg_data != null:
 						set_output(i, arg_data)
 						continue
-				elif FlowNodeBase.getFlowDataTypeFromObject( ctx_value ) == param.data_type:
-					new_value = ctx.owner.args[ param.name ]
+				elif FlowNodeBase.valueMatchesFlowDataType( ctx_value, param.data_type ):
+					new_value = ctx_value
 			var container = output.streams[ param.name ].container
 			container.resize( 1 )
 			FlowData.Data.writeValue( container, 0, new_value, param.data_type )
@@ -178,21 +175,29 @@ func execute( ctx : FlowData.EvaluationContext ):
 			return
 			
 		var new_value = input.get_default_value()
-		if ctx.owner and ctx.owner.args.has( input.name ):
-			var ctx_value = ctx.owner.args[ input.name ]
+		if _owner_args(ctx).has( input.name ):
+			var ctx_value = _owner_args(ctx)[ input.name ]
 			if ctx_value is FlowData.Data:
 				var arg_data := _normalize_input_data(ctx_value, input.name, input.data_type)
 				if arg_data != null:
 					set_output(0, arg_data)
 					return
-			elif FlowNodeBase.getFlowDataTypeFromObject( ctx_value ) == input.data_type:
-				new_value = ctx.owner.args[ input.name ]
+			elif FlowNodeBase.valueMatchesFlowDataType( ctx_value, input.data_type ):
+				new_value = ctx_value
 
 		var container =	output.streams[ settings.name ].container
 		container.resize( 1 )
 		FlowData.Data.writeValue( container, 0, new_value, input.data_type )
 			
 		set_output( 0, output )
+
+# Graph input values of the evaluation's host. ctx.owner may be null or a plain
+# Node3D without `args` (only FlowGraphNode3D carries them).
+func _owner_args(ctx: FlowData.EvaluationContext) -> Dictionary:
+	if ctx == null or ctx.owner == null:
+		return {}
+	var owner_args = ctx.owner.get("args")
+	return owner_args if owner_args is Dictionary else {}
 
 func _data_fixture_for_input(ctx: FlowData.EvaluationContext, input_name: String, input_type: FlowData.DataType) -> FlowData.Data:
 	if ctx.owner == null:
@@ -229,6 +234,8 @@ func _normalize_input_data(data: FlowData.Data, input_name: String, input_type: 
 	for stream_name in data.streams:
 		var stream = data.streams[stream_name]
 		target.registerStream(stream_name, stream.container, stream.data_type)
+	# Tags, per-data attributes, kind and shape come along with the streams.
+	target.copy_meta_from(data)
 	if target.hasStreamOfType(input_name, input_type):
 		return target
 	if not target.hasStream(input_name):

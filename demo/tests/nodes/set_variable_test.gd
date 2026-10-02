@@ -59,7 +59,6 @@ func test_stores_float_data_in_variable() -> void:
 	assert_bool(ctx.variables.has("my_floats")).is_true()
 	assert_object(ctx.variables["my_floats"]).is_same(in_data)
 	dummy.free()
-	node.free()
 
 func test_passthrough_output_unchanged() -> void:
 	var s = SetVariableSettings.new()
@@ -69,7 +68,6 @@ func test_passthrough_output_unchanged() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_same(in_data)
-	node.free()
 
 func test_stores_vector_data_in_variable() -> void:
 	var s = SetVariableSettings.new()
@@ -91,7 +89,6 @@ func test_stores_vector_data_in_variable() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(2)
 	dummy.free()
-	node.free()
 
 func test_stores_int_data_in_variable() -> void:
 	var s = SetVariableSettings.new()
@@ -113,7 +110,6 @@ func test_stores_int_data_in_variable() -> void:
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([10, 20, 30]))
 	dummy.free()
-	node.free()
 
 func test_stores_color_data_in_variable() -> void:
 	var s = SetVariableSettings.new()
@@ -135,7 +131,6 @@ func test_stores_color_data_in_variable() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(3)
 	dummy.free()
-	node.free()
 
 func test_error_when_variable_name_is_empty() -> void:
 	var s = SetVariableSettings.new()
@@ -143,7 +138,6 @@ func test_error_when_variable_name_is_empty() -> void:
 	var in_data = _make_data("value", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_when_variable_name_is_whitespace_only() -> void:
 	var s = SetVariableSettings.new()
@@ -151,7 +145,6 @@ func test_error_when_variable_name_is_whitespace_only() -> void:
 	var in_data = _make_data("value", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_no_input_creates_empty_data_and_stores_it() -> void:
 	var s = SetVariableSettings.new()
@@ -169,7 +162,6 @@ func test_no_input_creates_empty_data_and_stores_it() -> void:
 	assert_bool(ctx.variables.has("empty_var")).is_true()
 	assert_object(ctx.variables["empty_var"]).is_not_null()
 	dummy.free()
-	node.free()
 
 func test_no_input_passthrough_output_is_not_null() -> void:
 	var s = SetVariableSettings.new()
@@ -178,7 +170,6 @@ func test_no_input_passthrough_output_is_not_null() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_multiple_streams_stored_and_passed_through() -> void:
 	var s = SetVariableSettings.new()
@@ -204,7 +195,6 @@ func test_multiple_streams_stored_and_passed_through() -> void:
 	assert_object(out.findStream("density")).is_not_null()
 	assert_object(out.findStream("seed")).is_not_null()
 	dummy.free()
-	node.free()
 
 func test_overwrites_existing_variable_in_context() -> void:
 	var s = SetVariableSettings.new()
@@ -224,4 +214,3 @@ func test_overwrites_existing_variable_in_context() -> void:
 	assert_str(node.err).is_empty()
 	assert_object(ctx.variables["my_var"]).is_same(new_data)
 	dummy.free()
-	node.free()

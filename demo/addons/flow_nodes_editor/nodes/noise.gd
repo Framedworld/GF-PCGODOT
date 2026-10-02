@@ -75,7 +75,7 @@ func execute( _ctx : FlowData.EvaluationContext ):
 		return
 		
 	var noise := FastNoiseLite.new()
-	noise.seed = settings.random_seed
+	noise.seed = effective_seed()
 	noise.noise_type = _map_noise_type()
 	noise.fractal_type = _map_fractal_type()
 	noise.fractal_octaves = maxi(1, settings.fractal_octaves)

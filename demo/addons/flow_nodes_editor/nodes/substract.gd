@@ -4,6 +4,7 @@ extends FlowNodeBase
 func _init():
 	meta_node = {
 		"title" : "Substract",
+		"category" : "Spatial",
 		"settings" : SubstractSettings,
 		"ins" : [{ "label": "In A" }, { "label": "In B" }], 
 		"outs" : [{ "label" : "Out" }],

@@ -53,7 +53,6 @@ func test_basic_x_then_z_path() -> void:
 	assert_bool(out_positions.size() > 0).is_true()
 	assert_array(out_positions).contains([Vector3(0, 0, 0)])
 	assert_array(out_positions).contains([Vector3(2, 0, 3)])
-	node.free()
 
 func test_z_then_x_axis_order() -> void:
 	var s := _default_settings()
@@ -70,7 +69,6 @@ func test_z_then_x_axis_order() -> void:
 	assert_array(out_positions).contains([Vector3(0, 0, 2)])
 	assert_array(out_positions).contains([Vector3(1, 0, 2)])
 	assert_array(out_positions).contains([Vector3(2, 0, 2)])
-	node.free()
 
 func test_x_then_z_walk_order_intermediate_cells() -> void:
 	var s := _default_settings()
@@ -84,7 +82,6 @@ func test_x_then_z_walk_order_intermediate_cells() -> void:
 	assert_array(out_positions).contains([Vector3(1, 0, 0)])
 	assert_array(out_positions).contains([Vector3(2, 0, 0)])
 	assert_array(out_positions).contains([Vector3(2, 0, 1)])
-	node.free()
 
 func test_include_input_points_false() -> void:
 	var s := _default_settings()
@@ -99,7 +96,6 @@ func test_include_input_points_false() -> void:
 	assert_bool(out_positions.has(Vector3(0, 0, 0))).is_false()
 	assert_bool(out_positions.has(Vector3(2, 0, 0))).is_true()
 	assert_bool(out_positions.has(Vector3(1, 0, 0))).is_true()
-	node.free()
 
 func test_deduplicate_cells_false_produces_overlap() -> void:
 	var s := _default_settings()
@@ -111,7 +107,6 @@ func test_deduplicate_cells_false_produces_overlap() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_bool(out.size() >= 2).is_true()
-	node.free()
 
 func test_path_index_attribute_written() -> void:
 	var s := _default_settings()
@@ -127,7 +122,6 @@ func test_path_index_attribute_written() -> void:
 	assert_bool(idx_arr.size() > 0).is_true()
 	assert_bool(idx_arr.has(0)).is_true()
 	assert_bool(idx_arr.has(1)).is_true()
-	node.free()
 
 func test_path_index_attribute_empty_string_skipped() -> void:
 	var s := _default_settings()
@@ -139,7 +133,6 @@ func test_path_index_attribute_empty_string_skipped() -> void:
 	assert_object(out).is_not_null()
 	var idx_stream = out.findStream("path_index")
 	assert_object(idx_stream).is_null()
-	node.free()
 
 func test_single_point_with_include_input_points() -> void:
 	var s := _default_settings()
@@ -153,7 +146,6 @@ func test_single_point_with_include_input_points() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	var out_positions = pos_stream.container as PackedVector3Array
 	assert_array(out_positions).contains([Vector3(3, 0, 5)])
-	node.free()
 
 func test_single_point_without_include_input_points() -> void:
 	var s := _default_settings()
@@ -164,7 +156,6 @@ func test_single_point_without_include_input_points() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_custom_cell_size() -> void:
 	var s := _default_settings()
@@ -184,13 +175,11 @@ func test_custom_cell_size() -> void:
 	for i in range(size_arr.size()):
 		assert_float(size_arr[i].x).is_equal_approx(2.0, 0.0001)
 		assert_float(size_arr[i].z).is_equal_approx(2.0, 0.0001)
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s := _default_settings()
 	var node := _run(null, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_input_missing_position_stream_error() -> void:
 	var d := FlowDataScript.Data.new()
@@ -198,7 +187,6 @@ func test_input_missing_position_stream_error() -> void:
 	var s := _default_settings()
 	var node := _run(d, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_collinear_x_path_no_duplicates() -> void:
 	# [0,0,0] -> [3,0,0] -> [5,0,0] with dedup=true, include_input=true
@@ -215,7 +203,6 @@ func test_collinear_x_path_no_duplicates() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	var out_positions = pos_stream.container as PackedVector3Array
 	assert_int(out_positions.size()).is_equal(6)
-	node.free()
 
 func test_y_axis_not_walked() -> void:
 	# [0,0,0] -> [0,5,0]: Y differs but is never walked.
@@ -230,4 +217,3 @@ func test_y_axis_not_walked() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	var out_positions = pos_stream.container as PackedVector3Array
 	assert_int(out_positions.size()).is_equal(2)
-	node.free()

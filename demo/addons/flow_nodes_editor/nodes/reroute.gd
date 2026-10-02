@@ -27,9 +27,13 @@ func getTitle() -> String:
 func getExposedParams():
 	return []
 
-func initFromScript():
-	super.initFromScript()
-	for child in get_children():
+# --- Widget hooks (see node.gd) -----------------------------------------------
+
+func widget_script() -> Script:
+	return load("res://addons/flow_nodes_editor/executor/flow_reroute_widget.gd")
+
+func widget_init(widget):
+	for child in widget.get_children():
 		var row := child as FlowConnectorRow
 		if row == null:
 			continue
@@ -38,18 +42,17 @@ func initFromScript():
 		row.getOutLabel().text = ""
 		row.getInLabel().visible = false
 		row.getOutLabel().visible = false
-	custom_minimum_size = HIT_SIZE
-	size = HIT_SIZE
+	widget.custom_minimum_size = HIT_SIZE
+	widget.size = HIT_SIZE
 
-func refreshFromSettings():
-	super.refreshFromSettings()
-	title = ""
-	custom_minimum_size = HIT_SIZE
-	size = HIT_SIZE
-	if is_slot_enabled_left(0):
-		set_slot_color_left(0, Color.WHITE)
-	if is_slot_enabled_right(0):
-		set_slot_color_right(0, Color.WHITE)
+func widget_refresh(widget):
+	widget.title = ""
+	widget.custom_minimum_size = HIT_SIZE
+	widget.size = HIT_SIZE
+	if widget.is_slot_enabled_left(0):
+		widget.set_slot_color_left(0, Color.WHITE)
+	if widget.is_slot_enabled_right(0):
+		widget.set_slot_color_right(0, Color.WHITE)
 
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data = get_optional_input(0)
@@ -58,27 +61,20 @@ func execute( ctx : FlowData.EvaluationContext ):
 	else:
 		set_output(0, FlowData.Data.new())
 
-func _ready():
-	super._ready()
-	custom_minimum_size = HIT_SIZE
-	size = HIT_SIZE
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	selectable = true
-	draggable = true
+func widget_ready(widget):
+	widget.custom_minimum_size = HIT_SIZE
+	widget.size = HIT_SIZE
+	widget.mouse_filter = Control.MOUSE_FILTER_STOP
+	widget.selectable = true
+	widget.draggable = true
 
-func _draw_port(_slot_index: int, position: Vector2i, left: bool, _color: Color) -> void:
-	if left:
-		return
-	var center := Vector2(size.x * 0.5, position.y)
-	draw_circle(center, PIN_RADIUS + 1.5, GRAPH_BG_COLOR)
-	draw_circle(center, PIN_RADIUS, Color.WHITE)
-
-func _on_draw() -> void:
-	var port_y := size.y * 0.5
-	if get_input_port_count() > 0:
-		port_y = get_input_port_position(0).y
-	var center := Vector2(size.x * 0.5, port_y)
-	if selected:
-		draw_rect(Rect2(Vector2(0.5, 0.5), size - Vector2.ONE), SELECTED_OUTLINE_COLOR, false, SELECTED_OUTLINE_WIDTH)
-	draw_circle(center, PIN_RADIUS + 1.5, GRAPH_BG_COLOR)
-	draw_circle(center, PIN_RADIUS, Color.WHITE)
+func widget_draw(widget) -> bool:
+	var port_y : float = widget.size.y * 0.5
+	if widget.get_input_port_count() > 0:
+		port_y = widget.get_input_port_position(0).y
+	var center := Vector2(widget.size.x * 0.5, port_y)
+	if widget.selected:
+		widget.draw_rect(Rect2(Vector2(0.5, 0.5), widget.size - Vector2.ONE), SELECTED_OUTLINE_COLOR, false, SELECTED_OUTLINE_WIDTH)
+	widget.draw_circle(center, PIN_RADIUS + 1.5, GRAPH_BG_COLOR)
+	widget.draw_circle(center, PIN_RADIUS, Color.WHITE)
+	return true

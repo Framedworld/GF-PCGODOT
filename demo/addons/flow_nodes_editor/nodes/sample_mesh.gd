@@ -12,6 +12,16 @@ func _init():
 		"tooltip" : "Samples points on mesh surfaces: random area-weighted, one per vertex,\nor one per triangle center. Writes density, seed and normal streams.",
 	}
 	
+## Index buffer of a surface. A surface saved without an index buffer returns
+## null at ARRAY_INDEX (assigning that to a typed PackedInt32Array is a runtime
+## error), so read it untyped and fall back to an empty array; callers then
+## synthesize 0..N-1 for the non-indexed triangle list.
+static func _surface_indices(arrs: Array) -> PackedInt32Array:
+	var raw = arrs[Mesh.ARRAY_INDEX] if arrs.size() > Mesh.ARRAY_INDEX else null
+	if raw == null:
+		return PackedInt32Array()
+	return raw
+
 ## Uniform surface sampling on a MeshInstance3D
 ## - If `n` > 0, returns exactly n points.
 ## - Else if `density` > 0, returns round(total_area * density) points.
@@ -34,7 +44,7 @@ static func sampleMeshSurface(mi: MeshInstance3D, n: int = -1, density: float = 
 	for s in mesh.get_surface_count():
 		var arrs := mesh.surface_get_arrays(s)
 		var vtx : PackedVector3Array = arrs[Mesh.ARRAY_VERTEX]
-		var idx : PackedInt32Array = arrs[Mesh.ARRAY_INDEX]
+		var idx : PackedInt32Array = _surface_indices(arrs)
 
 		# If the surface is non-indexed, synthesize indices 0..N-1 (already triangles in Godot)
 		if idx.is_empty():
@@ -58,7 +68,9 @@ static func sampleMeshSurface(mi: MeshInstance3D, n: int = -1, density: float = 
 			total_area += area
 
 			# Per-triangle normal (world space)
-			tri_normals.append(((b - a).cross(c - a)).normalized())
+			# Godot front faces are wound clockwise: (c - a) x (b - a) points out of
+			# the surface; (b - a) x (c - a) would point into it.
+			tri_normals.append(((c - a).cross(b - a)).normalized())
 
 	if tris.is_empty() or total_area <= 0.0:
 		return { "points": PackedVector3Array(), "normals": PackedVector3Array() }
@@ -165,7 +177,7 @@ static func meshFaceCenterPoints(mi: MeshInstance3D) -> Dictionary:
 	for s in mesh.get_surface_count():
 		var arrs := mesh.surface_get_arrays(s)
 		var vtx : PackedVector3Array = arrs[Mesh.ARRAY_VERTEX]
-		var idx : PackedInt32Array = arrs[Mesh.ARRAY_INDEX]
+		var idx : PackedInt32Array = _surface_indices(arrs)
 
 		if idx.is_empty():
 			idx = PackedInt32Array()
@@ -177,7 +189,8 @@ static func meshFaceCenterPoints(mi: MeshInstance3D) -> Dictionary:
 			var a := gt * vtx[idx[i + 0]]
 			var b := gt * vtx[idx[i + 1]]
 			var c := gt * vtx[idx[i + 2]]
-			var face_n := (b - a).cross(c - a)
+			# Clockwise front faces: outward normal is (c - a) x (b - a).
+			var face_n := (c - a).cross(b - a)
 			if face_n.length_squared() <= 0.0:
 				continue # degenerate triangle
 			out_pts.append((a + b + c) / 3.0)
@@ -207,7 +220,7 @@ static func get_hard_edges(mi: MeshInstance3D, angle_threshold_deg: float) -> Ar
 	for s in mesh.get_surface_count():
 		var arrs := mesh.surface_get_arrays(s)
 		var vtx : PackedVector3Array = arrs[Mesh.ARRAY_VERTEX]
-		var idx : PackedInt32Array = arrs[Mesh.ARRAY_INDEX]
+		var idx : PackedInt32Array = _surface_indices(arrs)
 		
 		if idx.is_empty():
 			idx = PackedInt32Array()
@@ -220,7 +233,8 @@ static func get_hard_edges(mi: MeshInstance3D, angle_threshold_deg: float) -> Ar
 			var b := gt * vtx[idx[i + 1]]
 			var c := gt * vtx[idx[i + 2]]
 			
-			var normal = (b - a).cross(c - a).normalized()
+			# Clockwise front faces: outward normal is (c - a) x (b - a).
+			var normal = (c - a).cross(b - a).normalized()
 			
 			var edges = [
 				[a, b],
@@ -334,7 +348,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	elif settings.mode == SampleMeshNodeSettings.eMode.UseNumSamples:
 		density = -1.0
 
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var node_idx : int = -1
 	for node in nodes:
 		node_idx += 1
@@ -397,10 +411,8 @@ func execute( ctx : FlowData.EvaluationContext ):
 	sdensity.resize( total )
 	sdensity.fill( 1.0 )
 	output.registerStream( FlowData.AttrDensity, sdensity, FlowData.DataType.Float )
-	var sseed := PackedInt32Array()
-	sseed.resize( total )
-	for i in range( total ):
-		sseed[i] = FlowData.point_seed( spos[i], node_seed )
+	# total is spos.size().
+	var sseed := FlowData.point_seed_stream( spos, node_seed )
 	output.registerStream( FlowData.AttrSeed, sseed, FlowData.DataType.Int )
 	output.registerStream( FlowData.AttrNormal, snormals, FlowData.DataType.Vector )
 

@@ -40,15 +40,20 @@ func execute( ctx : FlowData.EvaluationContext ):
 				idx += 1
 
 	# Density + per-point seed streams (UE parity)
-	var node_seed : int = settings.random_seed
+	var node_seed : int = effective_seed()
 	var sdensity := PackedFloat32Array()
 	sdensity.resize( nsamples )
 	sdensity.fill( 1.0 )
 	output.registerStream( FlowData.AttrDensity, sdensity, FlowData.DataType.Float )
-	var sseed := PackedInt32Array()
-	sseed.resize( nsamples )
-	for i in range( nsamples ):
-		sseed[i] = FlowData.point_seed( spos[i], node_seed )
+	var sseed : PackedInt32Array
+	if spos.size() == nsamples:
+		sseed = FlowData.point_seed_stream( spos, node_seed )
+	else:
+		# Negative counts: keep the original resize (and its error).
+		sseed = PackedInt32Array()
+		sseed.resize( nsamples )
+		for i in range( nsamples ):
+			sseed[i] = FlowData.point_seed( spos[i], node_seed )
 	output.registerStream( FlowData.AttrSeed, sseed, FlowData.DataType.Int )
 
 	set_output( 0, output )

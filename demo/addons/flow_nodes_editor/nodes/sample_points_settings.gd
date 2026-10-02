@@ -55,11 +55,15 @@ enum eDistribution {
 ## The target number of points to generate when using the 'BlueNoise2D' distribution.
 ## Note: Some points might be skipped if they lie outside the bounds of the input point size.
 @export var num_samples : int = 64
-## UE-parity bridge. By default points keep UNIT scale and their spatial extent
-## (the grid cell size) lives in the bounds streams only. Enable to ALSO write
-## that extent into the `size` stream as before, so downstream spawners scale
-## meshes by it — restores the pre-bounds look in size-as-scale graphs.
+## Legacy bridge: write the sampling extent into `size` (old size-as-scale) and
+## write NO `bounds_min`/`bounds_max` streams, so the output is byte-identical to
+## the node before the size->bounds change. Off = UE-correct unit scale + bounds.
 @export var legacy_scale_from_extent : bool = false
+## If enabled, every attribute of an input point (all streams except the ones the
+## sampler writes itself: position, rotation, rotation_quat, size, bounds_min,
+## bounds_max, density, seed and the group id) is copied onto each sample
+## generated from it. Broadcast (length-1) streams stay broadcast.
+@export var inherit_attributes : bool = false
 
 func _init():
 	super._init()

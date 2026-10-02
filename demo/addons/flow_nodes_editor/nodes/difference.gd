@@ -7,11 +7,12 @@ const BoundsOverlap = preload("res://addons/flow_nodes_editor/bounds_overlap_uti
 func _init():
 	meta_node = {
 		"title" : "Difference",
+		"category" : "Spatial",
 		"settings" : DifferenceNodeSettings,
 		"ins" : [{ "label": "In A" }, { "label": "In B" }],
 		"outs" : [{ "label" : "Out" }],
 		"hide_inputs" : true,
-		"tooltip" : "Performs set operations between two point sets based on position/size overlap.",
+		"tooltip" : "Performs set operations between two point sets based on position/size overlap.\nWith spatial data: shape with shape gives a composite (sampled later); points with a shape\nare filtered (Binary) or density-attenuated by the shape's density.",
 	}
 
 func getTitle() -> String:
@@ -19,7 +20,7 @@ func getTitle() -> String:
 	return "Difference (%s)" % DifferenceNodeSettings.eOperation.keys()[op_idx]
 
 func _is_editor_missing_input_context(ctx : FlowData.EvaluationContext) -> bool:
-	return ctx.owner == null and Engine.is_editor_hint()
+	return is_ownerless_preview(ctx)
 
 func _emit_empty_output() -> void:
 	set_output(0, FlowData.Data.new())
@@ -44,7 +45,7 @@ func _safe_sizes(data : FlowData.Data, expected_size : int, input_label : String
 		}
 
 	for i in range(out_sizes.size()):
-		var s = out_sizes[i]
+		var s : Vector3 = out_sizes[i]
 		if not s.is_finite():
 			s = Vector3.ONE
 		s = Vector3(absf(s.x), absf(s.y), absf(s.z))
@@ -59,8 +60,9 @@ func _safe_sizes(data : FlowData.Data, expected_size : int, input_label : String
 
 	return { "ok": true, "error": "", "sizes": out_sizes }
 
-# Build broadphase (center, half_extent) from effective bounds so the RTree
-# uses the same AABB as the narrowphase. Falls back to _safe_sizes when no
+# Build broadphase (center, size) from effective bounds so the RTree uses the
+# same AABB as the narrowphase. GDRTree.add / overlaps take FULL sizes (the
+# native code builds center ± size * 0.5). Falls back to _safe_sizes when no
 # per-point bounds_min/bounds_max streams are present.
 func _broadphase_params(data : FlowData.Data, positions : PackedVector3Array) -> Dictionary:
 	var n := positions.size()
@@ -69,28 +71,41 @@ func _broadphase_params(data : FlowData.Data, positions : PackedVector3Array) ->
 		var sr := _safe_sizes(data, n, "")
 		if not sr.ok:
 			return { "ok": false, "error": sr.error }
-		return { "ok": true, "centers": positions, "half_extents": sr.sizes }
+		return { "ok": true, "centers": positions, "sizes": sr.sizes }
 
 	var world := BoundsOverlap.world_aabbs(data, positions)
 	var wmin : PackedVector3Array = world.min
 	var wmax : PackedVector3Array = world.max
 	var centers := PackedVector3Array()
-	var halves := PackedVector3Array()
+	var sizes := PackedVector3Array()
 	centers.resize(n)
-	halves.resize(n)
+	sizes.resize(n)
 	for i in range(n):
 		centers[i] = (wmin[i] + wmax[i]) * 0.5
-		var h : Vector3 = (wmax[i] - wmin[i]) * 0.5
-		h.x = maxf(h.x, 0.0001)
-		h.y = maxf(h.y, 0.0001)
-		h.z = maxf(h.z, 0.0001)
-		halves[i] = h
-	return { "ok": true, "centers": centers, "half_extents": halves }
+		var s : Vector3 = (wmax[i] - wmin[i]).abs()
+		s.x = maxf(s.x, 0.0001)
+		s.y = maxf(s.y, 0.0001)
+		s.z = maxf(s.z, 0.0001)
+		sizes[i] = s
+	return { "ok": true, "centers": centers, "sizes": sizes }
 
 func _sanitize_indices(indices, max_size : int) -> PackedInt32Array:
 	var out := PackedInt32Array()
 	if max_size <= 0:
 		return out
+	# Fast path: GDRTree returns strictly increasing indices inside the tree,
+	# which the general path below would return unchanged.
+	if indices is PackedInt32Array:
+		var typed : PackedInt32Array = indices
+		var ordered := true
+		var prev := -1
+		for v in typed:
+			if v <= prev or v >= max_size:
+				ordered = false
+				break
+			prev = v
+		if ordered:
+			return typed.duplicate()
 	var seen := {}
 	for idx in indices:
 		var i = int(idx)
@@ -150,6 +165,39 @@ func _merge_data_sets(data_sets : Array) -> FlowData.Data:
 			return null
 	return out_data
 
+## Which of the four index lists (a_only, a_overlap, b_only, b_overlap) the
+## point-set operation `op` reads, mirroring the match in execute() and
+## _build_overlap_output().
+func _needed_index_lists(op : int, density_function) -> Dictionary:
+	var needs := { "a_only": false, "a_overlap": false, "b_only": false, "b_overlap": false }
+	var binary : bool = density_function == DifferenceNodeSettings.eDensityFunction.Binary
+	match op:
+		DifferenceNodeSettings.eOperation.A_Minus_B:
+			needs[ "a_only" if binary else "a_overlap" ] = true
+		DifferenceNodeSettings.eOperation.B_Minus_A:
+			needs[ "b_only" if binary else "b_overlap" ] = true
+		DifferenceNodeSettings.eOperation.Intersection:
+			_mark_overlap_lists(needs, settings.intersection_overlap_source)
+		DifferenceNodeSettings.eOperation.Union:
+			needs.a_only = true
+			needs.b_only = true
+			_mark_overlap_lists(needs, _resolve_union_overlap_source())
+		DifferenceNodeSettings.eOperation.SymmetricDifference:
+			needs.a_only = true
+			needs.b_only = true
+	return needs
+
+## The overlap lists _build_overlap_output( mode, ... ) reads.
+static func _mark_overlap_lists(needs : Dictionary, mode : int) -> void:
+	match mode:
+		DifferenceNodeSettings.eOverlapSource.FromB:
+			needs.b_overlap = true
+		DifferenceNodeSettings.eOverlapSource.MergeAAndB:
+			needs.a_overlap = true
+			needs.b_overlap = true
+		_:
+			needs.a_overlap = true
+
 func _resolve_union_overlap_source() -> int:
 	var mode = settings.union_overlap_source
 	if mode == DifferenceNodeSettings.eOverlapSource.LegacyKeepAFlag:
@@ -190,6 +238,12 @@ func execute(ctx : FlowData.EvaluationContext):
 	var op_idx = clampi(settings.operation, 0, DifferenceNodeSettings.eOperation.keys().size() - 1)
 	var op = op_idx
 
+	# Spatial data (Data.shape) on either side: the spatial path. Plain point
+	# inputs never carry a shape, so they keep the legacy path below unchanged.
+	if in_dataA.shape != null or in_dataB.shape != null:
+		_execute_spatial(in_dataA, in_dataB, op)
+		return
+
 	if in_dataA.size() == 0 and in_dataB.size() == 0:
 		_emit_empty_output()
 		return
@@ -224,7 +278,7 @@ func execute(ctx : FlowData.EvaluationContext):
 
 	# Use effective bounds (bounds_min/bounds_max when present, else size-derived)
 	# for both the broadphase RTree and the narrowphase so they stay consistent.
-	# Convert world AABB [min, max] → (center, half_extent) for GDRTree.add.
+	# Convert world AABB [min, max] → (center, full size) for GDRTree.add.
 	var bp_a := _broadphase_params(in_dataA, posA)
 	var bp_b := _broadphase_params(in_dataB, posB)
 	if not bp_a.ok:
@@ -234,20 +288,26 @@ func execute(ctx : FlowData.EvaluationContext):
 		setError(bp_b.error)
 		return
 
-	var tA = GDRTree.new()
-	var tB = GDRTree.new()
-	tA.add(bp_a.centers, bp_a.half_extents)
-	tB.add(bp_b.centers, bp_b.half_extents)
-
-	var a_only = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.half_extents, false).idxs_overlapped, in_dataA.size())
-	var a_overlap = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.half_extents, true).idxs_overlapped, in_dataA.size())
-	var b_only = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.half_extents, false).idxs_overlapped, in_dataB.size())
-	var b_overlap = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.half_extents, true).idxs_overlapped, in_dataB.size())
-
 	# Density-function attenuation only applies to the subtractive operations and
 	# only when not Binary. Binary (the default) preserves the legacy hard-remove
 	# behavior exactly.
 	var density_function = settings.density_function if "density_function" in settings else DifferenceNodeSettings.eDensityFunction.Binary
+
+	# Only the index lists the operation reads are computed (each is a native
+	# query over the other set; the queries are pure, so skipping unused ones
+	# changes nothing). A_Minus_B, the default, needs one query instead of four.
+	var needs := _needed_index_lists(op, density_function)
+	var tA = GDRTree.new()
+	var tB = GDRTree.new()
+	if needs.a_only or needs.a_overlap:
+		tA.add(bp_a.centers, bp_a.sizes)
+	if needs.b_only or needs.b_overlap:
+		tB.add(bp_b.centers, bp_b.sizes)
+
+	var a_only = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.sizes, false).idxs_overlapped, in_dataA.size()) if needs.a_only else PackedInt32Array()
+	var a_overlap = _sanitize_indices(tA.overlaps(bp_b.centers, bp_b.sizes, true).idxs_overlapped, in_dataA.size()) if needs.a_overlap else PackedInt32Array()
+	var b_only = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.sizes, false).idxs_overlapped, in_dataB.size()) if needs.b_only else PackedInt32Array()
+	var b_overlap = _sanitize_indices(tB.overlaps(bp_a.centers, bp_a.sizes, true).idxs_overlapped, in_dataB.size()) if needs.b_overlap else PackedInt32Array()
 
 	match op:
 		DifferenceNodeSettings.eOperation.A_Minus_B:
@@ -349,3 +409,153 @@ func _attenuate_difference(keep_data : FlowData.Data, keep_pos : PackedVector3Ar
 		setError(err)
 		return out_data
 	return out_data
+
+# --- Spatial data (WP2) -------------------------------------------------------------
+#
+# Shape with shape: a FlowCompositeShape (nothing is sampled here). The density
+# function picks how densities combine (see FlowSpatial.combine_density).
+#   A_Minus_B -> Difference(A, B)       B_Minus_A -> Difference(B, A)
+#   Intersection -> Intersection(A, B)  Union -> Union(A, B)
+#   SymmetricDifference -> Union(Difference(A, B), Difference(B, A))
+# Points with a shape: the result is points (UE "inferred" output). Each point's
+# shape density s decides. With overlap_mode = BoundsBox (the default) s is the
+# shape evaluated over the point's bounds box and shaped by the point's
+# steepness (WP6); with PointCenter it is the density at the point position:
+#   Binary: Difference drops points with s > 0, Intersection keeps them, Union
+#           sets density to 1 where the point or the shape has density.
+#   Minimum / Multiply / Subtract: every point is kept and its density becomes
+#           combine_density(op, fn, density, s); cull downstream with density_filter.
+# When the kept side of a difference is a shape and the cutter is points, the
+# points become a FlowPointsVolume (their bounds boxes) and the result is a
+# composite. SymmetricDifference of points and a shape returns the points minus
+# the shape (the shape-only part cannot be represented as points without
+# sampling; use two Difference nodes for it).
+
+func _density_function() -> int:
+	return settings.density_function if "density_function" in settings else DifferenceNodeSettings.eDensityFunction.Binary
+
+func _overlap_mode() -> int:
+	return settings.overlap_mode if "overlap_mode" in settings else DifferenceNodeSettings.eOverlapMode.PointCenter
+
+func _as_shape(data : FlowData.Data) -> FlowSpatial:
+	if data.shape != null:
+		return data.shape
+	if data.size() > 0 and data.hasStream(FlowData.AttrPosition):
+		return FlowPointsVolume.from_data(data)
+	return null
+
+func _shape_output(shape : FlowSpatial, meta_src : FlowData.Data) -> FlowData.Data:
+	var out := FlowData.Data.from_shape(shape)
+	out.tags = meta_src.tags.duplicate()
+	out.data_attrs = meta_src.data_attrs.duplicate(true)
+	return out
+
+func _execute_spatial(in_dataA : FlowData.Data, in_dataB : FlowData.Data, op : int) -> void:
+	var fn := _density_function()
+	var om := _overlap_mode()
+	var a_shape : FlowSpatial = in_dataA.shape
+	var b_shape : FlowSpatial = in_dataB.shape
+	# A shape united (or symmetric-differenced) with an empty point set is the
+	# shape itself; folding no points into it would drop it.
+	if op == DifferenceNodeSettings.eOperation.Union or op == DifferenceNodeSettings.eOperation.SymmetricDifference:
+		if a_shape != null and b_shape == null and in_dataB.size() == 0:
+			set_output(0, in_dataA.duplicate())
+			return
+		if b_shape != null and a_shape == null and in_dataA.size() == 0:
+			set_output(0, in_dataB.duplicate())
+			return
+	match op:
+		DifferenceNodeSettings.eOperation.A_Minus_B:
+			_spatial_difference(in_dataA, in_dataB, fn, om)
+		DifferenceNodeSettings.eOperation.B_Minus_A:
+			_spatial_difference(in_dataB, in_dataA, fn, om)
+		DifferenceNodeSettings.eOperation.Intersection:
+			if a_shape != null and b_shape != null:
+				set_output(0, _shape_output(FlowCompositeShape.new(FlowSpatial.Op.Intersection, a_shape, b_shape, fn), in_dataA))
+			elif a_shape != null:
+				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Intersection, fn, om))
+			else:
+				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Intersection, fn, om))
+		DifferenceNodeSettings.eOperation.Union:
+			if a_shape != null and b_shape != null:
+				set_output(0, _shape_output(FlowCompositeShape.new(FlowSpatial.Op.Union, a_shape, b_shape, fn), in_dataA))
+			elif a_shape != null:
+				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Union, fn, om))
+			else:
+				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Union, fn, om))
+		DifferenceNodeSettings.eOperation.SymmetricDifference:
+			if a_shape != null and b_shape != null:
+				var ab := FlowCompositeShape.new(FlowSpatial.Op.Difference, a_shape, b_shape, fn)
+				var ba := FlowCompositeShape.new(FlowSpatial.Op.Difference, b_shape, a_shape, fn)
+				set_output(0, _shape_output(FlowCompositeShape.new(FlowSpatial.Op.Union, ab, ba, fn), in_dataA))
+			elif a_shape != null:
+				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Difference, fn, om))
+			else:
+				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Difference, fn, om))
+
+## keep minus cut, where at least one side carries a shape.
+func _spatial_difference(keep : FlowData.Data, cut : FlowData.Data, fn : int, om : int) -> void:
+	if keep.shape == null:
+		set_output(0, points_vs_shape(keep, cut.shape, FlowSpatial.Op.Difference, fn, om))
+		return
+	var cutter := _as_shape(cut)
+	if cutter == null:
+		# Nothing to cut away: the kept shape passes through.
+		set_output(0, keep.duplicate())
+		return
+	set_output(0, _shape_output(FlowCompositeShape.new(FlowSpatial.Op.Difference, keep.shape, cutter, fn), keep))
+
+## Points of `points` combined with `shape` by `op` (see the table above).
+## Returns a new Data (the input is never modified); metadata comes from `points`.
+## `overlap_mode` (DifferenceNodeSettings.eOverlapMode): PointCenter samples the
+## shape's density at each point position (the WP2 behaviour, and the default of
+## this static helper); BoundsBox evaluates the shape over each point's world
+## bounds box (FlowSpatial.box_overlap) and folds peak and coverage into one
+## overlap density with the point's steepness (FlowSpatial.overlap_factor).
+## Binary tests use the peak (any overlap), like point-versus-point Binary.
+static func points_vs_shape(points : FlowData.Data, shape : FlowSpatial, op : int, fn : int, overlap_mode : int = 0) -> FlowData.Data:
+	var n := points.size()
+	var positions := points.getVector3Container(FlowData.AttrPosition)
+	if n == 0 or positions.size() != n:
+		return points.duplicate()
+	var shape_density := _shape_densities(points, positions, shape, fn, overlap_mode)
+	var dens := PackedFloat32Array()
+	dens.resize(n)
+	var dsrc = points.getContainerChecked(FlowData.AttrDensity, FlowData.DataType.Float)
+	for i in range(n):
+		dens[i] = dsrc[FlowData.bcast_idx(dsrc.size(), i)] if dsrc != null and dsrc.size() > 0 else 1.0
+	if fn == FlowSpatial.DENSITY_BINARY and op != FlowSpatial.Op.Union:
+		var keep := PackedInt32Array()
+		for i in range(n):
+			var inside := shape_density[i] > 0.0
+			if inside == (op == FlowSpatial.Op.Intersection):
+				keep.append(i)
+		return points.filter(keep)
+	var out := points.duplicate()
+	for i in range(n):
+		dens[i] = FlowSpatial.combine_density(op, fn, dens[i], shape_density[i])
+	out.registerStream(FlowData.AttrDensity, dens, FlowData.DataType.Float)
+	return out
+
+## Per-point density of `shape` for points_vs_shape: at the centre (PointCenter)
+## or over the bounds box (BoundsBox; the peak for Binary, else the
+## steepness-shaped overlap factor).
+static func _shape_densities(points : FlowData.Data, positions : PackedVector3Array, shape : FlowSpatial, fn : int, overlap_mode : int) -> PackedFloat64Array:
+	# Doubles, so PointCenter folds exactly the values WP2 folded (no float32 rounding).
+	var n := positions.size()
+	var out := PackedFloat64Array()
+	out.resize(n)
+	if overlap_mode != DifferenceNodeSettings.eOverlapMode.BoundsBox:
+		for i in range(n):
+			out[i] = shape.sample_density(positions[i])
+		return out
+	var boxes := BoundsOverlap.world_aabbs(points, positions)
+	var bmin : PackedVector3Array = boxes.min
+	var bmax : PackedVector3Array = boxes.max
+	var steep := points.getEffectiveSteepness()
+	for i in range(n):
+		var lo : Vector3 = bmin[i]
+		var hi : Vector3 = bmax[i]
+		var ov := shape.box_overlap(lo.min(hi), lo.max(hi))
+		out[i] = ov.x if fn == FlowSpatial.DENSITY_BINARY else FlowSpatial.overlap_factor(ov, steep[i])
+	return out

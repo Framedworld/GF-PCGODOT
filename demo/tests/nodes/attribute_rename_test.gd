@@ -43,7 +43,6 @@ func test_rename_float_stream() -> void:
 	var stream = out.findStream("heat")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedFloat32Array([1.0, 2.0, 3.0]))
-	node.free()
 
 func test_rename_int_stream() -> void:
 	var s = AttributeRenameSettings.new()
@@ -58,7 +57,6 @@ func test_rename_int_stream() -> void:
 	assert_bool(out.hasStream("count")).is_false()
 	var stream = out.findStream("total")
 	assert_array(stream.container).is_equal(PackedInt32Array([10, 20, 30]))
-	node.free()
 
 func test_rename_vector_stream() -> void:
 	var s = AttributeRenameSettings.new()
@@ -71,7 +69,6 @@ func test_rename_vector_stream() -> void:
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream("speed_vec")).is_true()
 	assert_bool(out.hasStream("velocity")).is_false()
-	node.free()
 
 func test_rename_color_stream() -> void:
 	var s = AttributeRenameSettings.new()
@@ -84,7 +81,6 @@ func test_rename_color_stream() -> void:
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream("color_out")).is_true()
 	assert_bool(out.hasStream("tint")).is_false()
-	node.free()
 
 func test_same_name_passthrough() -> void:
 	var s = AttributeRenameSettings.new()
@@ -96,7 +92,6 @@ func test_same_name_passthrough() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream("attr")).is_true()
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s = AttributeRenameSettings.new()
@@ -104,7 +99,6 @@ func test_missing_input_error() -> void:
 	s.to_name = "y"
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_from_name_error() -> void:
 	var s = AttributeRenameSettings.new()
@@ -113,7 +107,6 @@ func test_empty_from_name_error() -> void:
 	var d = _make_data("attr", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_to_name_error() -> void:
 	var s = AttributeRenameSettings.new()
@@ -122,7 +115,6 @@ func test_empty_to_name_error() -> void:
 	var d = _make_data("attr", PackedFloat32Array([1.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_missing_stream_error() -> void:
 	var s = AttributeRenameSettings.new()
@@ -131,7 +123,6 @@ func test_missing_stream_error() -> void:
 	var d = _make_data("attr", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_reserved_destination_index_error() -> void:
 	var s = AttributeRenameSettings.new()
@@ -140,7 +131,6 @@ func test_reserved_destination_index_error() -> void:
 	var d = _make_data("attr", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_reserved_destination_front_error() -> void:
 	var s = AttributeRenameSettings.new()
@@ -149,7 +139,6 @@ func test_reserved_destination_front_error() -> void:
 	var d = _make_data("attr", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_reserved_destination_dot_error() -> void:
 	var s = AttributeRenameSettings.new()
@@ -158,7 +147,6 @@ func test_reserved_destination_dot_error() -> void:
 	var d = _make_data("attr", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_overwrite_existing_enabled() -> void:
 	var s = AttributeRenameSettings.new()
@@ -176,7 +164,6 @@ func test_overwrite_existing_enabled() -> void:
 	assert_bool(out.hasStream("src")).is_false()
 	var stream = out.findStream("dst")
 	assert_array(stream.container).is_equal(PackedFloat32Array([10.0, 20.0]))
-	node.free()
 
 func test_overwrite_existing_disabled_error() -> void:
 	var s = AttributeRenameSettings.new()
@@ -188,7 +175,6 @@ func test_overwrite_existing_disabled_error() -> void:
 	d.registerStream("dst", PackedFloat32Array([99.0, 99.0]), FlowDataScript.DataType.Float)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_single_element_array() -> void:
 	var s = AttributeRenameSettings.new()
@@ -202,7 +188,6 @@ func test_single_element_array() -> void:
 	assert_bool(out.hasStream("renamed_solo")).is_true()
 	var stream = out.findStream("renamed_solo")
 	assert_array(stream.container).is_equal(PackedFloat32Array([42.0]))
-	node.free()
 
 func test_whitespace_trimmed_names() -> void:
 	var s = AttributeRenameSettings.new()
@@ -214,4 +199,3 @@ func test_whitespace_trimmed_names() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_bool(out.hasStream("newattr")).is_true()
-	node.free()

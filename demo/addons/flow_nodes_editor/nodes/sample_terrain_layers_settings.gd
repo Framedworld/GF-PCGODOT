@@ -4,6 +4,62 @@ extends NodeSettings
 
 @export_group("Terrain Layers")
 
+## Where layer weights come from.
+enum eLayerSource {
+	## Mask textures listed in 'layers' (default, the original behaviour).
+	Textures,
+	## A terrain adapter (WP6): the terrain at 'terrain_node_path', or the single
+	## Terrain3D / HTerrain node found in the scene (or in 'terrain_group_name').
+	## Writes one stream per terrain layer (prefix + layer name).
+	TerrainAdapter,
+}
+
+## Read weights from mask textures (default) or from a terrain through its adapter.
+@export var layer_source : eLayerSource = eLayerSource.Textures:
+	set(value):
+		value = clampi(value, 0, eLayerSource.size() - 1)
+		if layer_source != value:
+			layer_source = value
+			notify_property_list_changed()
+		emit_changed()
+
+## TerrainAdapter source: terrain node (relative to the graph's owner). Empty
+## auto-detects the one Terrain3D / HTerrain node. Also accepts a
+## CollisionShape3D with a HeightMapShape3D or a MeshInstance3D (whose layers
+## then come from 'terrain_splat_layers').
+@export var terrain_node_path : NodePath:
+	set(value):
+		terrain_node_path = value
+		emit_changed()
+
+## TerrainAdapter source: limit auto-detection to this group and its descendants.
+@export var terrain_group_name : String = "":
+	set(value):
+		terrain_group_name = value
+		emit_changed()
+
+## TerrainAdapter source: layers to write, by name (after renaming). Empty
+## writes every layer of the terrain.
+@export var terrain_layers : PackedStringArray:
+	set(value):
+		terrain_layers = value
+		emit_changed()
+
+## TerrainAdapter source: new names for the terrain's own layers, in order
+## (empty entries keep the adapter's name, e.g. texture_0).
+@export var terrain_layer_names : PackedStringArray:
+	set(value):
+		terrain_layer_names = value
+		emit_changed()
+
+## TerrainAdapter source: extra layers from splat image channels covering the
+## terrain footprint.
+@export var terrain_splat_layers : Array[FlowTerrainSplatLayer] = []:
+	set(value):
+		terrain_splat_layers = value
+		emit_changed()
+
+
 ## An array of terrain layers to sample. Each entry associates a layer name with a mask texture.
 ## The node outputs a float stream (0.0 to 1.0) for each layer indicating its sample weight.
 @export var layers : Array[TerrainLayerEntry] = []:
@@ -92,6 +148,10 @@ func _init():
 	resource_name = "Sample Terrain Layers Settings"
 
 func exposeParam(name : String) -> bool:
+	if name.begins_with("terrain_"):
+		return layer_source == eLayerSource.TerrainAdapter
+	if layer_source == eLayerSource.TerrainAdapter and name in ["layers", "use_world_xz", "world_min", "world_max", "uv_attribute_name", "value_channel", "wrap_mode"]:
+		return false
 	if name == "world_min" or name == "world_max":
 		return use_world_xz
 	if name == "uv_attribute_name":

@@ -48,7 +48,6 @@ func test_reduce_floats() -> void:
 	assert_float(smin.container[0]).is_equal(1.0)
 	assert_float(smax.container[0]).is_equal(5.0)
 	assert_float(savg.container[0]).is_equal_approx(3.0, 0.001)
-	node.free()
 
 func test_reduce_ints() -> void:
 	var s = ReduceSettings.new()
@@ -69,7 +68,6 @@ func test_reduce_ints() -> void:
 	assert_int(smin.container[0]).is_equal(10)
 	assert_int(smax.container[0]).is_equal(40)
 	assert_float(savg.container[0]).is_equal_approx(25.0, 0.001)
-	node.free()
 
 func test_reduce_vectors() -> void:
 	var s = ReduceSettings.new()
@@ -103,7 +101,6 @@ func test_reduce_vectors() -> void:
 	assert_float(vavg.x).is_equal_approx(2.0, 0.001)
 	assert_float(vavg.y).is_equal_approx(2.0, 0.001)
 	assert_float(vavg.z).is_equal_approx(2.0, 0.001)
-	node.free()
 
 func test_single_element_float() -> void:
 	var s = ReduceSettings.new()
@@ -118,7 +115,6 @@ func test_single_element_float() -> void:
 	assert_float(out.findStream("v_min").container[0]).is_equal_approx(7.0, 0.001)
 	assert_float(out.findStream("v_max").container[0]).is_equal_approx(7.0, 0.001)
 	assert_float(out.findStream("v_avg").container[0]).is_equal_approx(7.0, 0.001)
-	node.free()
 
 func test_empty_input_produces_empty_data() -> void:
 	var s = ReduceSettings.new()
@@ -131,7 +127,6 @@ func test_empty_input_produces_empty_data() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_bool(out.findStream("vals_min") == null).is_true()
-	node.free()
 
 func test_out_prefix_default_from_in_name() -> void:
 	var s = ReduceSettings.new()
@@ -145,7 +140,6 @@ func test_out_prefix_default_from_in_name() -> void:
 	assert_object(out.findStream("my_attr_min")).is_not_null()
 	assert_object(out.findStream("my_attr_max")).is_not_null()
 	assert_object(out.findStream("my_attr_avg")).is_not_null()
-	node.free()
 
 func test_error_missing_in_name() -> void:
 	var s = ReduceSettings.new()
@@ -153,14 +147,12 @@ func test_error_missing_in_name() -> void:
 		_make_data("vals", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_missing_input() -> void:
 	var s = ReduceSettings.new()
 	s.in_name = "vals"
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_stream_not_found() -> void:
 	var s = ReduceSettings.new()
@@ -169,7 +161,6 @@ func test_error_stream_not_found() -> void:
 		_make_data("other", PackedFloat32Array([1.0, 2.0]), FlowDataScript.DataType.Float)
 	], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_error_unsupported_type_color() -> void:
 	var s = ReduceSettings.new()
@@ -178,4 +169,3 @@ func test_error_unsupported_type_color() -> void:
 		_make_data("colors", PackedColorArray([Color.RED, Color.BLUE]), FlowDataScript.DataType.Color)
 	], s)
 	assert_str(node.err).is_not_empty()
-	node.free()

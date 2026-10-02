@@ -52,7 +52,6 @@ func test_count_float_stream() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([3]))
-	node.free()
 
 
 func test_count_vector_stream() -> void:
@@ -66,7 +65,6 @@ func test_count_vector_stream() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([4]))
-	node.free()
 
 
 func test_count_int_stream() -> void:
@@ -80,7 +78,6 @@ func test_count_int_stream() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([5]))
-	node.free()
 
 
 func test_count_color_stream() -> void:
@@ -94,7 +91,6 @@ func test_count_color_stream() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([2]))
-	node.free()
 
 
 func test_count_single_element() -> void:
@@ -108,7 +104,6 @@ func test_count_single_element() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([1]))
-	node.free()
 
 
 func test_count_large_array() -> void:
@@ -125,7 +120,6 @@ func test_count_large_array() -> void:
 	var stream = out.findStream("count")
 	assert_object(stream).is_not_null()
 	assert_array(stream.container).is_equal(PackedInt32Array([1000]))
-	node.free()
 
 
 func test_custom_output_stream_name() -> void:
@@ -141,11 +135,9 @@ func test_custom_output_stream_name() -> void:
 	assert_array(stream.container).is_equal(PackedInt32Array([6]))
 	var missing = out.findStream("count")
 	assert_object(missing).is_null()
-	node.free()
 
 
 func test_missing_input_error() -> void:
 	var s := _make_settings("count")
 	var node := _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()

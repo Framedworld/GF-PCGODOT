@@ -40,7 +40,6 @@ func test_default_settings() -> void:
 	assert_object(size_stream).is_not_null()
 	assert_int(size_stream.container.size()).is_equal(1)
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(48.0, 1.0, 48.0)]))
-	node.free()
 
 func test_custom_center() -> void:
 	var s = MakeBoundsSettings.new()
@@ -54,7 +53,6 @@ func test_custom_center() -> void:
 	assert_array(pos_stream.container).is_equal(PackedVector3Array([Vector3(10.0, 5.0, -3.0)]))
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(48.0, 1.0, 48.0)]))
-	node.free()
 
 func test_custom_size() -> void:
 	var s = MakeBoundsSettings.new()
@@ -68,7 +66,6 @@ func test_custom_size() -> void:
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_object(size_stream).is_not_null()
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(100.0, 20.0, 50.0)]))
-	node.free()
 
 func test_custom_center_and_size() -> void:
 	var s = MakeBoundsSettings.new()
@@ -82,7 +79,6 @@ func test_custom_center_and_size() -> void:
 	assert_array(pos_stream.container).is_equal(PackedVector3Array([Vector3(1.0, 2.0, 3.0)]))
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(4.0, 5.0, 6.0)]))
-	node.free()
 
 func test_zero_size() -> void:
 	var s = MakeBoundsSettings.new()
@@ -95,7 +91,6 @@ func test_zero_size() -> void:
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_object(size_stream).is_not_null()
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3.ZERO]))
-	node.free()
 
 func test_negative_size() -> void:
 	var s = MakeBoundsSettings.new()
@@ -107,7 +102,6 @@ func test_negative_size() -> void:
 	assert_object(out).is_not_null()
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(-10.0, -5.0, -20.0)]))
-	node.free()
 
 func test_output_is_single_point() -> void:
 	var s = MakeBoundsSettings.new()
@@ -119,7 +113,6 @@ func test_output_is_single_point() -> void:
 	assert_int(pos_stream.container.size()).is_equal(1)
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_int(size_stream.container.size()).is_equal(1)
-	node.free()
 
 func test_large_values() -> void:
 	var s = MakeBoundsSettings.new()
@@ -133,4 +126,3 @@ func test_large_values() -> void:
 	assert_array(pos_stream.container).is_equal(PackedVector3Array([Vector3(100000.0, -50000.0, 99999.9)]))
 	var size_stream = out.findStream(FlowData.AttrSize)
 	assert_array(size_stream.container).is_equal(PackedVector3Array([Vector3(999999.0, 0.001, 500000.0)]))
-	node.free()

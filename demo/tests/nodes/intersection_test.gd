@@ -53,7 +53,6 @@ func test_overlapping_points_returned() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_array(PackedVector3Array(pos_stream.container)).is_equal(PackedVector3Array([Vector3(0.0, 0.0, 0.0)]))
-	node.free()
 
 func test_no_overlap_returns_empty() -> void:
 	var posA := PackedVector3Array([
@@ -72,7 +71,6 @@ func test_no_overlap_returns_empty() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_multiple_overlapping_points() -> void:
 	var posA := PackedVector3Array([
@@ -94,7 +92,6 @@ func test_multiple_overlapping_points() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(2)
-	node.free()
 
 func test_empty_input_a_returns_empty() -> void:
 	var posA := PackedVector3Array()
@@ -108,9 +105,7 @@ func test_empty_input_a_returns_empty() -> void:
 	var out := _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_null_inputs_produce_error() -> void:
 	var node = _run([null, null])
 	assert_str(node.err).is_not_empty()
-	node.free()

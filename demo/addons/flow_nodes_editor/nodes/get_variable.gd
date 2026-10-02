@@ -3,6 +3,7 @@ extends FlowNodeBase
 
 const GetVariableNodeSettings = preload("res://addons/flow_nodes_editor/nodes/get_variable_settings.gd")
 
+# Editor only: the variable picker the widget shows on the output row.
 var variable_option: OptionButton
 
 func _init():
@@ -41,9 +42,10 @@ func getTitle() -> String:
 func getExposedParams():
 	return []
 
-func initFromScript():
-	super.initFromScript()
-	_place_variable_option_on_connector_row()
+# --- Widget hooks (see node.gd) -----------------------------------------------
+
+func widget_init(widget):
+	_place_variable_option_on_connector_row(widget)
 	refreshVariableChoices()
 
 func refreshVariableChoices() -> void:
@@ -73,17 +75,16 @@ func refreshVariableChoices() -> void:
 		variable_option.disabled = false
 		variable_option.select(selected_idx)
 
-func refreshFromSettings():
-	super.refreshFromSettings()
+func widget_refresh(widget):
 	refreshVariableChoices()
 	var color := _get_variable_color()
-	if is_slot_enabled_right(0):
-		set_slot_color_right(0, color)
-	title = getTitle()
+	if widget.is_slot_enabled_right(0):
+		widget.set_slot_color_right(0, color)
+	widget.title = getTitle()
 
-func _place_variable_option_on_connector_row() -> void:
+func _place_variable_option_on_connector_row(widget) -> void:
 	var row : FlowConnectorRow
-	for child in get_children():
+	for child in widget.get_children():
 		row = child as FlowConnectorRow
 		if row != null:
 			break

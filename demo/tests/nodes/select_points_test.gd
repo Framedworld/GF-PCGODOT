@@ -44,7 +44,6 @@ func test_ratio_zero_produces_empty_output() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_ratio_one_produces_all_points() -> void:
 	var s = SelectPointsSettings.new()
@@ -59,7 +58,6 @@ func test_ratio_one_produces_all_points() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(4)
-	node.free()
 
 func test_ratio_half_produces_half_points() -> void:
 	var s = SelectPointsSettings.new()
@@ -76,7 +74,6 @@ func test_ratio_half_produces_half_points() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(4)
-	node.free()
 
 func test_missing_input_produces_error() -> void:
 	var s = SelectPointsSettings.new()
@@ -84,7 +81,6 @@ func test_missing_input_produces_error() -> void:
 	s.weight_name = ""
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_input_data() -> void:
 	var s = SelectPointsSettings.new()
@@ -97,7 +93,6 @@ func test_empty_input_data() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_single_point_ratio_one() -> void:
 	var s = SelectPointsSettings.new()
@@ -109,7 +104,6 @@ func test_single_point_ratio_one() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(1)
-	node.free()
 
 func test_single_point_ratio_zero() -> void:
 	var s = SelectPointsSettings.new()
@@ -121,7 +115,6 @@ func test_single_point_ratio_zero() -> void:
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	assert_int(out.size()).is_equal(0)
-	node.free()
 
 func test_weighted_sampling_biases_selection() -> void:
 	var s = SelectPointsSettings.new()
@@ -143,7 +136,6 @@ func test_weighted_sampling_biases_selection() -> void:
 	assert_int(out.size()).is_equal(2)
 	var out_positions = out.findStream("position")
 	assert_object(out_positions).is_not_null()
-	node.free()
 
 func test_weight_name_not_found_produces_error() -> void:
 	var s = SelectPointsSettings.new()
@@ -154,7 +146,6 @@ func test_weight_name_not_found_produces_error() -> void:
 	]), FlowDataScript.DataType.Vector)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_per_point_seed_sampling_is_deterministic() -> void:
 	var s = SelectPointsSettings.new()
@@ -183,8 +174,6 @@ func test_per_point_seed_sampling_is_deterministic() -> void:
 	var pos2 = out2.findStream("position")
 	assert_array(pos1.container).is_equal(pos2.container)
 
-	node1.free()
-	node2.free()
 
 func test_all_streams_preserved_after_selection() -> void:
 	var s = SelectPointsSettings.new()
@@ -203,7 +192,6 @@ func test_all_streams_preserved_after_selection() -> void:
 	var out_colors = out.findStream("color")
 	assert_object(out_colors).is_not_null()
 	assert_int(out_colors.container.size()).is_equal(colors.size())
-	node.free()
 
 func test_wrong_weight_type_produces_error() -> void:
 	var s = SelectPointsSettings.new()
@@ -216,4 +204,3 @@ func test_wrong_weight_type_produces_error() -> void:
 	d.registerStream("label", labels, FlowDataScript.DataType.String)
 	var node = _run([d], s)
 	assert_str(node.err).is_not_empty()
-	node.free()

@@ -36,7 +36,7 @@ func _output(node) -> FlowData.Data:
 # Tests
 # ---------------------------------------------------------------------------
 
-func test_null_owner_does_not_crash() -> void:
+func test_null_owner_reports_owner_error_without_crash() -> void:
 	var s = PointsFromSceneSettings.new()
 	var node = PointsFromSceneNode.new()
 	node.name = "test_node"
@@ -46,13 +46,12 @@ func test_null_owner_does_not_crash() -> void:
 	ctx.owner = null
 	node.preExecute(ctx)
 	node.execute(ctx)
-	assert_str(node.err).is_empty()
+	assert_str(node.err).contains("needs an owner node")
 	var out = _output(node)
 	assert_object(out).is_not_null()
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(0)
-	node.free()
 
 func test_empty_owner_produces_zero_points() -> void:
 	var owner_node = _make_owner()
@@ -65,7 +64,6 @@ func test_empty_owner_produces_zero_points() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(0)
 	owner_node.free()
-	node.free()
 
 func test_collects_node3d_children() -> void:
 	var owner_node = _make_owner()
@@ -80,7 +78,6 @@ func test_collects_node3d_children() -> void:
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(3)
 	owner_node.free()
-	node.free()
 
 func test_output_streams_exist_position_rotation_size() -> void:
 	var owner_node = _make_owner()
@@ -94,7 +91,6 @@ func test_output_streams_exist_position_rotation_size() -> void:
 	assert_object(out.findStream(FlowData.AttrRotation)).is_not_null()
 	assert_object(out.findStream(FlowData.AttrSize)).is_not_null()
 	owner_node.free()
-	node.free()
 
 func test_collects_nested_nodes_when_recursive() -> void:
 	var owner_node = _make_owner()
@@ -110,7 +106,6 @@ func test_collects_nested_nodes_when_recursive() -> void:
 	# both mid and nested are Node3D, so 2 points expected
 	assert_int(out.findStream(FlowData.AttrPosition).container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_non_recursive_only_direct_children() -> void:
 	var owner_node = _make_owner()
@@ -128,7 +123,6 @@ func test_non_recursive_only_direct_children() -> void:
 	# Only direct children: direct and mid (not nested)
 	assert_int(out.findStream(FlowData.AttrPosition).container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_filter_by_class_name() -> void:
 	var owner_node = _make_owner()
@@ -146,7 +140,6 @@ func test_filter_by_class_name() -> void:
 	var out = _output(node)
 	assert_int(out.findStream(FlowData.AttrPosition).container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_group_filter() -> void:
 	var owner_node = _make_owner()
@@ -163,7 +156,6 @@ func test_group_filter() -> void:
 	var out = _output(node)
 	assert_int(out.findStream(FlowData.AttrPosition).container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_name_filter_wildcard() -> void:
 	var owner_node = _make_owner()
@@ -183,7 +175,6 @@ func test_name_filter_wildcard() -> void:
 	var out = _output(node)
 	assert_int(out.findStream(FlowData.AttrPosition).container.size()).is_equal(2)
 	owner_node.free()
-	node.free()
 
 func test_import_metadata_creates_stream() -> void:
 	var owner_node = _make_owner()
@@ -198,7 +189,6 @@ func test_import_metadata_creates_stream() -> void:
 	# The meta stream "my_float" must exist
 	assert_object(out.findStream("my_float")).is_not_null()
 	owner_node.free()
-	node.free()
 
 func test_import_property_creates_stream() -> void:
 	var owner_node = _make_owner()
@@ -214,7 +204,6 @@ func test_import_property_creates_stream() -> void:
 	var out = _output(node)
 	assert_object(out.findStream("visible")).is_not_null()
 	owner_node.free()
-	node.free()
 
 func test_size_to_bounds_creates_nonzero_size() -> void:
 	var owner_node = _make_owner()
@@ -235,7 +224,6 @@ func test_size_to_bounds_creates_nonzero_size() -> void:
 	assert_bool(sz.y > 0.0).is_true()
 	assert_bool(sz.z > 0.0).is_true()
 	owner_node.free()
-	node.free()
 
 func test_output_point_count_matches_filtered_nodes() -> void:
 	var owner_node = _make_owner()
@@ -253,4 +241,3 @@ func test_output_point_count_matches_filtered_nodes() -> void:
 	assert_int(rot_stream.container.size()).is_equal(5)
 	assert_int(size_stream.container.size()).is_equal(5)
 	owner_node.free()
-	node.free()

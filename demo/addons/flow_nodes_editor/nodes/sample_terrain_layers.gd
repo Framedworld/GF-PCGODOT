@@ -11,7 +11,7 @@ func _init():
 		"outs"     : [{ "label": "Out" }],
 		"aliases"  : ["Get Landscape Data", "Landscape Layers", "Splat Sampler"],
 		"category" : "Sampler",
-		"tooltip"  : "Samples N user-assigned mask textures at each point's world-XZ (or UV) position and writes one Float stream per layer (0..1).\nUse density_filter or attribute_filter_range downstream to filter by layer weight.",
+		"tooltip"  : "Samples N user-assigned mask textures at each point's world-XZ (or UV) position and writes one Float stream per layer (0..1).\nWith layer_source = TerrainAdapter it reads the paint layers of a terrain (Terrain3D, HTerrain, splat images).\nUse density_filter or attribute_filter_range downstream to filter by layer weight.",
 	}
 
 # ---------------------------------------------------------------------------
@@ -111,12 +111,79 @@ func _sample_image(image : Image, uv : Vector2) -> float:
 	return _channel_value(image.get_pixel(px, py))
 
 # ---------------------------------------------------------------------------
+# Terrain adapter source (WP6)
+# ---------------------------------------------------------------------------
+
+func _uses_terrain() -> bool:
+	return settings != null and settings.get("layer_source") == SampleTerrainLayersNodeSettings.eLayerSource.TerrainAdapter
+
+func _detect_terrain(ctx : FlowData.EvaluationContext) -> Dictionary:
+	return FlowTerrainAdapter.detect(ctx.owner, settings.terrain_node_path, settings.terrain_group_name, {
+		"layer_names": settings.terrain_layer_names,
+		"splat_layers": settings.terrain_splat_layers,
+	})
+
+## Textures: the scene is never read (unchanged). TerrainAdapter: the terrain
+## node, its transform and a probe of its heights and weights.
+func computeSceneFingerprint(ctx : FlowData.EvaluationContext) -> Variant:
+	if not _uses_terrain():
+		return SCENE_INDEPENDENT
+	if ctx == null or ctx.owner == null:
+		return null
+	var found := _detect_terrain(ctx)
+	if found.adapter == null:
+		return hash(["no terrain", found.error])
+	var n : Node = found.node
+	return [String(n.get_path()) if n.is_inside_tree() else String(n.name), found.adapter.fingerprint(), FlowSpatialSources.fingerprint(ctx.owner, [n])].hash()
+
+func _execute_terrain(ctx : FlowData.EvaluationContext, in_data : FlowData.Data) -> void:
+	if reportMissingOwner(ctx) or ctx == null or ctx.owner == null:
+		return
+	var found := _detect_terrain(ctx)
+	if found.adapter == null:
+		setError("Sample Terrain Layers: %s" % found.error)
+		return
+	var adapter : FlowTerrainAdapter = found.adapter
+	var available := adapter.get_layer_names()
+	var wanted : PackedStringArray = settings.terrain_layers if not settings.terrain_layers.is_empty() else available
+	for lname in wanted:
+		if not available.has(lname):
+			setError("Terrain '%s' has no layer '%s' (layers: %s)" % [adapter.source_name, lname, ", ".join(available)])
+			return
+	var out_data : FlowData.Data = in_data.duplicate()
+	var num_points : int = in_data.size()
+	if num_points == 0:
+		set_output(0, out_data)
+		return
+	var pos_stream = in_data.findStream(FlowData.AttrPosition)
+	if pos_stream == null or pos_stream.data_type != FlowData.DataType.Vector:
+		setError("Input has no Vector 'position' stream required for terrain layer sampling")
+		return
+	var positions : PackedVector3Array = pos_stream.container
+	for lname in wanted:
+		var values := PackedFloat32Array()
+		values.resize(num_points)
+		for i in range(num_points):
+			var p : Vector3 = positions[FlowData.bcast_idx(positions.size(), i)]
+			values[i] = adapter.get_layer_weight(lname, p.x, p.z)
+		var stream_name : String = settings.stream_prefix + lname
+		var err = out_data.registerStream(stream_name, values, FlowData.DataType.Float)
+		if err:
+			setError("Failed to register stream '%s': %s" % [stream_name, err])
+			return
+	set_output(0, out_data)
+
+# ---------------------------------------------------------------------------
 # execute
 # ---------------------------------------------------------------------------
 
 func execute(_ctx : FlowData.EvaluationContext):
 	var in_data : FlowData.Data = require_input(0, _ctx, "Input 'In'")
 	if in_data == null:
+		return
+
+	if _uses_terrain():
+		_execute_terrain(_ctx, in_data)
 		return
 
 	# --- Validate layer list ---

@@ -19,7 +19,7 @@ func getTitle() -> String:
 	return "Boolean (%s)" % BooleanNodeSettings.eOperation.keys()[op_idx]
 
 func _is_editor_missing_input_context(ctx : FlowData.EvaluationContext) -> bool:
-	return ctx.owner == null and Engine.is_editor_hint()
+	return is_ownerless_preview(ctx)
 
 func _emit_empty_output() -> void:
 	set_output(0, FlowData.Data.new())

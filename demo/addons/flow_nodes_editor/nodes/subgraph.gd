@@ -1,12 +1,19 @@
 @tool
 extends FlowNodeBase
 
+## Label of the extra input pin a dynamic subgraph (graph_attribute) reads.
+const GRAPH_PIN_LABEL := "Graph"
+
 var _connected_graph: FlowGraphResource = null
 var _last_input_data_map: Dictionary = {}
+# Dynamic subgraph: graphs resolved during the current evaluation (path ->
+# result, instance id -> graph), reset at its first entry.
+var _graph_memo: Dictionary = {}
 
 func _init():
 	meta_node = {
 		"title" : "Subgraph",
+		"category" : "ControlFlow",
 		"settings" : SubgraphNodeSettings,
 		"ins" : [],
 		"outs" : [],
@@ -14,9 +21,17 @@ func _init():
 		"tooltip" : "Evaluates a nested graph inside this node",
 	}
 
-func _exit_tree():
-	super._exit_tree()
+# --- Widget hooks (see node.gd) -----------------------------------------------
+# The nested graph's in_params_changed signal is only watched while the node is
+# shown in the editor; runtime elements never connect to shared resources.
+
+func widget_exit_tree(_widget):
 	_disconnect_graph()
+
+func widget_refresh(_widget):
+	if settings:
+		_connect_graph(settings.graph)
+	initFromScript()
 
 func _disconnect_graph():
 	if is_instance_valid(_connected_graph):
@@ -61,39 +76,80 @@ func getMeta() -> Dictionary:
 						"label": out_name,
 						"data_type": out_type
 					})
+	if settings and settings.graph_attribute != "":
+		# Dynamic subgraph: the data whose graph_attribute names the graph.
+		ins.append({ "label": GRAPH_PIN_LABEL, "data_type": FlowData.DataType.Invalid })
 	meta_node.ins = ins
 	meta_node.outs = outs
 	return meta_node
 
 func getTitle() -> String:
+	var title := "Subgraph"
 	if settings and settings.graph:
 		var path = settings.graph.resource_path
 		if path != "":
-			return "Subgraph (%s)" % path.get_file().get_basename()
-		return "Subgraph (New Graph)"
-	return "Subgraph"
+			title = "Subgraph (%s)" % path.get_file().get_basename()
+		else:
+			title = "Subgraph (New Graph)"
+	if settings and settings.graph_attribute != "":
+		title += " [@%s]" % settings.graph_attribute
+	return title
 
-func refreshFromSettings():
-	super.refreshFromSettings()
-	if settings:
-		_connect_graph(settings.graph)
-	initFromScript()
 
 func onPropChanged( prop_name : String ):
 	super.onPropChanged( prop_name )
-	if prop_name == "graph":
-		if settings:
+	if prop_name == "graph" or prop_name == "graph_attribute":
+		if settings and get_widget() != null:
 			_connect_graph(settings.graph)
 		initFromScript()
 
 func computeSceneFingerprint( _ctx : FlowData.EvaluationContext ) -> Variant:
+	# A dynamic graph is only known per iteration: treat it as scene-dependent.
+	if settings and settings.graph_attribute != "":
+		return null
 	return nestedGraphSceneFingerprint( settings.graph if settings else null )
 
+## Dynamic subgraph: the graph for the entry being executed, as
+## { "graph": FlowGraphResource or null, "error": String }. The Graph pin's
+## data of this entry is used (or of the first entry when this one has none);
+## an unconnected Graph pin runs the default graph.
+func resolve_entry_graph() -> Dictionary:
+	if input_bulks.size() <= 1:
+		_graph_memo = {}
+	var pin : int = getMeta().ins.size() - 1
+	var graph_data = get_optional_input(pin)
+	if not (graph_data is FlowData.Data) and input_bulks.size() > 1:
+		var first_entry : Array = input_bulks[0]
+		if pin < first_entry.size():
+			graph_data = first_entry[pin]
+	if not (graph_data is FlowData.Data):
+		if settings.graph != null:
+			return { "graph": settings.graph, "error": "" }
+		return { "graph": null, "error": "%s input not connected and no default graph assigned" % GRAPH_PIN_LABEL }
+	var missing := RefCounted.new()
+	var value = graph_data.first(settings.graph_attribute, missing)
+	if is_same(value, missing):
+		return { "graph": null, "error": "attribute '%s' not found on the %s input" % [settings.graph_attribute, GRAPH_PIN_LABEL] }
+	var resolved : Dictionary = FlowNodeIO.resolve_graph_reference(value, settings.graph, _graph_memo)
+	if resolved.graph != null:
+		# Keeps a graph loaded from a path alive for this evaluation's entries.
+		_graph_memo[resolved.graph.get_instance_id()] = resolved.graph
+	return resolved
+
 func execute( ctx : FlowData.EvaluationContext ):
-	if not settings.graph:
+	var graph : FlowGraphResource = settings.graph
+	if settings.graph_attribute != "":
+		var resolved := resolve_entry_graph()
+		if resolved.graph == null:
+			setError("Subgraph entry %d: %s" % [maxi(input_bulks.size() - 1, 0), resolved.error])
+			for i in range(getMeta().outs.size()):
+				set_output(i, FlowData.Data.new())
+			return
+		graph = resolved.graph
+	elif not settings.graph:
 		setError("No graph assigned to Subgraph node '%s'" % getTitle())
 		return
-		
+
 	var input_data_map = {}
 	_last_input_data_map = {}
 	if settings.graph:
@@ -119,7 +175,19 @@ func execute( ctx : FlowData.EvaluationContext ):
 	
 	var FlowNodeIOClass = load("res://addons/flow_nodes_editor/flow_nodes_io.gd")
 	var child_depth := int(ctx.get_meta("flow_eval_depth", ctx.runtime_params.get("__eval_depth", 0))) + 1
-	var outputs = FlowNodeIOClass.evaluate_graph(settings.graph, input_data_map, ctx, {}, child_depth)
+	# The nested evaluation inherits ctx.seed, component_id and overrides
+	# unchanged (docs/RUNTIME_API_P0.md §2): a subgraph is part of the same
+	# generation, so it shares the graph seed.
+	# A dynamic graph receives the inputs above by name; its own inputs that the
+	# default graph does not declare take their graph defaults.
+	if child_depth > FlowExecutor.MAX_EVAL_DEPTH:
+		# The executor refuses the evaluation with only a console error;
+		# report it on the node so it reaches the runtime error log.
+		setError("Graph %s exceeds the maximum nesting depth (%d); a graph probably runs itself" % [graph.resource_path if graph.resource_path != "" else "unsaved graph", FlowExecutor.MAX_EVAL_DEPTH])
+		for i in range(getMeta().outs.size()):
+			set_output(i, FlowData.Data.new())
+		return
+	var outputs = FlowNodeIOClass.evaluate_graph(graph, input_data_map, ctx, {}, child_depth)
 	
 	var meta = getMeta()
 	var missing_outputs := PackedStringArray()
@@ -135,7 +203,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	if missing_outputs.size() > 0:
 		setError("Missing outputs: %s" % ", ".join(missing_outputs))
 
-func _gui_input(event: InputEvent):
+func widget_gui_input(widget, event: InputEvent) -> bool:
 	if event is InputEventMouseButton and event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
 		var editor = getEditor()
 		if editor and settings and settings.graph:
@@ -146,7 +214,9 @@ func _gui_input(event: InputEvent):
 				owner.set_meta("flow_debug_graph_path", settings.graph.resource_path)
 				owner.set_meta("flow_debug_input_data_map", debug_inputs)
 			editor.setResourceToEdit(settings.graph, owner)
-			accept_event()
+			widget.accept_event()
+			return true
+	return false
 
 func _debug_input_data_map() -> Dictionary:
 	var data_map: Dictionary = {}

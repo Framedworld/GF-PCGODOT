@@ -51,7 +51,6 @@ func _test_expression_writes_bool_stream_as_bytes() -> bool:
 		PackedByteArray([0, 1, 0]),
 		"Expression should write bool results as 0/1 bytes"
 	)
-	node.free()
 	return passed
 
 
@@ -80,7 +79,6 @@ func _test_expression_reads_ue_system_attribute_name() -> bool:
 		PackedFloat32Array([2.0, 11.0]),
 		"Expression should read UE-style built-in attributes"
 	)
-	node.free()
 	return passed
 
 
@@ -108,7 +106,6 @@ func _test_branch_unselected_output_keeps_empty_schema() -> bool:
 		and _expect_empty_stream(unselected_data, "id", FlowDataScript.DataType.Int)
 		and _expect_empty_stream(unselected_data, "shared", FlowDataScript.DataType.String)
 	)
-	node.free()
 	return passed
 
 
@@ -137,7 +134,6 @@ func _test_point_to_attribute_set_preserves_transforms_without_nil_return_error(
 		and _expect_stream_size(out_data, "point_rotation", FlowDataScript.DataType.Vector, 1)
 		and _expect_stream_size(out_data, "point_size", FlowDataScript.DataType.Vector, 1)
 	)
-	node.free()
 	return passed
 
 
@@ -168,7 +164,6 @@ func _test_remove_attribute_keep_selected_preserves_system_streams() -> bool:
 		and _expect_stream_size(out_data, "coast_width", FlowDataScript.DataType.Float, 1)
 		and _expect(out_data.findStream(str(FlowDataScript.AttrRotation)) == null, "$Rotation should be removed")
 	)
-	node.free()
 	return passed
 
 
@@ -190,7 +185,6 @@ func _test_output_accepts_empty_schema() -> bool:
 		_expect(out_data != null, "Output should emit empty schema data")
 		and _expect(out_data.streams.size() == 0, "Output empty schema should have no streams")
 	)
-	node.free()
 	return passed
 
 

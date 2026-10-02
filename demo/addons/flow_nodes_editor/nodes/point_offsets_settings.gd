@@ -17,11 +17,11 @@ extends NodeSettings
 @export var scale_offsets_by_anchor_size : bool = false
 ## If enabled, generated points inherit anchor size.
 @export var inherit_anchor_size : bool = false
-## Attribute stream name storing parent point index.
+## Attribute stream name storing parent (anchor) point index (Int). Leave empty to skip writing it.
 @export var parent_index_attribute : String = "parent_index"
-## Attribute stream name storing offset pattern index.
+## Attribute stream name storing offset pattern index (Int). Leave empty to skip writing it.
 @export var offset_index_attribute : String = "offset_index"
-## Attribute stream name storing text label.
+## Attribute stream name storing the offset's text label (String; its index when no label is set). Leave empty to skip writing it.
 @export var label_attribute : String = "offset_label"
 ## Array of text labels assigned to offset points.
 @export var labels : Array[String] = []

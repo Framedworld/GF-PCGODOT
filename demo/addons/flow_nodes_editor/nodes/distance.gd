@@ -4,6 +4,7 @@ extends FlowNodeBase
 func _init():
 	meta_node = {
 		"title" : "Distance",
+		"category" : "Spatial",
 		"settings" : DistanceNodeSettings,
 		"ins" : [{ "label": "In" }, { "label": "Target" }], 
 		"outs" : [{ "label" : "Out" }],
@@ -26,7 +27,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		set_output(0, empty_data)
 		return
 	if not in_dataA.hasStreamOfType( settings.in_nameA, FlowData.DataType.Vector ):
-		if ctx.owner == null and Engine.is_editor_hint():
+		if is_ownerless_preview(ctx):
 			var empty_data = FlowData.Data.new()
 			set_output(0, empty_data)
 			return
@@ -39,7 +40,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	# instead of silently treating it as "no targets" and writing 1.0 distances for
 	# every point, which would make downstream `dist >= X` filters pass everything.
 	if in_dataB == null:
-		if ctx.owner == null and Engine.is_editor_hint():
+		if is_ownerless_preview(ctx):
 			var empty_data = FlowData.Data.new()
 			set_output(0, empty_data)
 			return
@@ -50,7 +51,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	# is an authoring error.
 	var b_empty : bool = in_dataB.size() == 0
 	if not b_empty and not in_dataB.hasStreamOfType( settings.in_nameB, FlowData.DataType.Vector ):
-		if ctx.owner == null and Engine.is_editor_hint():
+		if is_ownerless_preview(ctx):
 			var empty_data = FlowData.Data.new()
 			set_output(0, empty_data)
 			return

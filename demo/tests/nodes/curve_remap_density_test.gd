@@ -71,7 +71,6 @@ func test_identity_curve_passthrough() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.0, 0.01)
 	assert_float(stream.container[2]).is_equal_approx(0.5, 0.01)
 	assert_float(stream.container[4]).is_equal_approx(1.0, 0.01)
-	node.free()
 
 func test_invert_curve_flips_densities() -> void:
 	var densities := PackedFloat32Array([0.0, 0.5, 1.0])
@@ -84,7 +83,6 @@ func test_invert_curve_flips_densities() -> void:
 	assert_object(stream).is_not_null()
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.01)
 	assert_float(stream.container[2]).is_equal_approx(0.0, 0.01)
-	node.free()
 
 func test_constant_zero_curve_zeros_all_densities() -> void:
 	var densities := PackedFloat32Array([0.2, 0.5, 0.9])
@@ -98,7 +96,6 @@ func test_constant_zero_curve_zeros_all_densities() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.0, 0.01)
 	assert_float(stream.container[1]).is_equal_approx(0.0, 0.01)
 	assert_float(stream.container[2]).is_equal_approx(0.0, 0.01)
-	node.free()
 
 func test_constant_one_curve_maxes_all_densities() -> void:
 	var densities := PackedFloat32Array([0.0, 0.3, 0.7])
@@ -112,7 +109,6 @@ func test_constant_one_curve_maxes_all_densities() -> void:
 	assert_float(stream.container[0]).is_equal_approx(1.0, 0.01)
 	assert_float(stream.container[1]).is_equal_approx(1.0, 0.01)
 	assert_float(stream.container[2]).is_equal_approx(1.0, 0.01)
-	node.free()
 
 func test_null_curve_acts_as_identity() -> void:
 	var densities := PackedFloat32Array([0.0, 0.5, 1.0])
@@ -126,7 +122,6 @@ func test_null_curve_acts_as_identity() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.0, 0.01)
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.01)
 	assert_float(stream.container[2]).is_equal_approx(1.0, 0.01)
-	node.free()
 
 func test_no_density_stream_defaults_to_one() -> void:
 	var input = _make_data_no_density(3)
@@ -140,7 +135,6 @@ func test_no_density_stream_defaults_to_one() -> void:
 	assert_float(stream.container[0]).is_equal_approx(0.5, 0.01)
 	assert_float(stream.container[1]).is_equal_approx(0.5, 0.01)
 	assert_float(stream.container[2]).is_equal_approx(0.5, 0.01)
-	node.free()
 
 func test_output_clamped_to_zero_one() -> void:
 	var densities := PackedFloat32Array([0.0, 0.5, 1.0])
@@ -157,7 +151,6 @@ func test_output_clamped_to_zero_one() -> void:
 	for i in stream.container.size():
 		assert_bool(stream.container[i] >= 0.0).is_true()
 		assert_bool(stream.container[i] <= 1.0).is_true()
-	node.free()
 
 func test_missing_input_sets_error() -> void:
 	var node = CurveRemapDensityNode.new()
@@ -172,7 +165,6 @@ func test_missing_input_sets_error() -> void:
 	node.execute(ctx)
 	dummy.free()
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_single_element_data() -> void:
 	var densities := PackedFloat32Array([0.3])
@@ -185,7 +177,6 @@ func test_single_element_data() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
 	assert_float(stream.container[0]).is_equal_approx(0.784, 0.05)
-	node.free()
 
 func test_other_streams_preserved_in_output() -> void:
 	var d := FlowDataScript.Data.new()
@@ -198,4 +189,3 @@ func test_other_streams_preserved_in_output() -> void:
 	var pos_stream = out.findStream(FlowData.AttrPosition)
 	assert_object(pos_stream).is_not_null()
 	assert_int(pos_stream.container.size()).is_equal(2)
-	node.free()

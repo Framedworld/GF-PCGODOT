@@ -109,7 +109,41 @@ func setCellCallback( new_cell_callback : Callable ):
 	$ScrollContainer.cell_contents = new_cell_callback
 
 func setColumnCallback( new_callback : Callable ):
-	$ScrollContainer.column_callback = new_callback
+	_owner_column_callback = new_callback
+	$ScrollContainer.column_callback = _on_column_begins
+
+# The owner's column callback picks a typed cell formatter per column. A column
+# whose type it does not handle (Color, Quaternion and the extended types
+# Vector2, Vector4, Transform, Int64, Double) used to keep the PREVIOUS
+# column's formatter, which errors on a value of another type. Reset to a
+# generic str() formatter first; the owner's callback overrides it as before.
+var _owner_column_callback : Callable
+
+func _on_column_begins( cell ):
+	$ScrollContainer.cell_contents = _generic_cell_contents
+	if _owner_column_callback.is_valid():
+		_owner_column_callback.call( cell )
+
+# Reads the owner's current `container` (and its visible-row mapping when it
+# has one) and shows str(value). Duck-typed so the table stays data-agnostic.
+func _generic_cell_contents( cell ):
+	cell.text = ""
+	var owner = _owner_column_callback.get_object() if _owner_column_callback.is_valid() else null
+	if owner == null or not is_instance_valid( owner ):
+		return
+	var container = owner.get( "container" )
+	if container == null or not ( container is Array or typeof( container ) >= TYPE_PACKED_BYTE_ARRAY ):
+		return
+	var idx = cell.row
+	if owner.has_method( "_container_index_for_cell" ):
+		idx = owner._container_index_for_cell( cell.row )
+	if not ( idx is int ) or idx < 0 or idx >= container.size():
+		return
+	var value = container[ idx ]
+	if value is Object:
+		cell.text = str( value.get( "resource_path" ) if value is Resource else value.get( "name" ) ) if is_instance_valid( value ) else ""
+	else:
+		cell.text = str( value )
 
 func _ready():
 	$TitlesContainer.get_h_scroll_bar().value_changed.connect( titlesScrolled )

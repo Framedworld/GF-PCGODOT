@@ -44,7 +44,6 @@ func test_default_start_index_zero() -> void:
 	assert_int(stream.container[0]).is_equal(0)
 	assert_int(stream.container[1]).is_equal(1)
 	assert_int(stream.container[2]).is_equal(2)
-	node.free()
 
 func test_custom_start_index() -> void:
 	var s = GetLoopIndexSettings.new()
@@ -62,7 +61,6 @@ func test_custom_start_index() -> void:
 	assert_int(stream.container[1]).is_equal(6)
 	assert_int(stream.container[2]).is_equal(7)
 	assert_int(stream.container[3]).is_equal(8)
-	node.free()
 
 func test_negative_start_index() -> void:
 	var s = GetLoopIndexSettings.new()
@@ -78,7 +76,6 @@ func test_negative_start_index() -> void:
 	assert_int(stream.container[0]).is_equal(-3)
 	assert_int(stream.container[1]).is_equal(-2)
 	assert_int(stream.container[2]).is_equal(-1)
-	node.free()
 
 func test_single_point_input() -> void:
 	var s = GetLoopIndexSettings.new()
@@ -93,7 +90,6 @@ func test_single_point_input() -> void:
 	assert_object(stream).is_not_null()
 	assert_int(stream.container.size()).is_equal(1)
 	assert_int(stream.container[0]).is_equal(0)
-	node.free()
 
 func test_input_streams_are_preserved() -> void:
 	var s = GetLoopIndexSettings.new()
@@ -109,7 +105,6 @@ func test_input_streams_are_preserved() -> void:
 	assert_object(out.findStream("position")).is_not_null()
 	assert_object(out.findStream("density")).is_not_null()
 	assert_object(out.findStream("loop_index")).is_not_null()
-	node.free()
 
 func test_missing_input_produces_error() -> void:
 	var s = GetLoopIndexSettings.new()
@@ -117,7 +112,6 @@ func test_missing_input_produces_error() -> void:
 	s.start_index = 0
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_empty_output_name_produces_error() -> void:
 	var s = GetLoopIndexSettings.new()
@@ -126,7 +120,6 @@ func test_empty_output_name_produces_error() -> void:
 	var in_data = _make_data("position", PackedVector3Array([Vector3.ZERO, Vector3.ONE]), FlowDataScript.DataType.Vector)
 	var node = _run([in_data], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_custom_output_name() -> void:
 	var s = GetLoopIndexSettings.new()
@@ -142,7 +135,6 @@ func test_custom_output_name() -> void:
 	var stream = out.findStream("my_custom_index")
 	assert_int(stream.container[0]).is_equal(10)
 	assert_int(stream.container[2]).is_equal(12)
-	node.free()
 
 func test_large_input_sequential_values() -> void:
 	var s = GetLoopIndexSettings.new()
@@ -162,4 +154,3 @@ func test_large_input_sequential_values() -> void:
 	assert_int(stream.container.size()).is_equal(100)
 	assert_int(stream.container[0]).is_equal(0)
 	assert_int(stream.container[99]).is_equal(99)
-	node.free()

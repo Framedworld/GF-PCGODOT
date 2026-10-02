@@ -12,19 +12,14 @@ func _init():
 		"category" : "Spatial",
 	}
 
-func removeInstancedNodes( root : Node ):
-	var nodes : Array[Node] = []
-	for child in root.get_children():
-		if !child.has_meta( "flow_owner" ):
-			continue
-		if child.get_meta( "flow_owner" ) == name:
-			nodes.append( child )
-	for node in nodes:
-		node.queue_free()
+func removeInstancedNodes( root : Node, ctx : FlowData.EvaluationContext = null ):
+	removeOwnFlowContent( root, ctx )
 
 func execute( ctx : FlowData.EvaluationContext ):
 	var in_data : FlowData.Data = require_input(0, ctx)
 	if in_data == null:
+		return
+	if handleMissingOwner( ctx ):
 		return
 	var in_trs := in_data.getTransformsStream()
 	if in_trs == null:
@@ -40,17 +35,19 @@ func execute( ctx : FlowData.EvaluationContext ):
 		return
 
 	# Clean up splines spawned by previous evaluations of this node
-	removeInstancedNodes( root )
+	removeInstancedNodes( root, ctx )
 
 	var scene_root = root.get_tree().current_scene
 	var owner_of_spawned_nodes : Node = scene_root if scene_root else root
 
 	var path := Path3D.new()
-	root.add_child( path )
 	path.name = "Spline"
+	# Readable add: a taken name becomes "Spline2", as the rename after
+	# add_child() always gave, without a transient "@Path3D@N" auto-name.
+	root.add_child( path, true )
 	# Owner must be set AFTER the node is inside the tree or it never persists
-	path.owner = owner_of_spawned_nodes
-	path.set_meta( "flow_owner", name )
+	assignSpawnOwner( path, owner_of_spawned_nodes, ctx )
+	tagFlowContent( path, ctx )
 	path.curve = Curve3D.new()
 	var num_idxs : int = in_trs.size()
 	for idx in range( num_idxs ):

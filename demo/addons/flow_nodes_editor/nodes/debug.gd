@@ -5,6 +5,7 @@ class_name FlowNodeDebug
 func _init():
 	meta_node = {
 		"title" : "Debug",
+		"category" : "Debug",
 		"settings" : NodeSettings,
 		"ins" : [{ "label" : "In" }],
 		"outs" : [{ "label" : "Out" }],

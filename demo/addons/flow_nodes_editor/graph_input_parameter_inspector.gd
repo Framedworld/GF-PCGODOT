@@ -13,8 +13,7 @@ func _parse_property(object: Object, type: Variant.Type, name: String, hint_type
 	var label := ""
 	if name.begins_with("cte_"):
 		var settings := object as GraphInputParameter
-		var name_lc = FlowData.DataType.keys()[ settings.data_type ].to_lower()
-		if name == "cte_" + name_lc:
+		if name == GraphInputParameter.value_property_name( settings.data_type ):
 			label = FlowI18n.t(FlowInspectorPropertyPolicy.format_label(name))
 		else:
 			# Hide the attribute

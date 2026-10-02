@@ -52,7 +52,6 @@ func test_symmetric_set_mode() -> void:
 	assert_object(stream).is_not_null()
 	var expected_size = (s.bounds_max - s.bounds_min).abs()
 	assert_array(stream.container).is_equal(PackedVector3Array([expected_size, expected_size]))
-	node.free()
 
 func test_symmetric_add_mode() -> void:
 	var s = BoundsModifierSettings.new()
@@ -69,7 +68,6 @@ func test_symmetric_add_mode() -> void:
 	assert_object(stream).is_not_null()
 	var delta = (s.bounds_max - s.bounds_min).abs()
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(1.0, 2.0, 3.0) + delta]))
-	node.free()
 
 func test_symmetric_multiply_mode() -> void:
 	var s = BoundsModifierSettings.new()
@@ -86,7 +84,6 @@ func test_symmetric_multiply_mode() -> void:
 	assert_object(stream).is_not_null()
 	var scale = (s.bounds_max - s.bounds_min).abs()
 	assert_array(stream.container).is_equal(PackedVector3Array([Vector3(2.0, 1.0, 4.0) * scale]))
-	node.free()
 
 func test_per_point_bounds_set_mode() -> void:
 	var s = BoundsModifierSettings.new()
@@ -105,7 +102,6 @@ func test_per_point_bounds_set_mode() -> void:
 	assert_object(bmax_stream).is_not_null()
 	assert_array(bmin_stream.container).is_equal(PackedVector3Array([s.bounds_min, s.bounds_min]))
 	assert_array(bmax_stream.container).is_equal(PackedVector3Array([s.bounds_max, s.bounds_max]))
-	node.free()
 
 func test_per_point_bounds_add_mode() -> void:
 	var s = BoundsModifierSettings.new()
@@ -126,7 +122,6 @@ func test_per_point_bounds_add_mode() -> void:
 	assert_object(bmax_stream).is_not_null()
 	assert_array(bmin_stream.container).is_equal(PackedVector3Array([base_min[0] + s.bounds_min]))
 	assert_array(bmax_stream.container).is_equal(PackedVector3Array([base_max[0] + s.bounds_max]))
-	node.free()
 
 func test_per_point_bounds_multiply_mode() -> void:
 	var s = BoundsModifierSettings.new()
@@ -147,7 +142,6 @@ func test_per_point_bounds_multiply_mode() -> void:
 	assert_object(bmax_stream).is_not_null()
 	assert_array(bmin_stream.container).is_equal(PackedVector3Array([base_min[0] * s.bounds_min]))
 	assert_array(bmax_stream.container).is_equal(PackedVector3Array([base_max[0] * s.bounds_max]))
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s = BoundsModifierSettings.new()
@@ -164,7 +158,6 @@ func test_missing_input_error() -> void:
 	node.execute(ctx)
 	dummy.free()
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_symmetric_missing_size_stream_error() -> void:
 	var s = BoundsModifierSettings.new()
@@ -175,7 +168,6 @@ func test_symmetric_missing_size_stream_error() -> void:
 	var in_data = FlowDataScript.Data.new()
 	var node = _run(in_data, s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_per_point_bounds_empty_data() -> void:
 	var s = BoundsModifierSettings.new()
@@ -188,7 +180,6 @@ func test_per_point_bounds_empty_data() -> void:
 	assert_str(node.err).is_empty()
 	var out = _output(node)
 	assert_object(out).is_not_null()
-	node.free()
 
 func test_symmetric_asymmetric_bounds_collapses_to_abs_extent() -> void:
 	var s = BoundsModifierSettings.new()
@@ -205,4 +196,3 @@ func test_symmetric_asymmetric_bounds_collapses_to_abs_extent() -> void:
 	assert_object(stream).is_not_null()
 	var expected = (s.bounds_max - s.bounds_min).abs()
 	assert_array(stream.container).is_equal(PackedVector3Array([expected]))
-	node.free()

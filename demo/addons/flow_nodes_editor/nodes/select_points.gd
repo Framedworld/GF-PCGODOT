@@ -94,7 +94,7 @@ func per_point_seeded_sampling(k: int, point_seeds, weights) -> PackedInt32Array
 	var prng := RandomNumberGenerator.new()
 	var all_zero := weights != null
 	for i : int in n:
-		prng.seed = int(point_seeds[i]) ^ settings.random_seed
+		prng.seed = int(point_seeds[i]) ^ effective_seed()
 		var u := prng.randf_range(1e-6, 1.0)
 		if weights == null:
 			_keys[i] = u
@@ -143,7 +143,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 	var out_size : int = int(round(in_size * ratio))
 
 	var rng := RandomNumberGenerator.new()
-	rng.seed = settings.random_seed
+	rng.seed = effective_seed()
 
 	var weights = null
 	if attr_name:
@@ -167,7 +167,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 			var synth := PackedInt32Array()
 			synth.resize( in_size )
 			for i in in_size:
-				synth[i] = FlowData.point_seed( positions[i], settings.random_seed )
+				synth[i] = FlowData.point_seed( positions[i], effective_seed() )
 			point_seeds = synth
 			has_point_seeds = true
 

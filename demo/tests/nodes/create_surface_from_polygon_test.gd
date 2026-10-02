@@ -58,7 +58,6 @@ func test_basic_square_polygon_xz() -> void:
 	var count_stream = out.findStream("surface_point_count")
 	assert_object(count_stream).is_not_null()
 	assert_int(count_stream.container[0]).is_equal(4)
-	node.free()
 
 func test_output_position_is_aabb_center() -> void:
 	var s = CreateSurfaceFromPolygonSettings.new()
@@ -85,7 +84,6 @@ func test_output_position_is_aabb_center() -> void:
 	var rot_stream = out.findStream(FlowData.AttrRotation)
 	assert_object(rot_stream).is_not_null()
 	assert_bool(rot_stream.container[0].is_equal_approx(Vector3.ZERO)).is_true()
-	node.free()
 
 func test_perimeter_triangle() -> void:
 	var s = CreateSurfaceFromPolygonSettings.new()
@@ -109,7 +107,6 @@ func test_perimeter_triangle() -> void:
 	var perim_stream = out.findStream("surface_perimeter")
 	assert_object(perim_stream).is_not_null()
 	assert_float(perim_stream.container[0]).is_equal_approx(12.0, 0.01)
-	node.free()
 
 func test_plane_xy() -> void:
 	var s = CreateSurfaceFromPolygonSettings.new()
@@ -131,7 +128,6 @@ func test_plane_xy() -> void:
 	var area_stream = out.findStream("surface_area")
 	assert_object(area_stream).is_not_null()
 	assert_float(area_stream.container[0]).is_equal_approx(4.0, 0.01)
-	node.free()
 
 func test_plane_yz() -> void:
 	var s = CreateSurfaceFromPolygonSettings.new()
@@ -153,13 +149,11 @@ func test_plane_yz() -> void:
 	var area_stream = out.findStream("surface_area")
 	assert_object(area_stream).is_not_null()
 	assert_float(area_stream.container[0]).is_equal_approx(9.0, 0.01)
-	node.free()
 
 func test_missing_input_error() -> void:
 	var s = CreateSurfaceFromPolygonSettings.new()
 	var node = _run([null], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_fewer_than_three_points_error() -> void:
 	var s = CreateSurfaceFromPolygonSettings.new()
@@ -171,7 +165,6 @@ func test_fewer_than_three_points_error() -> void:
 	])
 	var node = _run([_make_polygon(pts)], s)
 	assert_str(node.err).is_not_empty()
-	node.free()
 
 func test_group_attribute_splits_into_multiple_surfaces() -> void:
 	var s = CreateSurfaceFromPolygonSettings.new()
@@ -204,7 +197,6 @@ func test_group_attribute_splits_into_multiple_surfaces() -> void:
 	assert_object(area_stream).is_not_null()
 	assert_float(area_stream.container[0]).is_equal_approx(4.0, 0.01)
 	assert_float(area_stream.container[1]).is_equal_approx(16.0, 0.01)
-	node.free()
 
 func test_optional_output_attributes_suppressed_when_empty_string() -> void:
 	var s = CreateSurfaceFromPolygonSettings.new()
@@ -226,4 +218,3 @@ func test_optional_output_attributes_suppressed_when_empty_string() -> void:
 	assert_object(out.findStream("surface_area")).is_null()
 	assert_object(out.findStream("surface_perimeter")).is_null()
 	assert_object(out.findStream("surface_point_count")).is_null()
-	node.free()

@@ -7,7 +7,7 @@ func _init():
 		"settings" : BoundsModifierNodeSettings,
 		"ins" : [{ "label": "In" }],
 		"outs" : [{ "label" : "Out" }],
-		"tooltip" : "Modifies the size/bounds property on points in the provided point data.\nOnly the per-axis extent |max - min| is applied — the bounds center is ignored\n(point positions are unchanged, unlike UE which preserves min/max relative to the point).",
+		"tooltip" : "Modifies the bounds of the points in the provided point data (Set, Add or Multiply).\nPer Point Bounds (default): writes bounds_min/bounds_max relative to each point, so an off-centre box\nkeeps its centre, as in UE; size is untouched.\nSymmetric Size (legacy): writes only the per-axis extent |max - min| to size, so the bounds centre is lost.\nPoint positions are never changed.",
 		"aliases" : ["Bounds Modifier"],
 		"category" : "Spatial",
 	}
@@ -30,14 +30,14 @@ func execute( ctx : FlowData.EvaluationContext ):
 
 	# Legacy default: collapse |max-min| into the symmetric `size` stream.
 	if not out_data.hasStream(FlowData.AttrSize):
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		setError("Input must provide a size stream")
 		return
 	var ssizes = out_data.cloneStream(FlowData.AttrSize)
 	if ssizes == null:
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		setError("Input must provide a size stream")
@@ -65,7 +65,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 func _write_per_point_bounds(out_data : FlowData.Data, ctx : FlowData.EvaluationContext, mode : int, b_min : Vector3, b_max : Vector3) -> void:
 	var n := out_data.size()
 	if n == 0:
-		if Engine.is_editor_hint() and ctx.owner == null:
+		if is_ownerless_preview(ctx):
 			set_output(0, FlowData.Data.new())
 			return
 		set_output(0, out_data)
