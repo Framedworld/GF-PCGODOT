@@ -61,7 +61,9 @@ func execute( ctx : FlowData.EvaluationContext ):
 		set_output( 0, none )
 		return
 	if settings.output_mode == GetSplineDataSettings.eOutputMode.Merged:
-		var merged := FlowData.Data.from_shape( FlowCompositeShape.union_of( shapes ) )
+		# Union by maximum (UE union density): a Binary union would be 1 wherever any
+		# operand is > 0 and erase the steepness falloff of soft sources.
+		var merged := FlowData.Data.from_shape( FlowCompositeShape.union_of( shapes, FlowSpatial.DENSITY_MINIMUM ) )
 		merged.set_data_attr( "spline_count", shapes.size(), FlowData.DataType.Int )
 		set_output( 0, merged )
 		return

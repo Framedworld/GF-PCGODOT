@@ -125,6 +125,13 @@ func box_overlap( box_min : Vector3, box_max : Vector3 ) -> Vector2:
 		return Vector2.ZERO
 	return FlowSpatial.box_overlap_sampled( self, box_min, box_max )
 
+## True when `t` maps the local Y axis onto the world Y axis, i.e. the infinite
+## density column of a polygon or heightfield surface is world-vertical. Only
+## then is the XZ broad phase of box_overlap() valid for it.
+static func column_is_world_y( t : Transform3D ) -> bool:
+	var y := t.basis.y
+	return absf( y.y ) > 0.0 and absf( y.x ) <= absf( y.y ) * 1e-6 and absf( y.z ) <= absf( y.y ) * 1e-6
+
 ## The 15 fixed sample positions of a box: centre, 8 corners, 6 face centres.
 static func box_sample_points( box_min : Vector3, box_max : Vector3 ) -> PackedVector3Array:
 	var c := ( box_min + box_max ) * 0.5
@@ -343,14 +350,20 @@ static func sample_surface( shape : FlowSpatial, settings : Dictionary = {}, err
 				errors.append( "points_per_square_meter must be greater than zero" )
 				return make_points_data( positions, rotations, normals, densities, extents * 2.0, node_seed, point_size, point_steepness )
 			var cell := 1.0 / sqrt( ppsm )
-			var cx0 := int( floor( bounds.position.x / cell ) )
-			var cx1 := int( floor( bounds.end.x / cell ) )
-			var cz0 := int( floor( bounds.position.z / cell ) )
-			var cz1 := int( floor( bounds.end.z / cell ) )
-			var num_cells : int = ( cx1 - cx0 + 1 ) * ( cz1 - cz0 + 1 )
-			if num_cells > max_candidates:
-				errors.append( "Surface sampling would test %d candidates (cap %d); lower points_per_square_meter" % [ num_cells, max_candidates ] )
+			# Cell indices and the candidate count are computed in floats: an int64
+			# product can wrap (huge bounds) and slip past the cap.
+			var fx0 := floorf( bounds.position.x / cell )
+			var fx1 := floorf( bounds.end.x / cell )
+			var fz0 := floorf( bounds.position.z / cell )
+			var fz1 := floorf( bounds.end.z / cell )
+			var num_cells := ( fx1 - fx0 + 1.0 ) * ( fz1 - fz0 + 1.0 )
+			if not is_finite( num_cells ) or num_cells > float( max_candidates ):
+				errors.append( "Surface sampling would test %s candidates (cap %d); lower points_per_square_meter" % [ FlowSpatial._count_text( num_cells ), max_candidates ] )
 				return make_points_data( positions, rotations, normals, densities, extents * 2.0, node_seed, point_size, point_steepness )
+			var cx0 := int( fx0 )
+			var cx1 := int( fx1 )
+			var cz0 := int( fz0 )
+			var cz1 := int( fz1 )
 			var jx := maxf( 0.0, cell * 0.5 - extents.x ) * looseness
 			var jz := maxf( 0.0, cell * 0.5 - extents.z ) * looseness
 			var rng := RandomNumberGenerator.new()
@@ -424,15 +437,24 @@ static func sample_volume( shape : FlowSpatial, settings : Dictionary = {}, erro
 		errors.append( "voxel_size must be greater than zero on every axis" )
 		return make_points_data( positions, PackedVector3Array(), PackedVector3Array(), densities, voxel, node_seed, Vector3.ONE, point_steepness )
 	var bounds := shape.get_bounds()
-	var i0 := Vector3i( floori( bounds.position.x / voxel.x ), floori( bounds.position.y / voxel.y ), floori( bounds.position.z / voxel.z ) )
-	var i1 := Vector3i( ceili( bounds.end.x / voxel.x ) - 1, ceili( bounds.end.y / voxel.y ) - 1, ceili( bounds.end.z / voxel.z ) - 1 )
-	var total : int = maxi( 0, i1.x - i0.x + 1 ) * maxi( 0, i1.y - i0.y + 1 ) * maxi( 0, i1.z - i0.z + 1 )
-	if total > max_candidates:
-		errors.append( "Volume sampling would test %d voxels (cap %d); raise voxel_size" % [ total, max_candidates ] )
+	# Voxel indices and the voxel count are computed in floats: the int64 product
+	# of three axis counts can wrap (a 2^22-voxel-wide shape wraps to 0) and slip
+	# past the cap; non-finite bounds are reported instead of looping.
+	var lo : Array = [ floorf( bounds.position.x / voxel.x ), floorf( bounds.position.y / voxel.y ), floorf( bounds.position.z / voxel.z ) ]
+	var hi : Array = [ ceilf( bounds.end.x / voxel.x ) - 1.0, ceilf( bounds.end.y / voxel.y ) - 1.0, ceilf( bounds.end.z / voxel.z ) - 1.0 ]
+	var total := 1.0
+	for axis in range( 3 ):
+		var span : float = hi[axis] - lo[axis] + 1.0
+		total *= span if span > 0.0 or is_nan( span ) else 0.0
+	if not is_finite( total ) or total > float( max_candidates ):
+		errors.append( "Volume sampling would test %s voxels (cap %d); raise voxel_size" % [ FlowSpatial._count_text( total ), max_candidates ] )
 		return make_points_data( positions, PackedVector3Array(), PackedVector3Array(), densities, voxel, node_seed, Vector3.ONE, point_steepness )
-	for iz in range( i0.z, i1.z + 1 ):
-		for iy in range( i0.y, i1.y + 1 ):
-			for ix in range( i0.x, i1.x + 1 ):
+	if total <= 0.0:
+		return make_points_data( positions, PackedVector3Array(), PackedVector3Array(), densities, voxel, node_seed, Vector3.ONE, point_steepness )
+	# Plain (64-bit) ints: Vector3i is 32-bit and wraps far from the origin.
+	for iz in range( int( lo[2] ), int( hi[2] ) + 1 ):
+		for iy in range( int( lo[1] ), int( hi[1] ) + 1 ):
+			for ix in range( int( lo[0] ), int( hi[0] ) + 1 ):
 				var p := Vector3( ( ix + 0.5 ) * voxel.x, ( iy + 0.5 ) * voxel.y, ( iz + 0.5 ) * voxel.z )
 				var d := shape.sample_density( p )
 				if d <= 0.0 and not keep_zero:
@@ -440,6 +462,10 @@ static func sample_volume( shape : FlowSpatial, settings : Dictionary = {}, erro
 				positions.append( p )
 				densities.append( d if apply_density else 1.0 )
 	return make_points_data( positions, PackedVector3Array(), PackedVector3Array(), densities, voxel, node_seed, Vector3.ONE, point_steepness )
+
+## A candidate count for an error message (exact when it fits an int).
+static func _count_text( count : float ) -> String:
+	return str( int( count ) ) if is_finite( count ) and absf( count ) < 9.0e18 else str( count )
 
 # --- Geometry helpers -----------------------------------------------------------------
 

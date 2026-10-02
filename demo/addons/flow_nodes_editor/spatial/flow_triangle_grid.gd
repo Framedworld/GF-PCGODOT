@@ -186,7 +186,8 @@ func count_crossings_above( p : Vector3 ) -> int:
 	return crossings
 
 ## Closest point on the mesh to `p`: { position, normal, distance, tri } or {}.
-## The normal is oriented towards `p`. Rings of cells are visited outwards from
+## The normal is oriented towards `p` (upwards when `p` is level with the
+## face). Rings of cells are visited outwards from
 ## p's (clamped) cell. Two lower bounds keep the walk local:
 ##  * per cell: XZ distance to the cell rectangle and height distance to the
 ##    cell's triangle height range; cells that cannot beat the best are skipped;
@@ -246,7 +247,13 @@ func nearest( p : Vector3 ) -> Dictionary:
 	if best_t < 0:
 		return {}
 	var n := normals[best_t]
-	if n.dot( p - best_p ) < 0.0:
+	var side := n.dot( p - best_p )
+	if absf( side ) <= 1e-6 * maxf( 1.0, sqrt( best_d2 ) ):
+		# p is level with the face (beside a flat mesh, or on it): no side to
+		# face, so face up as vertical_hit does instead of following the winding.
+		if n.y < 0.0:
+			n = -n
+	elif side < 0.0:
 		n = -n
 	return { "position": best_p, "normal": n, "distance": sqrt( best_d2 ), "tri": best_t }
 

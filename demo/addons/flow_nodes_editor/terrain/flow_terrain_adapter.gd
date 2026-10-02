@@ -209,24 +209,39 @@ func _grid_size() -> Vector2i:
 	var d := clampi( int( ceil( b.size.z / cell - 1e-6 ) ) + 1, 2, cap )
 	return Vector2i( w, d )
 
-## Default to_surface(): get_height sampled on a square-cell world grid over the
-## footprint (cell = the larger of the two axis spacings, so the grid covers the
-## footprint; samples past the far edge clamp to it), with layer weights.
+## Default to_surface(): get_height sampled on a world grid spanning exactly the
+## footprint (square cells when both axes share a spacing, otherwise unit cells
+## scaled per axis by the grid transform), with layer weights.
 func _grid_surface() -> FlowSpatial:
 	var b := get_bounds()
 	if b.size.x <= 0.0 or b.size.z <= 0.0:
 		return null
 	var gs := _grid_size()
-	var cell := maxf( b.size.x / float( gs.x - 1 ), b.size.z / float( gs.y - 1 ) )
-	var w := int( ceil( b.size.x / cell - 1e-6 ) ) + 1
-	var d := int( ceil( b.size.z / cell - 1e-6 ) ) + 1
-	var heights := PackedFloat32Array()
-	heights.resize( w * d )
-	for j in range( d ):
-		for i in range( w ):
-			heights[j * w + i] = get_height( b.position.x + i * cell, b.position.z + j * cell )
-	var hf := FlowHeightfieldSurface.new( heights, w, d, cell, Vector3( b.position.x, 0.0, b.position.z ), Transform3D.IDENTITY, _tolerance() )
-	return hf.attach_layers( _snapshot_layers( gs.x, gs.y ) )
+	var cx := b.size.x / float( gs.x - 1 )
+	var cz := b.size.z / float( gs.y - 1 )
+	if is_equal_approx( cx, cz ):
+		# Square cells span the footprint exactly on both axes.
+		var cell := maxf( cx, cz )
+		var w := int( ceil( b.size.x / cell - 1e-6 ) ) + 1
+		var d := int( ceil( b.size.z / cell - 1e-6 ) ) + 1
+		var heights := PackedFloat32Array()
+		heights.resize( w * d )
+		for j in range( d ):
+			for i in range( w ):
+				heights[j * w + i] = get_height( b.position.x + i * cell, b.position.z + j * cell )
+		var hf := FlowHeightfieldSurface.new( heights, w, d, cell, Vector3( b.position.x, 0.0, b.position.z ), Transform3D.IDENTITY, _tolerance() )
+		return hf.attach_layers( _snapshot_layers( gs.x, gs.y ) )
+	# Different spacings per axis: one square cell would overshoot the shorter
+	# axis by up to a cell (clamped heights, density 1 beyond the terrain). Use
+	# unit cells scaled per axis by the grid transform instead.
+	var heights_xz := PackedFloat32Array()
+	heights_xz.resize( gs.x * gs.y )
+	for j in range( gs.y ):
+		for i in range( gs.x ):
+			heights_xz[j * gs.x + i] = get_height( b.position.x + i * cx, b.position.z + j * cz )
+	var xform := Transform3D( Basis.from_scale( Vector3( cx, 1.0, cz ) ), Vector3( b.position.x, 0.0, b.position.z ) )
+	var grid := FlowHeightfieldSurface.new( heights_xz, gs.x, gs.y, 1.0, Vector3.ZERO, xform, _tolerance() )
+	return grid.attach_layers( _snapshot_layers( gs.x, gs.y ) )
 
 # --- detection and construction ---------------------------------------------------------------
 

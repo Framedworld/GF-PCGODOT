@@ -109,6 +109,13 @@ func execute( ctx : FlowData.EvaluationContext ):
 			setError( "Get Surface Data: no heightmap image (set heightmap_image, or a heightmap_texture with a readable image)" )
 			_emit_empty()
 			return
+		var image_cell := float( getSettingValue( ctx, "image_cell_size", 1.0 ) )
+		if not ( image_cell > 0.0 ) or not is_finite( image_cell ):
+			# The grid clamps its cell to 1e-6 while the centred origin used the raw
+			# value: a zero or negative cell gave a microscopic, displaced grid.
+			setError( "Get Surface Data: image_cell_size must be greater than zero (got %s)" % image_cell )
+			_emit_empty()
+			return
 		if not settings.terrain_splat_layers.is_empty():
 			# Splat layers: through the image terrain adapter (same grid, layers attached).
 			var adapter := FlowImageTerrainAdapter.new( img, getSettingValue( ctx, "image_cell_size", 1.0 ), getSettingValue( ctx, "image_height_scale", 1.0 ), settings.image_transform, settings.image_centered, { "vertical_tolerance": tolerance, "splat_layers": settings.terrain_splat_layers } )

@@ -403,6 +403,15 @@ func _execute_spatial(in_dataA : FlowData.Data, in_dataB : FlowData.Data, op : i
 	var om := _overlap_mode()
 	var a_shape : FlowSpatial = in_dataA.shape
 	var b_shape : FlowSpatial = in_dataB.shape
+	# A shape united (or symmetric-differenced) with an empty point set is the
+	# shape itself; folding no points into it would drop it.
+	if op == DifferenceNodeSettings.eOperation.Union or op == DifferenceNodeSettings.eOperation.SymmetricDifference:
+		if a_shape != null and b_shape == null and in_dataB.size() == 0:
+			set_output(0, in_dataA.duplicate())
+			return
+		if b_shape != null and a_shape == null and in_dataA.size() == 0:
+			set_output(0, in_dataB.duplicate())
+			return
 	match op:
 		DifferenceNodeSettings.eOperation.A_Minus_B:
 			_spatial_difference(in_dataA, in_dataB, fn, om)

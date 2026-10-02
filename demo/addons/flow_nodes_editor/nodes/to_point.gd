@@ -40,6 +40,17 @@ func sampling_settings( ctx : FlowData.EvaluationContext ) -> Dictionary:
 static func sample_shape( shape : FlowSpatial, opts : Dictionary ) -> Array:
 	var errors : Array = []
 	var out : FlowData.Data
+	# A union made only of splines (Get Spline Data, Merged) is spline data, as
+	# for Sample Spline and Filter Data By Type: sample each spline along its
+	# curve. The union itself reports kind Volume and would be voxelised.
+	var leaves := shape.union_leaves()
+	if leaves.size() > 1 and leaves.all( func( l ): return l is FlowSplineShape ):
+		out = leaves[0].to_points( opts )
+		for k in range( 1, leaves.size() ):
+			var part : FlowData.Data = leaves[k].to_points( opts )
+			for stream_name in out.streams:
+				out.streams[stream_name].container.append_array( part.streams[stream_name].container )
+		return [ out, "" ]
 	match shape.get_kind():
 		FlowData.Kind.Spline:
 			out = shape.to_points( opts )

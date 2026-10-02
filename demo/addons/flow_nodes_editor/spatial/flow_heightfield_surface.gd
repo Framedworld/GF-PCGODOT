@@ -171,6 +171,15 @@ func sample_density( world_pos : Vector3 ) -> float:
 		return 1.0 if w.distance_to( world_pos ) <= vertical_tolerance else 0.0
 	return 1.0
 
+## BoundsBox overlap (FlowSpatial.box_overlap). The base XZ broad phase assumes
+## the density column is world-vertical; when the local Y axis is not (XY / YZ
+## planes, tilted transforms) the column runs along another world axis, so the
+## sample set is evaluated without that broad phase.
+func box_overlap( box_min : Vector3, box_max : Vector3 ) -> Vector2:
+	if not FlowSpatial.column_is_world_y( transform ):
+		return FlowSpatial.box_overlap_sampled( self, box_min, box_max )
+	return super.box_overlap( box_min, box_max )
+
 func project( world_pos : Vector3 ) -> Dictionary:
 	var l := _inv * world_pos
 	return _to_world( _local_hit( l.x, l.z ) )

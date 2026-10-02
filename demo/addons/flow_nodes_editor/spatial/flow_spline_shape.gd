@@ -21,6 +21,10 @@ var half_width : float = 1.0
 var _inv : Transform3D
 var _length : float = 0.0
 var _bounds : AABB
+## World-space baked polyline, kept only when `transform` is not conformal
+## (non-uniform scale or shear): the closest point in curve space is then not
+## the closest point in world space.
+var _world_baked := PackedVector3Array()
 
 ## `source_curve` is copied; `xform` maps curve space to world space.
 ## `is_closed` defaults to the curve's own `closed` flag when it has one.
@@ -47,7 +51,13 @@ func _init( source_curve : Curve3D = null, xform : Transform3D = Transform3D.IDE
 			_bounds = AABB( w, Vector3.ZERO )
 		else:
 			_bounds = _bounds.expand( w )
-	_bounds = _bounds.grow( half_width )
+	if not FlowSplineShape.is_conformal( transform.basis ):
+		_world_baked.resize( baked.size() )
+		for i in range( baked.size() ):
+			_world_baked[i] = transform * baked[i]
+	if baked.size() > 0:
+		# An empty curve has no density anywhere: keep its bounds empty.
+		_bounds = _bounds.grow( half_width )
 	var pts := []
 	for i in range( curve.point_count ):
 		pts.append( [ curve.get_point_position( i ), curve.get_point_in( i ), curve.get_point_out( i ), curve.get_point_tilt( i ) ] )
@@ -72,10 +82,33 @@ func get_bounds() -> AABB:
 func get_length() -> float:
 	return _length
 
+## True when `b` is a rotation (or mirror) times a uniform scale, so distances
+## in curve space are proportional to world distances.
+static func is_conformal( b : Basis ) -> bool:
+	var sx := b.x.length()
+	if sx <= 0.0:
+		return false
+	var tol := sx * sx * 1e-5
+	return absf( b.y.length_squared() - sx * sx ) <= tol and absf( b.z.length_squared() - sx * sx ) <= tol \
+		and absf( b.x.dot( b.y ) ) <= tol and absf( b.y.dot( b.z ) ) <= tol and absf( b.x.dot( b.z ) ) <= tol
+
 ## Closest world-space point on the curve.
 func closest_point( world_pos : Vector3 ) -> Vector3:
 	if curve.point_count == 0:
 		return transform.origin
+	if _world_baked.size() == 1:
+		return _world_baked[0]
+	if _world_baked.size() > 1:
+		# Non-conformal transform: search the world-space polyline.
+		var best := _world_baked[0]
+		var best_d2 := INF
+		for i in range( _world_baked.size() - 1 ):
+			var q := Geometry3D.get_closest_point_to_segment( world_pos, _world_baked[i], _world_baked[i + 1] )
+			var d2 := world_pos.distance_squared_to( q )
+			if d2 < best_d2:
+				best_d2 = d2
+				best = q
+		return best
 	return transform * curve.get_closest_point( _inv * world_pos )
 
 func sample_density( world_pos : Vector3 ) -> float:

@@ -79,7 +79,9 @@ func execute( ctx : FlowData.EvaluationContext ):
 		_emit_empty()
 		return
 	if settings.output_mode == GetVolumeDataSettings.eOutputMode.Merged:
-		var merged := FlowData.Data.from_shape( FlowCompositeShape.union_of( volumes ) )
+		# Union by maximum (UE union density): a Binary union would be 1 wherever any
+		# operand is > 0 and erase the steepness falloff of soft sources.
+		var merged := FlowData.Data.from_shape( FlowCompositeShape.union_of( volumes, FlowSpatial.DENSITY_MINIMUM ) )
 		merged.set_data_attr( "source_count", volumes.size(), FlowData.DataType.Int )
 		set_output( 0, merged )
 		return

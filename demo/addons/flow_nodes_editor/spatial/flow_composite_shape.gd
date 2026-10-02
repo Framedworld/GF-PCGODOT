@@ -37,13 +37,25 @@ func _init( operation : int = FlowSpatial.Op.Union, shape_a : FlowSpatial = null
 	_bounds = _compute_bounds()
 	_hash = hash( [ "composite", op, density_function, a.get_type_name(), a.content_hash(), b.get_type_name(), b.content_hash() ] )
 
+## Union of `shapes` (nulls skipped): null for none, the shape itself for one.
+## Built as a balanced tree (pairs, then pairs of pairs) so queries recurse
+## log2(n) deep, not n deep: a left-deep chain of about a thousand operands
+## exceeded GDScript's call depth. union_leaves() keeps the input order.
 static func union_of( shapes : Array, fn : int = FlowSpatial.DENSITY_BINARY ) -> FlowSpatial:
-	var result : FlowSpatial = null
+	var level : Array = []
 	for s in shapes:
-		if s == null:
-			continue
-		result = s if result == null else FlowCompositeShape.new( FlowSpatial.Op.Union, result, s, fn )
-	return result
+		if s != null:
+			level.append( s )
+	if level.is_empty():
+		return null
+	while level.size() > 1:
+		var next : Array = []
+		for i in range( 0, level.size() - 1, 2 ):
+			next.append( FlowCompositeShape.new( FlowSpatial.Op.Union, level[i], level[i + 1], fn ) )
+		if level.size() % 2 == 1:
+			next.append( level[level.size() - 1] )
+		level = next
+	return level[0]
 
 static func _as_composite_kind( kind : int ) -> int:
 	return FlowData.Kind.Surface if kind == FlowData.Kind.Surface else FlowData.Kind.Volume
