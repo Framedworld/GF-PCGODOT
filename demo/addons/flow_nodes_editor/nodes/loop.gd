@@ -200,6 +200,12 @@ static func key_less( a, b ) -> bool:
 	if a_num and b_num:
 		var fa := float( a )
 		var fb := float( b )
+		# NaN sorts after every number (NaN compares false both ways, which
+		# would make the order depend on the input order).
+		if is_nan( fa ) or is_nan( fb ):
+			if is_nan( fa ) and is_nan( fb ):
+				return ta < tb
+			return is_nan( fb )
 		if fa != fb:
 			return fa < fb
 		return ta < tb
@@ -269,13 +275,21 @@ func _partition_iterations( in_data : FlowData.Data ) -> Dictionary:
 		groups[ value ].append( i )
 	keys.sort_custom( key_less )
 	var attr_name := attribute.trim_prefix( FlowData.DataAttrPrefix )
+	# Stamp the value with the attribute's own type: inferring it from the
+	# Variant would store an Int64 key as Int (low 32 bits) and a Double as Float.
+	var key_type : int = FlowData.DataType.Invalid
+	var key_stream = in_data._findStreamQuiet( attribute )
+	if key_stream != null:
+		key_type = key_stream.data_type
+	elif in_data.data_attrs.has( attribute ):
+		key_type = in_data.data_attrs[ attribute ].data_type
 	var iterations : Array = []
 	for key in keys:
 		var item := in_data.filter( groups[ key ] )
 		# The partition value as a per-data attribute (like the Partition node),
 		# so the body can read it with "@data.<attribute>" or a binding.
 		if not item.data_attrs.has( attr_name ):
-			item.set_data_attr( attr_name, key )
+			item.set_data_attr( attr_name, key, key_type )
 		iterations.append( _iteration( item, key, _data_attr_values( item ) ) )
 	return { "iterations": iterations, "error": "" }
 
@@ -450,6 +464,11 @@ func execute( ctx : FlowData.EvaluationContext ):
 		# Per-iteration seed (docs/_round2/WP8.md): derived from the loop's graph
 		# seed and the iteration key; seed 0 stays 0 (legacy). The child context
 		# copies ctx.seed, so set it around the call.
+		if child_depth > FlowExecutor.MAX_EVAL_DEPTH:
+			# The executor refuses the evaluation with only a console error;
+			# report it on the loop so it reaches the runtime error log.
+			setError( "Loop iteration %d: graph %s exceeds the maximum nesting depth (%d); a graph probably runs itself" % [ idx, _graph_label( graph ), FlowExecutor.MAX_EVAL_DEPTH ] )
+			break
 		var parent_seed : int = ctx.seed
 		ctx.seed = iteration_seed( parent_seed, iteration.key )
 		var outputs = FlowNodeIOClass.evaluate_graph(graph, input_data_map, ctx, params, child_depth)
@@ -494,7 +513,25 @@ static func merge_results( results : Array ) -> FlowData.Data:
 				out_data.registerStream(stream_name, container, stream.data_type)
 
 			var out_stream = out_data.streams[stream_name]
-			out_stream.container.append_array(stream.container)
+			if stream.data_type != out_stream.data_type:
+				# Another iteration (e.g. another dynamic graph) wrote this
+				# attribute with another type: append_array would fail. Numbers
+				# convert to the first type; anything else is left at defaults.
+				if FlowAttributeOps.is_numeric_type(stream.data_type) and FlowAttributeOps.is_numeric_type(out_stream.data_type):
+					var start : int = out_stream.container.size()
+					out_stream.container.resize(start + res_size)
+					var count : int = stream.container.size()
+					for i in range(res_size):
+						if count > 0:
+							FlowData.Data.writeValue(out_stream.container, start + i, stream.container[FlowData.bcast_idx(count, i)], out_stream.data_type)
+				else:
+					push_warning("Loop merge: '%s' is %s in one iteration and %s in another; those values are left at their defaults" % [stream_name, FlowData.DataType.find_key(out_stream.data_type), FlowData.DataType.find_key(stream.data_type)])
+			elif stream.container.size() == 1 and res_size > 1:
+				# A broadcast (length-1) stream holds one value for every point.
+				for _i in range(res_size):
+					out_stream.container.append_array(stream.container)
+			else:
+				out_stream.container.append_array(stream.container)
 
 		offset += res_size
 

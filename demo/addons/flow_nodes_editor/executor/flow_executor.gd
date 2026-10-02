@@ -59,6 +59,8 @@ enum Mode { SYNCHRONOUS, TIME_SLICED, THREADED }
 
 const THREADED_META := &"flow_threaded"
 const OUTPUT_CACHE_META := &"flow_output_cache"
+## Deepest nested evaluation begin() accepts (subgraphs and loops add one level).
+const MAX_EVAL_DEPTH := 20
 
 ## Execution mode for run(). evaluate() picks THREADED when the parent context
 ## asks for it.
@@ -95,8 +97,8 @@ static var _stats_mutex := Mutex.new()
 ## Builds the evaluation (phase 1). Returns false on the recursion-guard trip
 ## (depth > 20), like evaluate_graph's {} early return.
 func begin(graph : FlowGraphResource, input_data_map : Dictionary, parent_ctx : FlowData.EvaluationContext, runtime_params : Dictionary = {}, depth : int = 0) -> bool:
-	if depth > 20:
-		push_error("PCG graph evaluation exceeded maximum recursion depth (20). Check for circular subgraph references.")
+	if depth > MAX_EVAL_DEPTH:
+		push_error("PCG graph evaluation exceeded maximum recursion depth (%d). Check for circular subgraph references." % MAX_EVAL_DEPTH)
 		return false
 	state = build_state(graph, input_data_map, parent_ctx, runtime_params, depth)
 	if state.is_empty():

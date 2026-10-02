@@ -514,6 +514,22 @@ static func break_transform( xf : Transform3D ) -> Dictionary:
 static func euler_of( xf : Transform3D ) -> Vector3:
 	return FlowData.quatToEuler( xf.basis.get_rotation_quaternion() )
 
+## Inverse of `xf`. A singular basis (a zero scale axis) is inverted like UE's
+## FTransform::Inverse: the zero axis gets a zero reciprocal scale. Godot's
+## affine_inverse would log an engine error and leave the basis un-inverted.
+## For an R * S basis, row i of the inverse is column i / |column i|^2.
+## Non-singular transforms use affine_inverse unchanged.
+static func safe_affine_inverse( xf : Transform3D ) -> Transform3D:
+	if xf.basis.determinant() != 0.0:
+		return xf.affine_inverse()
+	var rows : Array = []
+	for k in range( 3 ):
+		var column : Vector3 = xf.basis[k]
+		var l2 := column.length_squared()
+		rows.append( column / l2 if l2 > 0.0 else Vector3.ZERO )
+	var inv := Basis( rows[0], rows[1], rows[2] ).transposed()
+	return Transform3D( inv, -( inv * xf.origin ) )
+
 ## Lerp between two transforms: translation and scale linearly, rotation by slerp.
 static func lerp_transform( a : Transform3D, b : Transform3D, t : float ) -> Transform3D:
 	var qa := a.basis.get_rotation_quaternion()

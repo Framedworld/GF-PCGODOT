@@ -110,8 +110,14 @@ func _build_mapping( target : FlowData.Data, source : FlowData.Data, nt : int, n
 			if src_pos == null or dst_pos == null:
 				setError( "NearestPoint needs a Vector 'position' stream on both Target and Source" )
 				return PackedInt32Array()
-			if ns == 0:
+			if ns == 0 or src_pos.size() == 0:
 				return mapping
+			if dst_pos.size() == 1 and nt > 1:
+				# Broadcast (length-1) target position: one query per point.
+				var expanded := PackedVector3Array()
+				expanded.resize( nt )
+				expanded.fill( dst_pos[0] )
+				dst_pos = expanded
 			var nearest := _nearest_indices( src_pos, dst_pos )
 			var max_d : float = settings.max_distance
 			for i in range( nt ):
@@ -162,6 +168,13 @@ func _copy_one( out_data : FlowData.Data, source : FlowData.Data, src_name : Str
 		if container == null:
 			return "Can't copy attribute '%s' of type %s" % [ src_name, Ops.type_label( data_type ) ]
 		container.resize( nt )
+		# The Quaternion default is the identity rotation, not a zero Vector4.
+		if data_type == FlowData.DataType.Quaternion:
+			container.fill( Vector4( 0, 0, 0, 1 ) )
+		# A broadcast (length-1) target stream: unmatched points keep its value.
+		if existing != null and existing.data_type == data_type and existing.container.size() == 1:
+			for i in range( nt ):
+				container[i] = existing.container[0]
 	for i in range( nt ):
 		var j : int = mapping[i]
 		if j < 0 or src_count == 0:

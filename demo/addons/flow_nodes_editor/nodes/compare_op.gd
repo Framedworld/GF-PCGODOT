@@ -36,11 +36,17 @@ func execute( ctx : FlowData.EvaluationContext ):
 		return
 	var read_b : Dictionary
 	if settings.use_constant_b:
-		var parsed := Ops.parse_constant( settings.constant_b, read_a.data_type )
+		# A fractional constant against an integer A stays a real number:
+		# parsing "1.5" as Int would truncate it and make 1 >= "1.5" true.
+		var b_type : int = read_a.data_type
+		var text : String = settings.constant_b.strip_edges()
+		if Ops.is_integer_type( b_type ) and not text.is_valid_int() and text.is_valid_float():
+			b_type = FlowData.DataType.Double
+		var parsed := Ops.parse_constant( settings.constant_b, b_type )
 		if not parsed.ok:
 			setError( "Constant B: %s" % parsed.error )
 			return
-		read_b = { "ok": true, "values": Ops.constant_values( parsed.value, n ), "data_type": read_a.data_type }
+		read_b = { "ok": true, "values": Ops.constant_values( parsed.value, n ), "data_type": b_type }
 	else:
 		read_b = Ops.read_operand( in_a, get_optional_input( 1 ), settings.in_nameB, n, "Input B" )
 		if not read_b.ok:
@@ -118,8 +124,9 @@ static func _relation( a, b, op : int, tolerance : float ) -> bool:
 	var E := CompareOpSettings.eOperation
 	match op:
 		E.Equal:
-			if tolerance >= 0.0 and not ( a is String ):
-				return absf( float( a - b ) ) <= tolerance if not ( a is int and b is int ) else absi( a - b ) <= tolerance
+			# Integers compare exactly: a - b can overflow for Int64 values.
+			if tolerance >= 0.0 and not ( a is String ) and not ( a is int and b is int ):
+				return absf( float( a - b ) ) <= tolerance
 			return a == b
 		E.NotEqual:
 			return not _relation( a, b, E.Equal, tolerance )

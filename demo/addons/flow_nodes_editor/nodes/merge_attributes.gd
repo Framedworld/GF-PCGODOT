@@ -127,6 +127,9 @@ static func _merge_by_index( entries : Array, out : FlowData.Data ) -> Dictionar
 	return { "ok": true, "data": out }
 
 static func _default_value( t : int ):
+	# Quaternion storage is zero filled; the type default is the identity.
+	if t == FlowData.DataType.Quaternion:
+		return Quaternion.IDENTITY
 	var c = FlowData.Data.newContainerOfType( t )
 	if c == null:
 		return null

@@ -83,13 +83,13 @@ func execute( ctx : FlowData.EvaluationContext ):
 				var b : Transform3D = b_values[i]
 				results[i] = b * a
 			E.Invert:
-				results[i] = a.affine_inverse()
+				results[i] = Ops.safe_affine_inverse( a )
 			E.Lerp:
 				results[i] = Ops.lerp_transform( a, b_values[i], float( c_values[i] ) )
 			E.TransformPosition:
 				results[i] = a * ( b_values[i] as Vector3 )
 			E.InverseTransformPosition:
-				results[i] = a.affine_inverse() * ( b_values[i] as Vector3 )
+				results[i] = Ops.safe_affine_inverse( a ) * ( b_values[i] as Vector3 )
 			E.TransformDirection:
 				results[i] = a.basis * ( b_values[i] as Vector3 )
 	var out_type : int = D.Vector if vector_b else D.Transform

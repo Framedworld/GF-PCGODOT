@@ -155,8 +155,9 @@ func execute( ctx : FlowData.EvaluationContext ):
 		var inA = sA.container
 		var inB = sB.container
 		var threshold : float = getSettingValue( ctx, "threshold" )
+		# Broadcast (length-1) streams apply their one value to every point.
 		for i in num_elems:
-			if _passes_numeric_condition(inA[i], inB[i], settings.condition, threshold):
+			if _passes_numeric_condition(inA[FlowData.bcast_idx(inA.size(), i)], inB[FlowData.bcast_idx(inB.size(), i)], settings.condition, threshold):
 				indices_true.append(i)
 			else:
 				indices_false.append(i)
@@ -166,7 +167,7 @@ func execute( ctx : FlowData.EvaluationContext ):
 		match settings.condition:
 			FilterNodeSettings.eCondition.IsNull:
 				for i in num_elems:
-					if !inA[i]:
+					if !inA[FlowData.bcast_idx(inA.size(), i)]:
 						indices_true.append(i)
 					else:
 						indices_false.append(i)

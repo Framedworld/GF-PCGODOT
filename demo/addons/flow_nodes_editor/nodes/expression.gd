@@ -213,7 +213,8 @@ func execute( ctx : FlowData.EvaluationContext ):
 		for idx in range( _in_size ):
 			values[0] = idx
 			for k in range( containers.size() ):
-				values[ k0 + k ] = containers[k][ idx ]
+				# Broadcast (length-1) streams apply their one value to every point.
+				values[ k0 + k ] = containers[k][ FlowData.bcast_idx( containers[k].size(), idx ) ]
 			#if settings.trace:
 				#print( "  For %d : %s" % [ idx, values ])
 			if not evaluateAndSaveResult( idx, values ):

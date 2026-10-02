@@ -180,6 +180,13 @@ func execute( ctx : FlowData.EvaluationContext ):
 	# generation, so it shares the graph seed.
 	# A dynamic graph receives the inputs above by name; its own inputs that the
 	# default graph does not declare take their graph defaults.
+	if child_depth > FlowExecutor.MAX_EVAL_DEPTH:
+		# The executor refuses the evaluation with only a console error;
+		# report it on the node so it reaches the runtime error log.
+		setError("Graph %s exceeds the maximum nesting depth (%d); a graph probably runs itself" % [graph.resource_path if graph.resource_path != "" else "unsaved graph", FlowExecutor.MAX_EVAL_DEPTH])
+		for i in range(getMeta().outs.size()):
+			set_output(i, FlowData.Data.new())
+		return
 	var outputs = FlowNodeIOClass.evaluate_graph(graph, input_data_map, ctx, {}, child_depth)
 	
 	var meta = getMeta()

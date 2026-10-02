@@ -150,4 +150,15 @@ static func _format( pattern : String, a : String, b : String, c : String, i : i
 	var values := { "0": a, "1": b, "2": c, "index": str( i ) }
 	for token in tokens:
 		values[token] = tokens[token][i]
-	return pattern.format( values )
+	# One pass over the pattern: String.format replaces key by key, so a value
+	# that itself contains "{1}" or "{index}" would be expanded again.
+	var re := RegEx.new()
+	re.compile( "\\{([^{}]+)\\}" )
+	var out := ""
+	var last := 0
+	for m in re.search_all( pattern ):
+		out += pattern.substr( last, m.get_start() - last )
+		var key := m.get_string( 1 )
+		out += String( values[key] ) if values.has( key ) else m.get_string()
+		last = m.get_end()
+	return out + pattern.substr( last )
