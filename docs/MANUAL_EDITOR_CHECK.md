@@ -1,8 +1,8 @@
 # Manual editor check
 
-The test suites run headless: the dummy renderer draws nothing, `Engine.is_editor_hint()` is false, and the editor's dock, inspector and undo system are driven through their entry points rather than with a mouse. Everything below the pixels is tested numerically. This list covers what is left: what a person has to look at in the Godot editor. It is assembled from the notes of parity round 2 ([`_round2/WP1.md`](_round2/WP1.md), [`WP3.md`](_round2/WP3.md), [`WP5.md`](_round2/WP5.md), [`WP7.md`](_round2/WP7.md), [`WP8.md`](_round2/WP8.md), [`WP11.md`](_round2/WP11.md)).
+The test suites run headless: the dummy renderer draws nothing, `Engine.is_editor_hint()` is false, and the editor's dock, inspector and undo system are driven through their entry points rather than with a mouse. Everything below the pixels is tested numerically. This list covers what is left: what a person has to look at in the Godot editor. It is assembled from the notes of parity round 2 ([`_round2/WP1.md`](_round2/WP1.md), [`WP3.md`](_round2/WP3.md), [`WP5.md`](_round2/WP5.md), [`WP7.md`](_round2/WP7.md), [`WP8.md`](_round2/WP8.md), [`WP11.md`](_round2/WP11.md)) and of the wave C review ([`WP13-R1.md`](_round2/WP13-R1.md), [`WP13-R4.md`](_round2/WP13-R4.md)).
 
-It is meant to be done in one pass of about 30 minutes, in order. Tick each box; for anything that does not match the expected observation, note the step number, what you saw, the renderer (Forward+, Mobile or Compatibility) and any line of the Output panel.
+It is meant to be done in one pass of about 40 minutes, in order. Tick each box; for anything that does not match the expected observation, note the step number, what you saw, the renderer (Forward+, Mobile or Compatibility) and any line of the Output panel.
 
 Hotkeys used below: **D** toggles the debug draw of the hovered or selected node, **A** opens the Data Inspector on it, **E** disables or enables it, **Alt+D** clears every debug draw.
 
@@ -15,7 +15,7 @@ Hotkeys used below: **D** toggles the debug draw of the hovered or selected node
 - [ ] **0.2** Project Settings → General, type `flow_nodes` in the filter, without having opened any graph.
   - Expected: `Flow Nodes → Node Directories` and `Flow Nodes → Quality Level` are listed; Quality Level is a drop-down with Low, Medium, High, Epic, Cinematic and value Low. (The plugin registers both at startup; before, Quality Level appeared only once a quality node had been created.)
 
-## 1. Dock: mouse, selection, drawing, undo (4 min)
+## 1. Dock: mouse, selection, drawing, undo (8 min)
 
 Open `demos/demo_sample_points.tscn` and select its `FlowGraphNode3D`; the **Data Flow** panel opens at the bottom.
 
@@ -33,6 +33,12 @@ Open `demos/demo_sample_points.tscn` and select its `FlowGraphNode3D`; the **Dat
   - Expected: a subgraph node replaces the selection with the same outer wires; double-clicking opens the inner graph in the dock. Select the `FlowGraphNode3D` in the Scene dock again to return. Undo the collapse.
 - [ ] **1.7** Open a graph that has an `input` node with several outputs (or add one from the search popup, "Input"), and click its **+ Add Input Parameter** button; do the same on an `output` node (**+ Add Output Parameter**).
   - Expected: a new port appears on the node and a parameter in the graph's parameter list.
+- [ ] **1.8 Preview follows the component.** Back in `demos/demo_sample_points.tscn`, select the `FlowGraphNode3D`. In the Inspector set `seed` to 1234 and add an `overrides` entry with the key `id_0035_sample_points/num_samples` (String) and the value 500 (int); the saved value is 2651. In the dock, change any setting of a node and set it back, so that the dock evaluates again without **Regenerate**. Then run the scene (F6).
+  - Expected: the preview changes as soon as the dock evaluates (fewer sampled points, at other places), including nodes upstream of the one you edited. The running scene shows the same points as the editor. The Output panel has no "matched no node" warning and no `flow_override_hits` error. Set `seed` back to 0 and clear `overrides`: the preview returns to the original. Running the scene saves it by default, so restore it afterwards with `git checkout demos/demo_sample_points.tscn`.
+- [ ] **1.9 Undo restores evaluated data.** Note the row count the Data Inspector (**A**) shows for a node in the middle of a chain. Delete the wire into the start of that chain, then press **Ctrl+Z**, and press **A** on the same node. Repeat with **Ctrl+Y** and **Ctrl+Z**.
+  - Expected: after each undo the node shows the same rows and columns as before the delete, not just its own stream on an empty input, and no **Regenerate** is needed.
+- [ ] **1.10 Added and pasted nodes run.** From the search popup add a `grid` node and a `transform_points` node, and wire grid's output into transform_points' input without touching any setting. Press **A** on transform_points. Then select the `grid` node, press **Ctrl+C** and **Ctrl+V**, and wire the copy into a second new `transform_points` node.
+  - Expected: both consumers show the grid's points as soon as they are wired, without **Regenerate**.
 
 ## 2. Types, ports and graph parameters (5 min)
 
@@ -104,7 +110,7 @@ In any graph:
 - [ ] **5.4** Double-click a `loop` and a `subgraph` whose `graph_attribute` is set and whose `graph` is assigned.
   - Expected: the default `graph` opens in the dock.
 
-## 6. Spawners (3 min)
+## 6. Spawners (5 min)
 
 - [ ] **6.1 Per-instance colours.** Open `demos/demo_fallguys.tscn`.
   - Expected: the hexagon platforms show different random colours (per-instance MultiMesh colours, which the headless renderer cannot read back).
@@ -112,6 +118,9 @@ In any graph:
   - Expected: with pooling on, the same node stays selected in the Scene dock and Inspector after the re-run (it was reused); with pooling off, the selection is lost because the node is freed and recreated.
 - [ ] **6.3 Collision.** On a `spawn_meshes` node, add one element to `mesh_entries` (a new `FlowMeshSpawnEntry` with a `BoxMesh` and `collision_mode = BoxFromBounds`). Add a `RigidBody3D` with a sphere `CollisionShape3D` a few metres above one instance and run the scene (F6). Then set the entry's `collision_bodies = PerInstance`, turn on Debug → Visible Collision Shapes and run again.
   - Expected: with the default `PerMultiMesh`, the spawned `MultiMeshInstance3D` has a single `StaticBody3D` child (one shape owner per instance, no `CollisionShape3D` nodes) and the sphere lands on the instance. With `PerInstance`, one `Collision_NNNN` body per instance, and the debug shapes outline every instance.
+- [ ] **6.4 Spawned names across editor sessions.** Open `demos/demo_dungeon.tscn` and select its `FlowGraphNode3D`, so that the dock generates the dungeon. Its `transient_output` is off, so the spawned nodes are saved with the scene. Save, quit Godot, reopen the project and the scene, press **Regenerate** twice and save again. Then, from `demo/`, run:
+  `grep '^\[node ' demos/demo_dungeon.tscn | sed -E 's/.*name="([^"]*)".*parent="([^"]*)".*/\2\/\1/' | sort | uniq -d`
+  - Expected: the command prints nothing, so no parent has two children with the same name. Spawned nodes whose name was taken carry `_2`, `_3`, ... suffixes. The Output panel shows no errors after the reload or the regenerations. Restore the scene afterwards with `git checkout demos/demo_dungeon.tscn`.
 
 ## 7. Hierarchical and runtime generation (4 min)
 
@@ -131,9 +140,32 @@ Open `demos/demo_hierarchical.tscn`.
 - [ ] **8.1** With a graph containing a `surface_sampler` open, open `addons/flow_nodes_editor/nodes/surface_sampler.gd` in the Script editor, add a blank line at the end and save.
   - Expected: no errors; the node keeps its wires and settings, and ticking `use_bounding_shape` still rebuilds its ports (2.5).
 
+## 9. Async generation while leaving the tree (2 min)
+
+- [ ] **9.1** In a new scene, add a `FlowGraphNode3D` with a graph that spawns content without reading the scene (for example `grid` → `spawn_meshes`). Set `async_generation = true` and `frame_budget_ms = 0.1`, and leave `generate_on_ready` on. Below it, add a plain `Node` with the script below, assign the component to `component`, and run the scene (F6).
+
+  ```gdscript
+  extends Node
+  @export var component : FlowGraphNode3D
+
+  func _ready() -> void:
+  	await get_tree().process_frame
+  	var running := component.is_generating()
+  	print("generating when removed: ", running)
+  	var parent := component.get_parent()
+  	parent.remove_child(component)
+  	await get_tree().create_timer(1.0).timeout
+  	parent.add_child(component)
+  	if running:
+  		await component.generated
+  		print("generated after re-entry")
+  ```
+
+  - Expected: it prints `generating when removed: true`. If it prints `false`, the graph finished within one frame; use a larger grid. Nothing is spawned while the component is out of the tree. After it is added back, the content appears once, `generated after re-entry` is printed, and the Output and Debugger panels show no error.
+
 ---
 
-## Optional: terrain plugins (outside the 30 minutes)
+## Optional: terrain plugins (outside the 40 minutes)
 
 The Terrain3D and HTerrain adapters were tested only against fake classes. Do this only in a project that has the plugin installed.
 

@@ -60,7 +60,12 @@ From `demo/`, with the GDExtension binary for your platform in `bin/`:
 godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -a res://tests
 godot --headless --path . --import 2>&1 | grep -E "SCRIPT ERROR|Parse Error"   # must print nothing
 godot --headless --path . -s res://tests/perf/executor_benchmark.gd             # benchmark script, not a test
+godot --headless --path . -s res://tests/perf/node_benchmark.gd                 # per-node timings at 1k/10k/100k points
+godot --headless --path . -s res://tests/perf/exact_fingerprint.gd              # exact output hashes of every golden graph
 ```
+
+The benchmark numbers and the method behind them (interleaved before and after runs, exact fingerprints) are in
+[`docs/_round2/WP13-P1.md`](../../../docs/_round2/WP13-P1.md).
 
 `tests/executor/conformance/` is the node conformance harness: it runs every registered
 template with default settings on synthetic inputs and fails on input mutation,

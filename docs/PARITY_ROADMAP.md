@@ -8,7 +8,7 @@ If a tutorial step depends on one of these, the node dictionary marks it **roadm
 
 ## Implementation status (2026-10)
 
-Two passes have landed. The first (2026-06) added groundwork for every item below. Parity round 2 ([PARITY_ROUND2.md](PARITY_ROUND2.md), package notes in [`_round2/`](_round2/)) rebuilt the executor and added spatial data, the spawner family, extended attribute types and the missing point nodes (wave A), then hierarchical and runtime generation, terrain adapters, loop modes, editor support for the new types and shapes, a node conformance harness and a stabilization pass (wave B). Everything new ships behind optional streams, opt-in flags or new nodes. No existing golden or seed-zero baseline entry changed in round 2 (wave B only added entries for the new hierarchical demo), so existing `.tres` graphs and demos produce the same output; the intended output changes of wave B (set-operation broadphase extents, imported scene transforms, the bounds-box default for points against shapes) change no baselined output and are listed in [DEPRECATIONS.md](DEPRECATIONS.md). Per-item notes from the first pass live in [`_roadmap_notes/`](_roadmap_notes/).
+Two passes have landed. The first (2026-06) added groundwork for every item below. Parity round 2 ([PARITY_ROUND2.md](PARITY_ROUND2.md), package notes in [`_round2/`](_round2/)) rebuilt the executor and added spatial data, the spawner family, extended attribute types and the missing point nodes (wave A), then hierarchical and runtime generation, terrain adapters, loop modes, editor support for the new types and shapes, a node conformance harness and a stabilization pass (wave B). Everything new ships behind optional streams, opt-in flags or new nodes. No existing golden or seed-zero baseline entry changed in round 2 (wave B only added entries for the new hierarchical demo), so existing `.tres` graphs and demos produce the same output; the intended output changes of wave B (set-operation broadphase extents, imported scene transforms, the bounds-box default for points against shapes) change no baselined output and are listed in [DEPRECATIONS.md](DEPRECATIONS.md). A review and performance pass (wave C) followed; see [Wave C hardening](#wave-c-hardening-2026-10). Per-item notes from the first pass live in [`_roadmap_notes/`](_roadmap_notes/).
 
 | Roadmap item | Status | What landed |
 |---|---|---|
@@ -39,6 +39,73 @@ Two passes have landed. The first (2026-06) added groundwork for every item belo
 
 ---
 
+## Wave C hardening (2026-10)
+
+Wave C (WP13) was an adversarial review of the round-2 code by reviewers who had not written it, plus a performance pass. Each reviewer wrote a failing headless test before every fix; the notes are [`_round2/WP13-R1.md`](_round2/WP13-R1.md) to [`WP13-R5.md`](_round2/WP13-R5.md) and [`WP13-P1.md`](_round2/WP13-P1.md).
+
+| Reviewer | Area | Bugs fixed |
+|---|---|---|
+| R1 | Executor, evaluator, widget, editor dock evaluation | 8 |
+| R2 | Spatial shapes, terrain adapters, shape-aware nodes | 11 |
+| R3 | `FlowWorld3D`, cell levels, runtime scheduler | 11 |
+| R4 | Spawners, pooling, generated-content ownership | 12 |
+| R5 | Attribute types, WP4a / WP4b nodes, `loop`, `subgraph` | 15 |
+| **Total** | | **57** |
+
+After the merge the full suite has 2659 cases, 0 failures and 1 orphan, the pre-existing one in `tests/nodes/surface_sampler_test.gd`. No golden baseline entry changed. Three seed-zero entries changed for spawned-node names only (R4). The performance pass (P1) changed no output: it was checked byte for byte (see *Execution and performance* below).
+
+**Behaviour you may notice.** The rows are in [DEPRECATIONS.md](DEPRECATIONS.md) section 2; most fixes only replace a wrong result, an error spam or a hang.
+- **Editor and executor (R1).** The dock preview uses the component's `seed`, `overrides` and `params`, as `generate()` does. Nodes added, pasted or restored by undo / redo run at the next dock evaluation. A component removed from the tree during `generate_async()` suspends its run and finishes it when it re-enters. Ten more nodes run one at a time in threaded mode (`LOGGING_TEMPLATES`). A subgraph containing `create_points` and a `clip_points_by_polygon` with `polygon_node_path` now re-run after scene edits.
+- **Spatial and terrain (R2).** Merged volume and spline data keep their steepness falloff (union by maximum). `to_point` samples merged splines along their curves. A shape united with an empty point set stays the shape. `BoundsBox` agrees with `PointCenter` on XY / YZ polygon surfaces and tilted heightfields. Level nearest-point projections beside a mesh face up. Spline tubes under a non-uniform scale measure world distance. Terrain3D snapshots with unequal spacings no longer overshoot the terrain. `get_surface_data` rejects `image_cell_size <= 0`. The samplers report the cap error instead of hanging on huge or non-finite bounds.
+- **World (R3).** A forced `generate_cell` uses the world's current settings. Runtime mode caps a finite radius at `MAX_RUNTIME_CELLS_PER_LEVEL` cells per level and source. `queue_bounds` after OnLoad went idle generates again. Switching to Runtime after `_ready` starts the scheduler. Runtime mode cleans up the cells of a level removed by a graph edit. A cancelled cell that is wanted again is regenerated instead of being marked Generated with empty outputs. Cell queries normalise the Unbounded coordinate. Freed entries from a source provider are skipped.
+- **Spawners (R4).** A spawner fed several bulks, or inside a loop or repeated subgraph, keeps every bulk and iteration. Taken names become `<name>_<k>` instead of colliding auto-names. Content under a spawn parent or target container that is no longer used is removed on the next generation. A missing `%Unique` override target is reported instead of writing into the level. Copies of a component (`duplicate()`, the editor's Duplicate) clean up their copied content. Pooled MultiMeshInstance3Ds are reset. A mesh without surfaces gets no collider. These checks cost time: the second generation of `graph_dungeon_stress_test` (1817 scene instances) went from about 570 to about 650–690 ms.
+- **Attributes and loops (R5).** `compare_op` compares integers exactly. A fractional constant against an integer attribute stays fractional. `copy_attribute`, `expression`, `filter` and loop Merge now produce output on inputs that used to raise a script error: broadcast streams, and attribute types that differ between iterations. Loop Merge expands broadcast streams. Partitions keep Int64 and Double values. Missing quaternions default to identity in `copy_attribute` and `merge_attributes`. Inverting a singular transform uses a zero reciprocal scale, as Unreal's `FTransform::Inverse` does. A self-recursive graph leaves an error in `last_errors` (`FlowExecutor.MAX_EVAL_DEPTH = 20`). NaN partition keys sort last. The `attribute_string_op` Format no longer expands tokens inside values.
+
+**Known, not fixed.** The reviewers' suspected issues, deduplicated against *Remaining gaps* below.
+- **Executor and editor.**
+  - `expression` is not serialized in threaded mode: a bad evaluation raises an engine error on a worker thread. It is the most expensive pure node, so it was left out of `LOGGING_TEMPLATES`.
+  - `print()` traces (`settings.trace`) of pure nodes reach Loggers from workers. This is a debug-only path.
+  - `FlowOutputCache.max_entries < 0` hangs the eviction loop.
+  - The per-script settings property lists (`FlowOutputCache._settings_props`, `FlowExecutor._resource_props`) are never cleared. After an editor hot reload that adds a settings property, the cache key and the settings replay miss it until the graph data or the registry changes.
+  - A custom main-thread node that calls `FlowNodeIO.evaluate()` in threaded mode puts its nested errors out of order in `last_errors`. No stock node does this.
+  - `cleanup()` during an async run finishes the run first and never emits `generated`, so code awaiting `generated` after `generate_async()` then `cleanup()` waits forever.
+- **Spatial and terrain.**
+  - Shapes are immutable only by convention. Public packed arrays and objects (`polygon`, `heights`, `curve`, `vertices`, `FlowSurfaceLayers.grids`, ...) are shared by reference. No code in the repository writes them.
+  - The bounds of XY / YZ polygon surfaces and tilted heightfields are their outline. A composite such as Intersection(XY polygon, a volume off its plane) therefore has empty bounds and samples nothing.
+  - Under a scaled `Path3D`, spline `to_points` intervals and `spline_length` are in curve units.
+  - Splat weights from float images (`FlowSurfaceLayers.from_images`, Textures-mode `sample_terrain_layers`) are not clamped to 0..1.
+  - `merge` drops `Data.shape` and tags without a warning. The attribute `filter` sends a shape-only Data to both of its outputs.
+  - A union of N shapes costs O(N) per density query.
+  - The HTerrain fingerprint reads splat texels without decompressing the image. `FlowHeightfieldSurface` used directly still clamps a cell size of 0 or less to 1e-6.
+- **World.**
+  - Generated cells are kept as they are after a run-time change of the graph (when the levels stay the same), `seed`, `params`, `overrides` or `world_bounds`, and finer cells use their stale coarse data. Call `cleanup_all()` after such a change. A shrinking `world_bounds` can leave cells outside it alive.
+  - An idle runtime tick costs about 15 µs per known cell: about 20 ms for 1325 cells with the demo graph, against the 4 ms default budget. Each cell that starts scans every record.
+  - Pooled cell components keep the signal connections a user added. User calls to `generate()` or `cleanup()` on a cell component that the world is generating leave the cell Generated with empty outputs.
+  - Float keys in `generation_radius` (`16.0`) are ignored silently, and a radius of −INF selects the whole world.
+  - A `FlowWorld3D` that is not at the identity transform is unsupported and gives no warning. Freeing the world without `cleanup_all()` leaves content spawned outside it.
+  - At extreme coordinates, `coord_of` and `get_cell_at` wrap beyond |p / size| > 2^31. At cell size 1, ownership fails beyond about 1.6e7.
+  - `grid_fill_bounds` `world_anchored` gives the same points through cells only below `max_points`.
+  - Two documented signal behaviours can surprise: `all_generated` also fires after a busy period that only cleaned up, and a cancelled run emits `cell_cleaned_up` without `cell_generated`.
+- **Spawners.**
+  - Reusing a pooled MultiMeshInstance3D or segment frees every `StaticBody3D` child, including one a user added by hand.
+  - Pool keys of unsaved resources (`#<instance id>`) can match across sessions. Not reproduced.
+  - After a scene reload, two components that share a parent and use the same spawner node names can free each other's saved content when only one of them regenerates. `cleanup()` after a reload does not find content outside the component's subtree; the next `generate()` clears it.
+  - `segments_for_spline` can mis-segment a curve that passes through one of its own earlier control points.
+  - A NaN mesh-entry weight (only possible from code) sends every pick to the last positive entry. A NaN float coerced to an int property gives INT64_MIN.
+- **Attributes and loops.**
+  - `get_loop_key` truncates Int64 and Double keys.
+  - The depth guard stops self-recursion, but a self-referencing loop with N iterations per level runs about N^20 nested evaluations first.
+  - Zero quaternions can still come from `attribute_cast` (Vector4 to Quaternion) or a zero Vector4 stream, and `make_transform_attribute` then builds a NaN basis. `break_transform_attribute` and `lerp_transform` log engine errors on a zero-scale basis.
+  - With NaN values, `attribute_select` (Min, Max, Median) may depend on the input order.
+  - `Data.size()` reads the first registered stream, so a Data whose first stream is a broadcast stream reports 1 point.
+  - `attribute_set_to_point` with `transform_attribute_name` leaves a stale `rotation_quat`.
+  - Selector alias edges: `create_points` accepts `$Density`, `first("$Density")` does not fall back to a per-data `density`, and `@Source` on `$Index` creates a stream named `Index`.
+  - `compare_op` AnyComponent with `!=` means "no component equal". This was not checked against Unreal.
+  - `split_points` and `weighted_point_sampler` refuse Int64 and Double attributes.
+  - The `expression` result container takes the type of the first point's result.
+
+---
+
 ## Remaining gaps
 
 The honest list after both waves of round 2, collected from the package notes ([`_round2/`](_round2/)) and checked against the code.
@@ -54,11 +121,11 @@ The honest list after both waves of round 2, collected from the package notes ([
 
 **Execution and performance**
 - No GPU execution of the graph. `compute_kernel` is the escape hatch, as Custom HLSL is in UE; there was no GPU in the build container to verify a compute path.
-- Per-point hot loops are GDScript. The native extension covers the spatial queries (`GDKdTree`, `GDRTree`) and stream sorting (`GDStreamUtils`); moving `getTransformsStream`, `transform`, `filteredStream`, `merge` and `attribute_filter_range` loops into it is not done ([PCG_SYSTEM_REVIEW.md](PCG_SYSTEM_REVIEW.md), P3).
+- Per-point hot loops are GDScript. The native extension covers the spatial queries (`GDKdTree`, `GDRTree`) and stream sorting (`GDStreamUtils`); moving `getTransformsStream`, `transform`, `filteredStream`, `merge` and `attribute_filter_range` loops into it is not done ([PCG_SYSTEM_REVIEW.md](PCG_SYSTEM_REVIEW.md), P3). The wave C performance pass ([`_round2/WP13-P1.md`](_round2/WP13-P1.md)) made 14 GDScript hot paths faster with byte-identical output. Typical speedups from 1k to 100k points: `expression` 4 to 7 times; `attribute_filter_range` / `density_filter` and `point_offsets` about 4 times; `filter` and `sample_points` about 3 times; `difference` about 2 times; `transform` / `transform_points` 1.6 to 2 times; `grid` 1.3 to 1.4 times. The per-case table and the native candidates, with how to gate them, are in that note. Two new scripts in `demo/tests/perf/` support this work; they are scripts, not tests. `node_benchmark.gd` times 25 node cases, 12 data-layer primitives and the executor phases at 1k, 10k and 100k points (`FLOW_NB_FINGERPRINT=1` prints an exact output hash per case). `exact_fingerprint.gd` prints a SHA-256 of the raw output bytes and logged messages of every golden graph and node, which catches last-bit changes that the golden suite's 1/1000 rounding hides.
 - Time slicing is per node, not inside a node: one heavy node still costs one frame.
 - Threaded mode is limited by GDScript. Anything that touches the scene tree, physics or rendering, spawns, or reads graph variables or runtime params stays on the main thread. Graphs of many small nodes do not get faster (object allocation contends in the engine); compute-bound independent branches do (about 2.9 times on 4 cores in the round-2 benchmark). Group tasks are submitted at high priority, because low-priority `WorkerThreadPool` tasks get only about 30% of the pool's threads.
 - Threaded mode and script Loggers: errors printed outside `setError` reach every `OS.add_logger` Logger on the worker thread. The nodes known to log that way run one at a time (`FlowNodeTraits.LOGGING_TEMPLATES`), which is a mitigation, not a fix: an unforeseen engine error from another pure node still reaches Loggers concurrently.
-- Without the output cache, repeat evaluation is about 3.1 to 3.2 times faster than before round 2; the 5 times target was met only with `output_cache` on. The rest of the time is spent in node bodies (per-point GDScript loops, `Data` copies).
+- Without the output cache, repeat evaluation is about 3.1 to 3.2 times faster than before round 2; the 5 times target was met only with `output_cache` on. The rest of the time is spent in node bodies (per-point GDScript loops, `Data` copies). After the wave C performance pass, the 47-node scenario of `executor_benchmark.gd` (scenario A, sequential) went from about 12.7 to about 9.4 ms per evaluation, and the subgraph scenario B from 50.6–55.9 to 37.6–38.7 ms. The node bodies went from 8.4 to 5.8 ms, while the executor's build and finalize phases barely moved.
 - The output cache keys resources referenced from settings by identity: after editing a Curve or Mesh in place, call `FlowOutputCache.clear()`. Data fingerprints are 32-bit hashes plus sizes, so a collision is possible in principle (none was observed on the golden set).
 - The conformance harness is evidence, not proof: a worker batch runs three copies of one element, not every interleaving or pairs of different templates; the static scan is a regular-expression heuristic that does not follow calls into helper classes; the executor prewarms Curves and Gradients but not Meshes before a threaded batch.
 
@@ -97,7 +164,7 @@ The honest list after both waves of round 2, collected from the package notes ([
 - No Validate action (unconnected required inputs, unreachable nodes, output name collisions, stream-type conflicts, missing subgraph resources), no "Run with…" panel for seed, inputs and runtime params, and no public `FlowEditorPlugin.open_graph` ([PCG_SYSTEM_REVIEW.md](PCG_SYSTEM_REVIEW.md), P2).
 
 **Editor (not verified visually)**
-- Headless runs use the dummy renderer and no editor, so the dock's mouse interaction, drawing, inspector and undo wiring, hot reload, the 3D debug draw (point cubes, shape lines, bounds boxes), the Data Inspector table, port colours, the graph-parameter editor, the loop inspector options, `FlowWorld3D`'s inspector buttons and the hierarchical demo were tested through their data only. [MANUAL_EDITOR_CHECK.md](MANUAL_EDITOR_CHECK.md) is the 30-minute check list for a human with the editor.
+- Headless runs use the dummy renderer and no editor, so the dock's mouse interaction, drawing, inspector and undo wiring, hot reload, the 3D debug draw (point cubes, shape lines, bounds boxes), the Data Inspector table, port colours, the graph-parameter editor, the loop inspector options, `FlowWorld3D`'s inspector buttons and the hierarchical demo were tested through their data only. [MANUAL_EDITOR_CHECK.md](MANUAL_EDITOR_CHECK.md) is the 40-minute check list for a human with the editor.
 - A link dropped by a port rebuild (a mode setting turned off) is not restored by undoing the setting change.
 
 ---
