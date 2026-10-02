@@ -54,6 +54,7 @@ func _execute_shape( ctx : FlowData.EvaluationContext, in_data : FlowData.Data, 
 		return
 	var bounding := _bounding_shape()
 	if bounding != null:
+		# The composite keeps the terrain's paint layers (FlowCompositeShape.get_layers).
 		shape = FlowCompositeShape.new( FlowSpatial.Op.Intersection, shape, bounding, FlowSpatial.DENSITY_BINARY )
 	var opts := {
 		"points_per_square_meter": float( getSettingValue( ctx, "points_per_square_meter", 0.1 ) ),
@@ -66,6 +67,8 @@ func _execute_shape( ctx : FlowData.EvaluationContext, in_data : FlowData.Data, 
 		"point_size": getSettingValue( ctx, "point_size", Vector3.ONE ),
 		"max_candidates": int( getSettingValue( ctx, "max_candidates", FlowSpatial.DEFAULT_MAX_CANDIDATES ) ),
 		"seed": seed_val,
+		"write_layers": bool( getSettingValue( ctx, "write_terrain_layers", true ) ),
+		"layer_prefix": str( getSettingValue( ctx, "terrain_layer_prefix", "layer_" ) ),
 	}
 	if settings.get( "shape_sampling" ) == SurfaceSamplerNodeSettings.eShapeSampling.Count:
 		opts["num_points"] = maxi( 0, int( getSettingValue( ctx, "num_points", 40 ) ) )

@@ -46,6 +46,12 @@ enum eShapeSampling {
 		notify_property_list_changed()
 ## Surface data inputs: safety cap on candidate cells.
 @export var max_candidates : int = 4000000
+## Terrain surfaces (Get Surface Data from a terrain adapter, or with splat
+## layers): write one Float weight attribute per paint layer onto the samples
+## (UE landscape layer weights). Surfaces without layers are unaffected.
+@export var write_terrain_layers : bool = true
+## Prefix of those weight attributes (the Sample Terrain Layers prefix).
+@export var terrain_layer_prefix : String = "layer_"
 
 func _init():
 	super._init()

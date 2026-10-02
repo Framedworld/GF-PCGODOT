@@ -179,10 +179,12 @@ func test_sample_spline_union_of_splines_and_errors() -> void:
 
 # --- difference / intersection / union ---------------------------------------------------------
 
-func _diff(script, a : FlowData.Data, b : FlowData.Data, op : int = 0, fn : int = 0) -> FlowData.Data:
+func _diff(script, a : FlowData.Data, b : FlowData.Data, op : int = 0, fn : int = 0, om : int = -1) -> FlowData.Data:
 	var s = DifferenceSettings.new()
 	s.operation = op
 	s.density_function = fn
+	if om >= 0:
+		s.overlap_mode = om
 	var node = S.run(script, s, [a, b])
 	assert_str(node.err).is_empty()
 	var d := S.output(node)
@@ -228,37 +230,40 @@ func _row() -> FlowData.Data:
 
 func test_points_minus_shape_binary_and_density_functions() -> void:
 	# Soft sphere at x=0, r=3, steepness 0: density 1, 0.5, 0, 0 at x = 0, 1.5, 3, 10.
+	# These are point-centre densities (WP6 made BoundsBox the default overlap mode).
+	var pc : int = DifferenceSettings.eOverlapMode.PointCenter
 	var sphere := FlowSphereVolume.at(Vector3.ZERO, 3.0, 0.0)
-	var binary := _diff(DifferenceNode, _row(), _shape_data(sphere))
+	var binary := _diff(DifferenceNode, _row(), _shape_data(sphere), 0, 0, pc)
 	assert_array(Array(_positions(binary))).is_equal([Vector3(3, 0, 0), Vector3(10, 0, 0)])
 	assert_array(Array(binary.tags)).is_equal(["trees"])
 	assert_object(binary.shape).is_null()
-	var sub := _diff(DifferenceNode, _row(), _shape_data(sphere), 0, DifferenceSettings.eDensityFunction.Subtract)
+	var sub := _diff(DifferenceNode, _row(), _shape_data(sphere), 0, DifferenceSettings.eDensityFunction.Subtract, pc)
 	assert_int(sub.size()).is_equal(4)
 	var dens := _densities(sub)
 	assert_float(dens[0]).is_equal_approx(0.0, 1e-5)
 	assert_float(dens[1]).is_equal_approx(0.5, 1e-5)
 	assert_float(dens[2]).is_equal_approx(0.6, 1e-5)
-	var mul := _densities(_diff(DifferenceNode, _row(), _shape_data(sphere), 0, DifferenceSettings.eDensityFunction.Multiply))
+	var mul := _densities(_diff(DifferenceNode, _row(), _shape_data(sphere), 0, DifferenceSettings.eDensityFunction.Multiply, pc))
 	assert_float(mul[1]).is_equal_approx(0.5, 1e-5)
-	var mn := _densities(_diff(DifferenceNode, _row(), _shape_data(sphere), 0, DifferenceSettings.eDensityFunction.Minimum))
+	var mn := _densities(_diff(DifferenceNode, _row(), _shape_data(sphere), 0, DifferenceSettings.eDensityFunction.Minimum, pc))
 	assert_float(mn[0]).is_equal_approx(0.0, 1e-5)
 	# B_Minus_A with points on B: same as A_Minus_B with sides swapped.
-	var swapped := _diff(DifferenceNode, _shape_data(sphere), _row(), DifferenceSettings.eOperation.B_Minus_A)
+	var swapped := _diff(DifferenceNode, _shape_data(sphere), _row(), DifferenceSettings.eOperation.B_Minus_A, 0, pc)
 	assert_bool(S.same_data(swapped, binary)).is_true()
 
 func test_points_intersect_and_union_shape() -> void:
 	var sphere := FlowSphereVolume.at(Vector3.ZERO, 3.0, 0.0)
-	var inter := _diff(DifferenceNode, _row(), _shape_data(sphere), DifferenceSettings.eOperation.Intersection)
+	var pc : int = DifferenceSettings.eOverlapMode.PointCenter	# point-centre semantics (WP6 default is BoundsBox)
+	var inter := _diff(DifferenceNode, _row(), _shape_data(sphere), DifferenceSettings.eOperation.Intersection, 0, pc)
 	assert_int(inter.size()).is_equal(2)
-	var inter_mul := _diff(DifferenceNode, _shape_data(sphere), _row(), DifferenceSettings.eOperation.Intersection, DifferenceSettings.eDensityFunction.Multiply)
+	var inter_mul := _diff(DifferenceNode, _shape_data(sphere), _row(), DifferenceSettings.eOperation.Intersection, DifferenceSettings.eDensityFunction.Multiply, pc)
 	assert_float(_densities(inter_mul)[1]).is_equal_approx(0.5, 1e-5)
 	assert_float(_densities(inter_mul)[3]).is_equal(0.0)
-	var uni := _diff(DifferenceNode, _row(), _shape_data(sphere), DifferenceSettings.eOperation.Union)
+	var uni := _diff(DifferenceNode, _row(), _shape_data(sphere), DifferenceSettings.eOperation.Union, 0, pc)
 	assert_array(Array(_densities(uni))).is_equal([1.0, 1.0, 1.0, 1.0])
-	var uni_min := _diff(DifferenceNode, _row(), _shape_data(sphere), DifferenceSettings.eOperation.Union, DifferenceSettings.eDensityFunction.Minimum)
+	var uni_min := _diff(DifferenceNode, _row(), _shape_data(sphere), DifferenceSettings.eOperation.Union, DifferenceSettings.eDensityFunction.Minimum, pc)
 	assert_float(_densities(uni_min)[2]).is_equal_approx(0.6, 1e-5)
-	var sym := _diff(DifferenceNode, _row(), _shape_data(sphere), DifferenceSettings.eOperation.SymmetricDifference)
+	var sym := _diff(DifferenceNode, _row(), _shape_data(sphere), DifferenceSettings.eOperation.SymmetricDifference, 0, pc)
 	assert_int(sym.size()).is_equal(2)
 
 func test_shape_minus_points_is_composite_with_points_volume() -> void:
@@ -279,7 +284,9 @@ func test_forest_minus_road_spline_soft_edge() -> void:
 	var forest_node = S.run(SurfaceSamplerNode, s, [_shape_data(_plane_surface(20.0))])
 	var forest := S.output(forest_node)
 	var road := FlowSplineShape.new(S.line_curve(Vector3(-10, 0, 0), Vector3(10, 0, 0)), Transform3D.IDENTITY, false, 2.0, 0.5)
-	var out := _diff(DifferenceNode, forest, _shape_data(road), 0, DifferenceSettings.eDensityFunction.Subtract)
+	# Point-centre bands (WP6: BoundsBox, the default, also attenuates points whose
+	# bounds reach into the tube).
+	var out := _diff(DifferenceNode, forest, _shape_data(road), 0, DifferenceSettings.eDensityFunction.Subtract, DifferenceSettings.eOverlapMode.PointCenter)
 	assert_int(out.size()).is_equal(forest.size())
 	var pos := _positions(out)
 	var dens := _densities(out)

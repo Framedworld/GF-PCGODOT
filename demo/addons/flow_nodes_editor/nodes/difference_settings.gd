@@ -38,6 +38,16 @@ enum eDensityFunction {
 	Subtract,
 }
 
+enum eOverlapMode {
+	## A point is its position: the shape's density at the point centre decides.
+	PointCenter,
+	## A point is its bounds box (UE point-versus-volume): the shape is evaluated
+	## over the box (exactly for axis-aligned boxes and spheres, else at the
+	## centre, 8 corners and 6 face centres), so a large point whose centre is
+	## outside a shape but whose bounds overlap it is removed or attenuated.
+	BoundsBox,
+}
+
 
 ## Chooses the set difference or boolean operation to perform between Input A and Input B.
 @export var operation : eOperation = eOperation.A_Minus_B:
@@ -73,6 +83,16 @@ enum eDensityFunction {
 	set(value):
 		value = clampi(value, 0, eDensityFunction.size() - 1)
 		density_function = value
+		emit_changed()
+
+## Points against spatial data (a shape on the other input): test each point as
+## its centre, or as its bounds box (bounds_min/bounds_max when present, else
+## size) with the point's steepness shaping partial overlaps, as point-versus-point
+## overlaps already do. Two point inputs ignore this setting.
+@export var overlap_mode : eOverlapMode = eOverlapMode.BoundsBox:
+	set(value):
+		value = clampi(value, 0, eOverlapMode.size() - 1)
+		overlap_mode = value
 		emit_changed()
 
 func _init():

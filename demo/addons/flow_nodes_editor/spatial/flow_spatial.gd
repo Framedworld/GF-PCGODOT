@@ -82,6 +82,11 @@ func content_hash() -> int:
 func get_type_name() -> String:
 	return "Spatial"
 
+## Paint-layer weights carried by a surface (terrain adapters attach them), or
+## null. Samplers write one weight attribute per layer when present (WP6).
+func get_layers() -> FlowSurfaceLayers:
+	return null
+
 ## Leaves of nested unions (or [self]). Lets spline consumers treat a merged
 ## spline collection as its individual splines.
 func union_leaves() -> Array:
@@ -103,6 +108,66 @@ func sample_density_batch( positions : PackedVector3Array ) -> PackedFloat32Arra
 	for i in range( positions.size() ):
 		out[i] = sample_density( positions[i] )
 	return out
+
+## Overlap of a world-space axis-aligned box (a point's bounds) with this
+## shape's density field, for the BoundsBox overlap mode of the set operations.
+## Returns Vector2(peak, coverage):
+##   peak      the highest density found over the box (0 = no overlap)
+##   coverage  the mean density over the box, 0..peak
+## The default evaluates a fixed, deterministic sample set (box_sample_points:
+## centre, 8 corners, 6 face centres). Box and sphere volumes override it with
+## exact results where the math is closed-form. Surfaces are tested over their
+## whole column (their density ignores Y unless vertical_tolerance > 0), so no
+## broad-phase rejection on Y is made here.
+func box_overlap( box_min : Vector3, box_max : Vector3 ) -> Vector2:
+	var b := get_bounds()
+	if box_max.x < b.position.x or box_min.x > b.end.x or box_max.z < b.position.z or box_min.z > b.end.z:
+		return Vector2.ZERO
+	return FlowSpatial.box_overlap_sampled( self, box_min, box_max )
+
+## The 15 fixed sample positions of a box: centre, 8 corners, 6 face centres.
+static func box_sample_points( box_min : Vector3, box_max : Vector3 ) -> PackedVector3Array:
+	var c := ( box_min + box_max ) * 0.5
+	var out := PackedVector3Array()
+	out.append( c )
+	for ix in [ box_min.x, box_max.x ]:
+		for iy in [ box_min.y, box_max.y ]:
+			for iz in [ box_min.z, box_max.z ]:
+				out.append( Vector3( ix, iy, iz ) )
+	out.append( Vector3( box_min.x, c.y, c.z ) )
+	out.append( Vector3( box_max.x, c.y, c.z ) )
+	out.append( Vector3( c.x, box_min.y, c.z ) )
+	out.append( Vector3( c.x, box_max.y, c.z ) )
+	out.append( Vector3( c.x, c.y, box_min.z ) )
+	out.append( Vector3( c.x, c.y, box_max.z ) )
+	return out
+
+## Vector2(peak, coverage) of `shape` over a box from the fixed sample set.
+static func box_overlap_sampled( shape : FlowSpatial, box_min : Vector3, box_max : Vector3 ) -> Vector2:
+	var peak := 0.0
+	var total := 0.0
+	var samples := box_sample_points( box_min, box_max )
+	for p in samples:
+		var d := clampf( shape.sample_density( p ), 0.0, 1.0 )
+		peak = maxf( peak, d )
+		total += d
+	return Vector2( peak, total / float( samples.size() ) )
+
+## One overlap density from box_overlap()'s (peak, coverage) and the point's
+## steepness, generalising the point-versus-point rule of `difference`
+## (BoundsOverlapUtil.shape_factor of the penetration ratio):
+##   steepness 1 (hard point)  -> peak
+##   steepness < 1             -> peak * shape_factor(coverage / peak, steepness)
+## Against a hard shape (peak 1 wherever it overlaps) this is exactly the
+## point-versus-point factor with the penetration ratio replaced by coverage.
+static func overlap_factor( overlap : Vector2, point_steepness : float ) -> float:
+	var peak := clampf( overlap.x, 0.0, 1.0 )
+	if peak <= 0.0:
+		return 0.0
+	var s := clampf( point_steepness, 0.0, 1.0 )
+	if s >= 1.0:
+		return peak
+	return peak * BoundsOverlapUtil.shape_factor( clampf( overlap.y / peak, 0.0, 1.0 ), s )
 
 func _to_string() -> String:
 	return "<%s %s>" % [ get_type_name(), str( get_bounds() ) ]
@@ -232,6 +297,8 @@ static func cell_seed( node_seed : int, cx : int, cz : int ) -> int:
 ##   point_size : Vector3 = (1, 1, 1)        scale written to `size`
 ##   max_candidates : int = 4000000          safety cap; above it sampling errors out
 ##   bounds : AABB                           optional extra XZ restriction
+##   write_layers : bool = true              write the surface's paint-layer weights
+##   layer_prefix : String = "layer_"        prefix of those weight streams
 ## Candidates are placed on a world-anchored XZ grid (cell = 1/sqrt(points per m^2))
 ## with per-cell seeded jitter, projected with project_vertical(), and weighted by
 ## the hit density: composites (surface minus a volume, surface inside another
@@ -296,7 +363,23 @@ static func sample_surface( shape : FlowSpatial, settings : Dictionary = {}, err
 						continue
 					_accept_surface_hit( shape, x, z, keep_zero, apply_density, align, positions, rotations, normals, densities )
 
-	return make_points_data( positions, rotations, normals, densities, extents * 2.0, node_seed, point_size, point_steepness )
+	var out := make_points_data( positions, rotations, normals, densities, extents * 2.0, node_seed, point_size, point_steepness )
+	_write_layers( shape, out, settings, errors )
+	return out
+
+## Surfaces carrying paint layers (terrain adapters): one Float weight stream
+## per layer, `layer_prefix` + name (settings write_layers = true by default,
+## layer_prefix = "layer_", the Sample Terrain Layers prefix). Shapes without
+## layers are untouched.
+static func _write_layers( shape : FlowSpatial, out : FlowData.Data, settings : Dictionary, errors : Array ) -> void:
+	if not bool( settings.get( "write_layers", true ) ):
+		return
+	var layers := shape.get_layers()
+	if layers == null or layers.is_empty():
+		return
+	var err := layers.write_streams( out, str( settings.get( "layer_prefix", "layer_" ) ) )
+	if err != "":
+		errors.append( err )
 
 static func _accept_surface_hit( shape : FlowSpatial, x : float, z : float, keep_zero : bool, apply_density : bool, align : bool, positions : PackedVector3Array, rotations : PackedVector3Array, normals : PackedVector3Array, densities : PackedFloat32Array ) -> bool:
 	var hit := shape.project_vertical( x, z )

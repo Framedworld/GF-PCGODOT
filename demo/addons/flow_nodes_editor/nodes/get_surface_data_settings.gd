@@ -8,6 +8,10 @@ enum eSource {
 	Scene,
 	## A heightmap image (heightmap_image, else heightmap_texture), no scene needed.
 	HeightmapImage,
+	## A terrain through a terrain adapter (WP6): the node at terrain_node_path, or
+	## the single terrain plugin node (Terrain3D, HTerrain) found in the scene
+	## (or in group_name), detected by its methods.
+	Terrain,
 }
 
 enum eOutputMode {
@@ -50,6 +54,24 @@ enum eOutputMode {
 ## Intersection): <= 0 means the whole column above and below the surface.
 @export var vertical_tolerance : float = -1.0
 
+@export_group("Terrain")
+## Terrain source: node to read (relative to the graph's owner). Empty
+## auto-detects the one Terrain3D / HTerrain node in the scene (or group_name).
+## Also accepts a CollisionShape3D with a HeightMapShape3D or a MeshInstance3D.
+@export var terrain_node_path : NodePath
+## Terrain source: explicit world bounds; needed only when the terrain cannot
+## report its extent (Terrain3D without readable regions). Empty = auto.
+@export var terrain_bounds : AABB
+## Terrain source: cap on height samples per axis for plugin terrains
+## (the snapshot grid is coarsened above it).
+@export var terrain_max_resolution : int = 1024
+## Terrain source: new names for the terrain's own layers, in order (empty
+## entries keep the adapter's name, e.g. texture_0).
+@export var terrain_layer_names : PackedStringArray
+## Terrain and HeightmapImage sources: extra paint layers read from splat image
+## channels covering the terrain footprint.
+@export var terrain_splat_layers : Array[FlowTerrainSplatLayer] = []
+
 func _init():
 	super._init()
 	resource_name = "Get Surface Data Settings"
@@ -57,6 +79,12 @@ func _init():
 func exposeParam( name : String ) -> bool:
 	if name.begins_with( "image_" ) or name.begins_with( "heightmap_" ):
 		return source == eSource.HeightmapImage
-	if name in [ "group_name", "required_meta_bool", "recursive", "include_meshes", "include_heightmap_shapes", "output_mode" ]:
+	if name == "terrain_splat_layers":
+		return source == eSource.Terrain or source == eSource.HeightmapImage
+	if name.begins_with( "terrain_" ):
+		return source == eSource.Terrain
+	if name == "group_name":
+		return source == eSource.Scene or source == eSource.Terrain
+	if name in [ "required_meta_bool", "recursive", "include_meshes", "include_heightmap_shapes", "output_mode" ]:
 		return source == eSource.Scene
 	return true

@@ -14,6 +14,9 @@ extends FlowSpatial
 
 var grid : FlowTriangleGrid
 var vertical_tolerance : float = -1.0
+## Optional paint-layer weights (terrain adapters). Set only through
+## attach_layers() by a builder, before the shape is shared.
+var layers : FlowSurfaceLayers = null
 
 ## `world_vertices`: three per triangle, already in world space (copied).
 func _init( world_vertices : PackedVector3Array = PackedVector3Array(), tolerance : float = -1.0 ) -> void:
@@ -38,6 +41,17 @@ static func from_mesh_instances( instances : Array, tolerance : float = -1.0 ) -
 			meshes.append( mi.mesh )
 			xforms.append( mi.global_transform if mi.is_inside_tree() else mi.transform )
 	return from_meshes( meshes, xforms, tolerance )
+
+## Builder step: attach paint layers and fold them into the content hash.
+## Call once, right after construction; shapes are immutable once shared.
+func attach_layers( surface_layers : FlowSurfaceLayers ) -> FlowMeshSurface:
+	layers = surface_layers
+	if layers != null:
+		_hash = hash( [ _hash, layers.content_hash() ] )
+	return self
+
+func get_layers() -> FlowSurfaceLayers:
+	return layers
 
 func get_kind() -> int:
 	return FlowData.Kind.Surface

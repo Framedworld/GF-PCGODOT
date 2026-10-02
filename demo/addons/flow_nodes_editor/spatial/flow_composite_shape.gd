@@ -109,6 +109,20 @@ func sample_density( world_pos : Vector3 ) -> float:
 		return 0.0
 	return FlowSpatial.combine_density( op, density_function, da, b.sample_density( world_pos ) )
 
+## Paint layers of the surface operand: A for a difference, the surface side of
+## an intersection, A's (else B's) for a union.
+func get_layers() -> FlowSurfaceLayers:
+	match op:
+		FlowSpatial.Op.Difference:
+			return a.get_layers()
+		FlowSpatial.Op.Intersection:
+			if a.get_kind() != FlowData.Kind.Surface and b.get_kind() == FlowData.Kind.Surface:
+				return b.get_layers()
+			return a.get_layers()
+		_:
+			var la := a.get_layers()
+			return la if la != null else b.get_layers()
+
 ## The operand(s) that carry the surface for projection.
 func _surface_operands() -> Array:
 	if _kind != FlowData.Kind.Surface:

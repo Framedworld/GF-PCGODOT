@@ -10,7 +10,8 @@ extends FlowSpatial
 ## The grid IS the acceleration structure: every query indexes its cell
 ## directly (O(1)), heights are bilinear, normals come from the bilinear gradient.
 ## "Vertical" means the local Y axis. Outside the grid footprint project() and
-## project_vertical() miss and sample_density() is 0.
+## project_vertical() miss and sample_density() is 0. NaN heights are holes
+## (Terrain3D reports NaN there): a cell touching a NaN sample misses too.
 ##
 ## Builders: from_heightmap_shape (HeightMapShape3D + transform) and from_image
 ## (a heightmap Image, red channel or luminance, scaled by height_scale).
@@ -22,6 +23,9 @@ var cell_size : float = 1.0
 var origin : Vector3 = Vector3.ZERO
 var transform : Transform3D = Transform3D.IDENTITY
 var vertical_tolerance : float = -1.0
+## Optional paint-layer weights (terrain adapters). Set only through
+## attach_layers() by a builder, before the shape is shared.
+var layers : FlowSurfaceLayers = null
 
 var _inv : Transform3D
 var _bounds : AABB
@@ -41,8 +45,13 @@ func _init( height_values : PackedFloat32Array = PackedFloat32Array(), map_width
 		var hmin := INF
 		var hmax := -INF
 		for h in heights:
+			if is_nan( h ):
+				continue
 			hmin = minf( hmin, h )
 			hmax = maxf( hmax, h )
+		if hmin > hmax:
+			hmin = 0.0
+			hmax = 0.0
 		var local := AABB( origin + Vector3( 0.0, hmin, 0.0 ), Vector3( ( width - 1 ) * cell_size, hmax - hmin, ( depth - 1 ) * cell_size ) )
 		_bounds = transform * local
 	_hash = hash( [ "heightfield", heights, width, depth, cell_size, origin, FlowSpatial.hash_transform( transform ), vertical_tolerance ] )
@@ -77,6 +86,36 @@ static func from_image( image : Image, cell : float = 1.0, height_scale : float 
 	var local_origin := Vector3( -( w - 1 ) * 0.5 * cell, 0.0, -( d - 1 ) * 0.5 * cell ) if centered else Vector3.ZERO
 	return FlowHeightfieldSurface.new( values, w, d, cell, local_origin, xform )
 
+## Builder step: attach paint layers and fold them into the content hash.
+## Call once, right after construction; shapes are immutable once shared.
+func attach_layers( surface_layers : FlowSurfaceLayers ) -> FlowHeightfieldSurface:
+	layers = surface_layers
+	if layers != null:
+		_hash = hash( [ _hash, layers.content_hash() ] )
+	return self
+
+func get_layers() -> FlowSurfaceLayers:
+	return layers
+
+## Copy with another vertical tolerance (same grid, transform and layers).
+func with_tolerance( tolerance : float ) -> FlowHeightfieldSurface:
+	var out := FlowHeightfieldSurface.new( heights, width, depth, cell_size, origin, transform, tolerance )
+	return out.attach_layers( layers )
+
+## Local-space XZ footprint of the grid: Rect2(origin.xz, size).
+func get_local_footprint() -> Rect2:
+	return Rect2( Vector2( origin.x, origin.z ), Vector2( maxi( 0, width - 1 ) * cell_size, maxi( 0, depth - 1 ) * cell_size ) )
+
+## World hit of the vertical through (x, z) with the position clamped onto the
+## grid footprint first (in local space), so queries beyond the edge return the
+## edge height and normal. {} only for an empty grid or a hole.
+func clamped_hit( x : float, z : float ) -> Dictionary:
+	if width < 2 or depth < 2:
+		return {}
+	var l := _inv * Vector3( x, transform.origin.y, z )
+	var r := get_local_footprint()
+	return _to_world( _local_hit( clampf( l.x, r.position.x, r.end.x ), clampf( l.z, r.position.y, r.end.y ) ) )
+
 func get_kind() -> int:
 	return FlowData.Kind.Surface
 
@@ -105,6 +144,8 @@ func _local_hit( lx : float, lz : float ) -> Dictionary:
 	var h10 := heights[j * width + i + 1]
 	var h01 := heights[( j + 1 ) * width + i]
 	var h11 := heights[( j + 1 ) * width + i + 1]
+	if is_nan( h00 ) or is_nan( h10 ) or is_nan( h01 ) or is_nan( h11 ):
+		return {}
 	var h := lerpf( lerpf( h00, h10, u ), lerpf( h01, h11, u ), v )
 	var dhdx := ( lerpf( h10, h11, v ) - lerpf( h00, h01, v ) ) / cell_size
 	var dhdz := ( lerpf( h01, h11, u ) - lerpf( h00, h10, u ) ) / cell_size

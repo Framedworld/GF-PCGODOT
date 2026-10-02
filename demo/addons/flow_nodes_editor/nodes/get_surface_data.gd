@@ -4,7 +4,9 @@ extends FlowNodeBase
 # UE PCG parity: Get Landscape Data / Get Surface Data. Outputs surface spatial
 # data (Data.shape, zero points): FlowMeshSurface from MeshInstance3D nodes,
 # FlowHeightfieldSurface from HeightMapShape3D collision shapes or from a
-# heightmap image. Feed it to Surface Sampler, To Point, Projection (Surface
+# heightmap image, or (source = Terrain, WP6) whatever a FlowTerrainAdapter
+# reads: Terrain3D and HTerrain plugin nodes (duck typed, auto-detected by their
+# methods), a HeightMapShape3D or a terrain mesh, with paint-layer weights. Feed it to Surface Sampler, To Point, Projection (Surface
 # mode) or the spatial set operations.
 
 const GetSurfaceDataSettings = preload("res://addons/flow_nodes_editor/nodes/get_surface_data_settings.gd")
@@ -18,7 +20,7 @@ func _init():
 		"scans_scene" : true,
 		"ins" : [],
 		"outs" : [{ "label" : "Out", "data_type" : FlowData.DataType.NodeMesh }],	# pin colour of the legacy mesh stream
-		"tooltip" : "Surface data from MeshInstance3D nodes, HeightMapShape3D collision shapes or a heightmap image.\nNothing is sampled here: feed it to Surface Sampler, To Point, Projection or Difference/Intersection.",
+		"tooltip" : "Surface data from MeshInstance3D nodes, HeightMapShape3D collision shapes, a heightmap image,\nor a terrain (Terrain3D / HTerrain auto-detected, or terrain_node_path) with its paint layers.\nNothing is sampled here: feed it to Surface Sampler, To Point, Projection or Difference/Intersection.",
 	}
 
 func _accept( n : Node ) -> bool:
@@ -37,7 +39,52 @@ func computeSceneFingerprint( ctx : FlowData.EvaluationContext ) -> Variant:
 		return SCENE_INDEPENDENT
 	if ctx == null or ctx.owner == null:
 		return null
+	if settings.source == GetSurfaceDataSettings.eSource.Terrain:
+		var found := _detect_terrain( ctx )
+		if found.adapter == null:
+			return hash( [ "no terrain", found.error ] )
+		var n : Node = found.node
+		var items : Array = [ String( n.get_path() ) if n.is_inside_tree() else String( n.name ), found.adapter.fingerprint() ]
+		if n is Node3D:
+			items.append( FlowSpatialSources.world_transform( n ) )
+		items.append( FlowSpatialSources.fingerprint( ctx.owner, [ n ] ) )
+		return items.hash()
 	return FlowSpatialSources.fingerprint( ctx.owner, _sources( ctx ) )
+
+## Options handed to the terrain adapters.
+func _adapter_options( ctx : FlowData.EvaluationContext ) -> Dictionary:
+	return {
+		"vertical_tolerance": float( getSettingValue( ctx, "vertical_tolerance", -1.0 ) ),
+		"max_resolution": int( getSettingValue( ctx, "terrain_max_resolution", 1024 ) ),
+		"layer_names": settings.terrain_layer_names,
+		"splat_layers": settings.terrain_splat_layers,
+		"bounds": settings.terrain_bounds,
+	}
+
+func _detect_terrain( ctx : FlowData.EvaluationContext ) -> Dictionary:
+	return FlowTerrainAdapter.detect( ctx.owner, settings.terrain_node_path, str( getSettingValue( ctx, "group_name", "" ) ), _adapter_options( ctx ) )
+
+func _execute_terrain( ctx : FlowData.EvaluationContext ) -> void:
+	if reportMissingOwner( ctx ) or ctx == null or ctx.owner == null:
+		_emit_empty()
+		return
+	var found := _detect_terrain( ctx )
+	if found.adapter == null:
+		setError( "Get Surface Data: %s" % found.error )
+		_emit_empty()
+		return
+	var adapter : FlowTerrainAdapter = found.adapter
+	var shape := adapter.to_surface()
+	if shape == null:
+		setError( "Get Surface Data: terrain '%s' produced no surface" % adapter.source_name )
+		_emit_empty()
+		return
+	var d := FlowData.Data.from_shape( shape )
+	d.set_data_attr( "source", adapter.source_name, FlowData.DataType.String )
+	d.set_data_attr( "terrain_type", adapter.get_type_name(), FlowData.DataType.String )
+	var layers := shape.get_layers()
+	d.set_data_attr( "terrain_layers", ",".join( layers.names if layers != null else PackedStringArray() ), FlowData.DataType.String )
+	set_output( 0, d )
 
 func _image() -> Image:
 	if settings.heightmap_image != null and not settings.heightmap_image.is_empty():
@@ -53,11 +100,19 @@ func _emit_empty() -> void:
 
 func execute( ctx : FlowData.EvaluationContext ):
 	var tolerance : float = getSettingValue( ctx, "vertical_tolerance", -1.0 )
+	if settings.source == GetSurfaceDataSettings.eSource.Terrain:
+		_execute_terrain( ctx )
+		return
 	if settings.source == GetSurfaceDataSettings.eSource.HeightmapImage:
 		var img := _image()
 		if img == null:
 			setError( "Get Surface Data: no heightmap image (set heightmap_image, or a heightmap_texture with a readable image)" )
 			_emit_empty()
+			return
+		if not settings.terrain_splat_layers.is_empty():
+			# Splat layers: through the image terrain adapter (same grid, layers attached).
+			var adapter := FlowImageTerrainAdapter.new( img, getSettingValue( ctx, "image_cell_size", 1.0 ), getSettingValue( ctx, "image_height_scale", 1.0 ), settings.image_transform, settings.image_centered, { "vertical_tolerance": tolerance, "splat_layers": settings.terrain_splat_layers } )
+			set_output( 0, FlowData.Data.from_shape( adapter.to_surface() ) )
 			return
 		var hf := FlowHeightfieldSurface.from_image( img, getSettingValue( ctx, "image_cell_size", 1.0 ), getSettingValue( ctx, "image_height_scale", 1.0 ), settings.image_transform, settings.image_centered )
 		if tolerance > 0.0:

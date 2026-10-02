@@ -1,4 +1,8 @@
 @tool
+# FROZEN COPY of res://addons/flow_nodes_editor/nodes/difference.gd at commit 45f78b3 (WP2
+# spatial data, before the WP6 overlap_mode). Loaded lazily (this folder is .gdignore-d) by
+# tests/spatial/overlap_mode_test.gd to prove overlap_mode = PointCenter reproduces the WP2
+# points-versus-shape output exactly. Never edit; never register as a template.
 extends FlowNodeBase
 
 const DifferenceNodeSettings = preload("res://addons/flow_nodes_editor/nodes/difference_settings.gd")
@@ -365,9 +369,7 @@ func _attenuate_difference(keep_data : FlowData.Data, keep_pos : PackedVector3Ar
 #   Intersection -> Intersection(A, B)  Union -> Union(A, B)
 #   SymmetricDifference -> Union(Difference(A, B), Difference(B, A))
 # Points with a shape: the result is points (UE "inferred" output). Each point's
-# shape density s decides. With overlap_mode = BoundsBox (the default) s is the
-# shape evaluated over the point's bounds box and shaped by the point's
-# steepness (WP6); with PointCenter it is the density at the point position:
+# shape density s at its position decides:
 #   Binary: Difference drops points with s > 0, Intersection keeps them, Union
 #           sets density to 1 where the point or the shape has density.
 #   Minimum / Multiply / Subtract: every point is kept and its density becomes
@@ -380,9 +382,6 @@ func _attenuate_difference(keep_data : FlowData.Data, keep_pos : PackedVector3Ar
 
 func _density_function() -> int:
 	return settings.density_function if "density_function" in settings else DifferenceNodeSettings.eDensityFunction.Binary
-
-func _overlap_mode() -> int:
-	return settings.overlap_mode if "overlap_mode" in settings else DifferenceNodeSettings.eOverlapMode.PointCenter
 
 func _as_shape(data : FlowData.Data) -> FlowSpatial:
 	if data.shape != null:
@@ -399,42 +398,41 @@ func _shape_output(shape : FlowSpatial, meta_src : FlowData.Data) -> FlowData.Da
 
 func _execute_spatial(in_dataA : FlowData.Data, in_dataB : FlowData.Data, op : int) -> void:
 	var fn := _density_function()
-	var om := _overlap_mode()
 	var a_shape : FlowSpatial = in_dataA.shape
 	var b_shape : FlowSpatial = in_dataB.shape
 	match op:
 		DifferenceNodeSettings.eOperation.A_Minus_B:
-			_spatial_difference(in_dataA, in_dataB, fn, om)
+			_spatial_difference(in_dataA, in_dataB, fn)
 		DifferenceNodeSettings.eOperation.B_Minus_A:
-			_spatial_difference(in_dataB, in_dataA, fn, om)
+			_spatial_difference(in_dataB, in_dataA, fn)
 		DifferenceNodeSettings.eOperation.Intersection:
 			if a_shape != null and b_shape != null:
 				set_output(0, _shape_output(FlowCompositeShape.new(FlowSpatial.Op.Intersection, a_shape, b_shape, fn), in_dataA))
 			elif a_shape != null:
-				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Intersection, fn, om))
+				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Intersection, fn))
 			else:
-				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Intersection, fn, om))
+				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Intersection, fn))
 		DifferenceNodeSettings.eOperation.Union:
 			if a_shape != null and b_shape != null:
 				set_output(0, _shape_output(FlowCompositeShape.new(FlowSpatial.Op.Union, a_shape, b_shape, fn), in_dataA))
 			elif a_shape != null:
-				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Union, fn, om))
+				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Union, fn))
 			else:
-				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Union, fn, om))
+				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Union, fn))
 		DifferenceNodeSettings.eOperation.SymmetricDifference:
 			if a_shape != null and b_shape != null:
 				var ab := FlowCompositeShape.new(FlowSpatial.Op.Difference, a_shape, b_shape, fn)
 				var ba := FlowCompositeShape.new(FlowSpatial.Op.Difference, b_shape, a_shape, fn)
 				set_output(0, _shape_output(FlowCompositeShape.new(FlowSpatial.Op.Union, ab, ba, fn), in_dataA))
 			elif a_shape != null:
-				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Difference, fn, om))
+				set_output(0, points_vs_shape(in_dataB, a_shape, FlowSpatial.Op.Difference, fn))
 			else:
-				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Difference, fn, om))
+				set_output(0, points_vs_shape(in_dataA, b_shape, FlowSpatial.Op.Difference, fn))
 
 ## keep minus cut, where at least one side carries a shape.
-func _spatial_difference(keep : FlowData.Data, cut : FlowData.Data, fn : int, om : int) -> void:
+func _spatial_difference(keep : FlowData.Data, cut : FlowData.Data, fn : int) -> void:
 	if keep.shape == null:
-		set_output(0, points_vs_shape(keep, cut.shape, FlowSpatial.Op.Difference, fn, om))
+		set_output(0, points_vs_shape(keep, cut.shape, FlowSpatial.Op.Difference, fn))
 		return
 	var cutter := _as_shape(cut)
 	if cutter == null:
@@ -445,18 +443,11 @@ func _spatial_difference(keep : FlowData.Data, cut : FlowData.Data, fn : int, om
 
 ## Points of `points` combined with `shape` by `op` (see the table above).
 ## Returns a new Data (the input is never modified); metadata comes from `points`.
-## `overlap_mode` (DifferenceNodeSettings.eOverlapMode): PointCenter samples the
-## shape's density at each point position (the WP2 behaviour, and the default of
-## this static helper); BoundsBox evaluates the shape over each point's world
-## bounds box (FlowSpatial.box_overlap) and folds peak and coverage into one
-## overlap density with the point's steepness (FlowSpatial.overlap_factor).
-## Binary tests use the peak (any overlap), like point-versus-point Binary.
-static func points_vs_shape(points : FlowData.Data, shape : FlowSpatial, op : int, fn : int, overlap_mode : int = 0) -> FlowData.Data:
+static func points_vs_shape(points : FlowData.Data, shape : FlowSpatial, op : int, fn : int) -> FlowData.Data:
 	var n := points.size()
 	var positions := points.getVector3Container(FlowData.AttrPosition)
 	if n == 0 or positions.size() != n:
 		return points.duplicate()
-	var shape_density := _shape_densities(points, positions, shape, fn, overlap_mode)
 	var dens := PackedFloat32Array()
 	dens.resize(n)
 	var dsrc = points.getContainerChecked(FlowData.AttrDensity, FlowData.DataType.Float)
@@ -465,35 +456,12 @@ static func points_vs_shape(points : FlowData.Data, shape : FlowSpatial, op : in
 	if fn == FlowSpatial.DENSITY_BINARY and op != FlowSpatial.Op.Union:
 		var keep := PackedInt32Array()
 		for i in range(n):
-			var inside := shape_density[i] > 0.0
+			var inside := shape.sample_density(positions[i]) > 0.0
 			if inside == (op == FlowSpatial.Op.Intersection):
 				keep.append(i)
 		return points.filter(keep)
 	var out := points.duplicate()
 	for i in range(n):
-		dens[i] = FlowSpatial.combine_density(op, fn, dens[i], shape_density[i])
+		dens[i] = FlowSpatial.combine_density(op, fn, dens[i], shape.sample_density(positions[i]))
 	out.registerStream(FlowData.AttrDensity, dens, FlowData.DataType.Float)
-	return out
-
-## Per-point density of `shape` for points_vs_shape: at the centre (PointCenter)
-## or over the bounds box (BoundsBox; the peak for Binary, else the
-## steepness-shaped overlap factor).
-static func _shape_densities(points : FlowData.Data, positions : PackedVector3Array, shape : FlowSpatial, fn : int, overlap_mode : int) -> PackedFloat64Array:
-	# Doubles, so PointCenter folds exactly the values WP2 folded (no float32 rounding).
-	var n := positions.size()
-	var out := PackedFloat64Array()
-	out.resize(n)
-	if overlap_mode != DifferenceNodeSettings.eOverlapMode.BoundsBox:
-		for i in range(n):
-			out[i] = shape.sample_density(positions[i])
-		return out
-	var boxes := BoundsOverlap.world_aabbs(points, positions)
-	var bmin : PackedVector3Array = boxes.min
-	var bmax : PackedVector3Array = boxes.max
-	var steep := points.getEffectiveSteepness()
-	for i in range(n):
-		var lo : Vector3 = bmin[i]
-		var hi : Vector3 = bmax[i]
-		var ov := shape.box_overlap(lo.min(hi), lo.max(hi))
-		out[i] = ov.x if fn == FlowSpatial.DENSITY_BINARY else FlowSpatial.overlap_factor(ov, steep[i])
 	return out
