@@ -228,6 +228,11 @@ jobs:
 
       - name: Run GdUnit4 tests
         uses: godot-gdunit-labs/gdUnit4-action@v1
+        env:
+          # The golden and seed-zero baselines were recorded in one Linux container. A different runner
+          # (CPU, libm) differs by float noise; with this policy a stream that differs only by noise within
+          # the stored budget passes with a printed PLATFORM_NOISE warning, anything larger still fails.
+          FLOW_GOLDEN_TOLERANCE: noise
         with:
           godot-version: ${{ matrix.godot }}
           paths: 'res://tests'

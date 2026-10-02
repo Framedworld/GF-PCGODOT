@@ -276,7 +276,8 @@ func test_custom_data_enables_multimesh_custom_data() -> void:
 	assert_bool(mm.use_custom_data).is_true()
 	assert_int(mm.instance_count).is_equal(3)
 	if S.multimesh_readback_supported():
-		assert_float(mm.get_instance_custom_data(2).r).is_equal_approx(0.3, 1e-6)
+		# Some renderers (the headless one on the CI runners) store custom data as half floats: 0.3 reads back as 0.299805.
+		assert_float(mm.get_instance_custom_data(2).r).is_equal_approx(0.3, 1e-3)
 
 func test_custom_data_off_without_attributes() -> void:
 	var node = _make([S.entry(BoxMesh.new())])
